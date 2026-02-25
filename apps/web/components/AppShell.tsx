@@ -1,0 +1,245 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, LogOut, LayoutDashboard } from "lucide-react";
+import { Button } from "@repo/ui";
+import { useAuth } from "@repo/providers";
+import { LogoUwns } from "./LogoSvg";
+import ThemeSwitcher from "@/components/ThemeSwitch";
+import { SearchCommand } from "./SearchCommand";
+
+const HEADER_H = 56;
+const FOOTER_H = 64;
+
+export function AppShell({
+  title = "df",
+  children,
+}: {
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-dvh bg-(--ui-bg) text-(--ui-fg)">
+      <AppHeader title={title} />
+
+      <div
+        className="relative"
+        style={{
+          paddingTop: HEADER_H,
+          paddingBottom: FOOTER_H,
+          height: "100dvh",
+        }}
+      >
+        {/* Top fade */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed left-0 right-0 z-10"
+          style={{
+            top: HEADER_H,
+            height: 18,
+            background:
+              "linear-gradient(to bottom, var(--ui-fade-from), rgba(0,0,0,0))",
+          }}
+        />
+
+        {/* Bottom fade */}
+        <div
+          aria-hidden
+          className="pointer-events-none fixed left-0 right-0 z-10"
+          style={{
+            bottom: FOOTER_H,
+            height: 18,
+            background:
+              "linear-gradient(to top, var(--ui-fade-from), rgba(0,0,0,0))",
+          }}
+        />
+
+        <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
+      </div>
+
+      <AppFooter />
+    </div>
+  );
+}
+
+function AppHeader({ title }: { title: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, loading, signOut } = useAuth();
+
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+    setMenuOpen(false);
+  }, [pathname]);
+
+  const go = (href: string) => router.push(href);
+
+  const onSignOut = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await signOut();
+      router.replace("/login");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const initials = getInitials(user?.email ?? "U");
+
+  return (
+    <header
+      className={[
+        "fixed left-0 right-0 top-0 z-30",
+        "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
+        "transition-colors",
+      ].join(" ")}
+      style={{ height: HEADER_H }}
+    >
+      <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
+        <Link href="/app" className="flex items-center gap-2">
+          <LogoUwns className="h-6 w-auto text-foreground" version={"1"} />
+        </Link>
+
+        {/* Desktop */}
+        <div className="hidden items-center gap-2 sm:flex">
+          <SearchCommand hotkey />
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              className={[
+                "inline-flex h-9 w-9 items-center justify-center rounded-full",
+                "bg-(--ui-subtle-bg) text-(--ui-fg)",
+                "hover:opacity-90 transition",
+                "focus:outline-none focus:ring-2 focus:ring-(--ui-border)",
+              ].join(" ")}
+              aria-label="User menu"
+              aria-expanded={menuOpen}
+            >
+              <span className="text-xs font-semibold">{initials}</span>
+            </button>
+
+            {menuOpen && (
+              <div
+                className={[
+                  "absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl",
+                  "bg-(--ui-panel) shadow-lg",
+                  "ring-1 ring-(--ui-border)",
+                ].join(" ")}
+              >
+                <div className="px-3 py-2">
+                  <div className="text-xs text-(--ui-muted-fg)">Signed in as</div>
+                  <div className="truncate text-sm font-medium">{user?.email}</div>
+                </div>
+
+                <div className="h-px bg-(--ui-border)" />
+
+                <button
+                  type="button"
+                  onClick={() => go("/app")}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-(--ui-subtle-bg) transition"
+                >
+                  <LayoutDashboard size={16} />
+                  Dashboard
+                </button>
+
+                <div className="px-3 py-2 flex items-center justify-between">
+                  <span className="text-sm text-(--ui-muted-fg)">Theme</span>
+                  <ThemeSwitcher />
+                </div>
+
+                <div className="h-px bg-(--ui-border)" />
+
+                <button
+                  type="button"
+                  onClick={onSignOut}
+                  disabled={busy || loading}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-(--ui-subtle-bg) transition disabled:opacity-50"
+                >
+                  <LogOut size={16} />
+                  {busy ? "Signing out…" : "Sign out"}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile */}
+        <div className="flex items-center gap-2 sm:hidden">
+          <SearchCommand compact hotkey={false} />
+          <Button
+            variant="ghost"
+            onPress={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+          >
+            {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+          </Button>
+        </div>
+      </div>
+
+      {mobileOpen && (
+        <div className="bg-(--ui-panel)/95 supports-backdrop-filter:backdrop-blur">
+          <div className="mx-auto max-w-5xl px-4 pb-3 pt-2">
+            <div className="flex flex-col gap-2">
+              <Button variant="ghost" onPress={() => go("/app")}>
+                Dashboard
+              </Button>
+
+              <div className="flex items-center justify-between rounded-xl bg-(--ui-subtle-bg) px-3 py-2">
+                <div className="text-sm text-(--ui-muted-fg)">Theme</div>
+                <ThemeSwitcher />
+              </div>
+
+              <Button variant="ghost" onPress={onSignOut} disabled={busy || loading}>
+                {busy ? "Signing out…" : "Sign out"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
+
+function AppFooter() {
+  return (
+    <footer
+      className={[
+        "fixed bottom-0 left-0 right-0 z-30",
+        "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
+        "transition-colors",
+      ].join(" ")}
+      style={{ height: FOOTER_H }}
+    >
+      <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
+        <div className="text-xs text-(--ui-muted-fg)">
+          <span className="font-medium text-(--ui-fg)">UWNS</span> demo surface
+        </div>
+
+        <div className="text-xs text-(--ui-muted-fg)">
+          Tip: press <kbd className="rounded bg-(--ui-subtle-bg) px-1.5 py-0.5">⌘K</kbd>{" "}
+          for search
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function getInitials(input: string) {
+  const s = input.trim();
+  if (!s) return "U";
+  // email -> first char before @
+  const beforeAt = s.split("@")[0] || s;
+  const parts = beforeAt.split(/[._-]+/).filter(Boolean);
+  const first = parts[0]?.[0] ?? beforeAt[0] ?? "U";
+  const second = parts[1]?.[0] ?? "";
+  return (first + second).toUpperCase();
+}

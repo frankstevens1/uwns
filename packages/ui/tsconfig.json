@@ -1,7 +1,7 @@
 {
-  "extends": "@repo/typescript-config/react-library.json",
+  "extends": "@repo/typescript-config/react-library-bundler.json",
   "compilerOptions": {
-    "outDir": "dist"
+    "moduleSuffixes": [".native", ".ios", ".android", ".web", ""]
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]

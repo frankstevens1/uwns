@@ -1,0 +1,70 @@
+import * as React from "react";
+import { Button } from "../../primitives/Button/Button.web";
+import {
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogOverlay,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+} from "../Dialog/Dialog.web";
+import type { ConfirmDialogProps } from "./ConfirmDialog.types";
+
+function toLabel(value: React.ReactNode) {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return "Confirm";
+}
+
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  confirmVariant = "primary",
+  confirming,
+  disabled,
+  onConfirm,
+}: ConfirmDialogProps) {
+  const onConfirmClick = async () => {
+    if (confirming || disabled) return;
+    await onConfirm();
+  };
+
+  return (
+    <DialogRoot open={open} onOpenChange={onOpenChange}>
+      <DialogPortal>
+        <DialogOverlay />
+        <DialogContent
+          position="center"
+          className="rounded-2xl border border-(--ui-border) bg-(--ui-panel) p-4 shadow-xl"
+        >
+          <DialogTitle>{toLabel(title)}</DialogTitle>
+          {description ? (
+            <DialogDescription>{description}</DialogDescription>
+          ) : null}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost" size="sm" disabled={confirming}>
+                {cancelLabel}
+              </Button>
+            </DialogClose>
+            <Button
+              size="sm"
+              variant={confirmVariant}
+              onPress={onConfirmClick}
+              disabled={disabled || confirming}
+              loading={confirming}
+            >
+              {confirmLabel}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </DialogPortal>
+    </DialogRoot>
+  );
+}

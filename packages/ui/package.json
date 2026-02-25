@@ -2,25 +2,31 @@
   "name": "@repo/ui",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
+  "sideEffects": false,
   "exports": {
-    "./*": "./src/*.tsx"
+    ".": {
+      "react-native": "./src/index.native.ts",
+      "default": "./src/index.web.ts"
+    }
   },
   "scripts": {
-    "lint": "eslint . --max-warnings 0",
-    "generate:component": "turbo gen react-component",
-    "check-types": "tsc --noEmit"
+    "gen": "node ./scripts/create-component.mjs",
+    "check": "node ./scripts/check-ui.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "^22.15.3",
-    "@types/react": "19.2.2",
-    "@types/react-dom": "19.2.2",
-    "eslint": "^9.39.1",
-    "typescript": "5.9.2"
+    "@types/react-native": "^0.73.0"
   },
   "dependencies": {
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@expo/vector-icons": "^15.0.3",
+    "lucide-react": "^0.562.0"
   }
 }
