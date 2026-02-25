@@ -4,6 +4,7 @@
 node_modules
 .pnp
 .pnp.js
+.pnpm-store/
 
 # Local env files
 .env
@@ -11,6 +12,16 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+
+# secrets
+.secrets/
+
+# Supabase local-only seeds (developer private)
+supabase/seed.local.sql
+supabase/seed.local.*.sql
+
+# sample data
+json/
 
 # Testing
 coverage

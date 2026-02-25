@@ -1,0 +1,2 @@
+-- UWNS boilerplate baseline migration.
+-- Intentionally blank: keep Supabase resettable with no domain schema.

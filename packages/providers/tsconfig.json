@@ -1,0 +1,8 @@
+{
+  "extends": "@repo/typescript-config/react-library-bundler.json",
+  "compilerOptions": {
+    "moduleResolution": "Bundler",
+    "module": "ESNext",
+    "moduleSuffixes": [".native", ".ios", ".android", ".web", ""]
+  }
+}
