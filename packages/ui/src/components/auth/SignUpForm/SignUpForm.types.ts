@@ -1,6 +1,16 @@
+import type { AuthMethod, AuthMethodMode } from "../LoginForm/LoginForm.types";
+
+type AuthResult = Promise<{ error?: { message: string } | null }>;
+
 export type SignUpFormProps = {
   auth: {
-    signUp: (args: { email: string; password: string; emailRedirectTo?: string }) => Promise<{ error?: { message: string } | null }>;
+    signUp: (args: { email: string; password: string; emailRedirectTo?: string }) => AuthResult;
+    sendEmailOtp?: (args: {
+      email: string;
+      emailRedirectTo?: string;
+      shouldCreateUser?: boolean;
+    }) => AuthResult;
+    verifyEmailOtp?: (args: { email: string; token: string }) => AuthResult;
   };
 
   notify?: {
@@ -12,6 +22,7 @@ export type SignUpFormProps = {
 
   routes?: {
     afterSignUp?: string; // default "/auth/welcome"
+    afterOtpVerify?: string; // default "/"
     login?: string;       // default "/auth/login"
   };
 
@@ -20,4 +31,15 @@ export type SignUpFormProps = {
    * Native can pass a deep-link base.
    */
   emailRedirectTo?: string;
+
+  /**
+   * Controls which auth methods are available. OTP is available only when the
+   * auth client provides sendEmailOtp + verifyEmailOtp.
+   */
+  authMethods?: AuthMethodMode;
+
+  /**
+   * Selects the initially active method when authMethods is "both".
+   */
+  authMethod?: AuthMethod;
 };

@@ -34,7 +34,7 @@ export default function ThemeSwitcher({ inverse = false }: ThemeSwitcherProps) {
   const H = 28; // 7 * 4
   const PAD = 2; // px
   const THUMB = 22; // px (slightly smaller than track height)
-  const TRAVEL = W - PAD * 2 - THUMB; // px
+  const TRAVEL = W - PAD * 3.15 - THUMB; // px
 
   // Track colors
   const trackBg = inverse ? "var(--ui-bg)" : "var(--ui-subtle-bg)";

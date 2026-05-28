@@ -34,6 +34,7 @@ The auth provider exposes a single hook and provider that works in both **web** 
   * Web → `localStorage`
   * Native → `AsyncStorage`
 * Automatic auth state syncing
+* Email/password auth and Supabase email OTP auth
 
 ---
 
@@ -93,6 +94,8 @@ const { user, session, loading } = useAuth();
 const {
   signInWithPassword,
   signUpWithPassword,
+  sendEmailOtp,
+  verifyEmailOtp,
   signOut,
   resetPasswordForEmail,
   updatePassword,
@@ -100,6 +103,26 @@ const {
 ```
 
 All methods throw on error — handle them at the call site.
+
+#### Email OTP
+
+```ts
+await sendEmailOtp({
+  email,
+  emailRedirectTo,
+  shouldCreateUser: false,
+});
+
+await verifyEmailOtp({ email, token });
+```
+
+Use `shouldCreateUser: false` for login and `shouldCreateUser: true` for signup.
+Supabase controls whether the email contains a magic link, a one-time code, or both through the email template. Include both `{{ .ConfirmationURL }}` and `{{ .Token }}` when the app should support both paths.
+
+Add the app redirect targets in Supabase Auth settings:
+
+* Web: the app URL that should receive the magic link redirect, for example `/app`
+* Native: the Expo scheme/deep link URL, for example `native://`
 
 ---
 
@@ -126,7 +149,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=...
 | Platform | Session storage | URL detection |
 | -------- | --------------- | ------------- |
 | Web      | localStorage    | Enabled       |
-| Native   | AsyncStorage    | Disabled      |
+| Native   | AsyncStorage    | Handled from deep links |
 
 This logic is handled internally — apps do **not** need to care.
 
