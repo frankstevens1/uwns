@@ -12,6 +12,17 @@ export type UiAuthClient = {
     emailRedirectTo?: string;
   }) => Promise<{ error?: { message: string } | null }>;
 
+  sendEmailOtp: (args: {
+    email: string;
+    emailRedirectTo?: string;
+    shouldCreateUser?: boolean;
+  }) => Promise<{ error?: { message: string } | null }>;
+
+  verifyEmailOtp: (args: {
+    email: string;
+    token: string;
+  }) => Promise<{ error?: { message: string } | null }>;
+
   resetPasswordForEmail: (args: {
     email: string;
     redirectTo?: string;
@@ -42,6 +53,24 @@ export function toUiAuthClient(auth: AuthContextValue): UiAuthClient {
     signUp: async ({ email, password /* emailRedirectTo ignored */ }) => {
       try {
         await auth.signUpWithPassword({ email, password });
+        return { error: null };
+      } catch (e) {
+        return { error: { message: toMsg(e) } };
+      }
+    },
+
+    sendEmailOtp: async ({ email, emailRedirectTo, shouldCreateUser }) => {
+      try {
+        await auth.sendEmailOtp({ email, emailRedirectTo, shouldCreateUser });
+        return { error: null };
+      } catch (e) {
+        return { error: { message: toMsg(e) } };
+      }
+    },
+
+    verifyEmailOtp: async ({ email, token }) => {
+      try {
+        await auth.verifyEmailOtp({ email, token });
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };

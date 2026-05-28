@@ -4,7 +4,48 @@ import * as React from "react";
 import type { Session } from "@supabase/supabase-js";
 import type { AuthContextValue } from "./auth.types";
 
-export function createAuthProvider(createSupabaseClient: () => any) {
+type AuthUrlEvents = {
+  getInitialUrl: () => Promise<string | null>;
+  subscribe: (handler: (url: string) => void) => { remove: () => void };
+};
+
+function getAuthUrlParams(url: string) {
+  const params = new URLSearchParams();
+  const query = url.split("?")[1]?.split("#")[0];
+  const hash = url.split("#")[1];
+
+  for (const part of [query, hash]) {
+    if (!part) continue;
+    new URLSearchParams(part).forEach((value, key) => params.set(key, value));
+  }
+
+  return params;
+}
+
+async function applyAuthUrl(supabase: any, url: string) {
+  const params = getAuthUrlParams(url);
+  const code = params.get("code");
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) throw new Error(error.message);
+    return;
+  }
+
+  const accessToken = params.get("access_token");
+  const refreshToken = params.get("refresh_token");
+  if (accessToken && refreshToken) {
+    const { error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) throw new Error(error.message);
+  }
+}
+
+export function createAuthProvider(
+  createSupabaseClient: () => any,
+  authUrlEvents?: AuthUrlEvents
+) {
   const AuthContext = React.createContext<AuthContextValue | null>(null);
 
   function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -43,6 +84,36 @@ export function createAuthProvider(createSupabaseClient: () => any) {
       };
     }, [supabase]);
 
+    React.useEffect(() => {
+      if (!authUrlEvents) return;
+
+      let mounted = true;
+
+      const handleUrl = (url: string) => {
+        applyAuthUrl(supabase, url).catch((err: any) => {
+          if (!mounted) return;
+          console.warn("[AuthProvider] auth URL error:", err instanceof Error ? err.message : String(err));
+        });
+      };
+
+      authUrlEvents
+        .getInitialUrl()
+        .then((url) => {
+          if (mounted && url) handleUrl(url);
+        })
+        .catch((err: any) => {
+          if (!mounted) return;
+          console.warn("[AuthProvider] initial URL error:", String(err));
+        });
+
+      const subscription = authUrlEvents.subscribe(handleUrl);
+
+      return () => {
+        mounted = false;
+        subscription.remove();
+      };
+    }, [supabase]);
+
     const value = React.useMemo<AuthContextValue>(
       () => ({
         supabase,
@@ -57,6 +128,26 @@ export function createAuthProvider(createSupabaseClient: () => any) {
 
         async signUpWithPassword({ email, password }) {
           const { error } = await supabase.auth.signUp({ email, password });
+          if (error) throw new Error(error.message);
+        },
+
+        async sendEmailOtp({ email, emailRedirectTo, shouldCreateUser }) {
+          const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+              emailRedirectTo,
+              shouldCreateUser,
+            },
+          });
+          if (error) throw new Error(error.message);
+        },
+
+        async verifyEmailOtp({ email, token }) {
+          const { error } = await supabase.auth.verifyOtp({
+            email,
+            token,
+            type: "email",
+          });
           if (error) throw new Error(error.message);
         },
 
