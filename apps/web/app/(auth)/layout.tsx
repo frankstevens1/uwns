@@ -4,7 +4,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="bg-(--ui-bg) text-(--ui-fg) w-full min-h-0">
+    <main className="bg-(--ui-bg) text-(--ui-fg) w-full min-h-0" suppressHydrationWarning>
       <div
         className="fixed inset-0 flex items-center justify-center w-full"
         style={{ zIndex: 0 }}

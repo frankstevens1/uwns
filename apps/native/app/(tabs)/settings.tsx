@@ -1,11 +1,13 @@
 import * as React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@repo/providers";
 import { Button, Card, CardBody, CardFooter, CardHeader } from "@repo/ui";
 
 export default function SettingsTab() {
   const { user, loading, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [busy, setBusy] = React.useState(false);
 
   const onSignOut = async () => {
@@ -20,7 +22,7 @@ export default function SettingsTab() {
   };
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { paddingTop: insets.top + 24 }]}>
       <Text style={styles.title}>Settings</Text>
       <Text style={styles.subtitle}>Account + navigation examples.</Text>
 

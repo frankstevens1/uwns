@@ -37,7 +37,7 @@ export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo 
       footer={
         <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
           <Link href={login} onPress={() => navigate?.(login)}>
-            Back to sign in
+            ← Back to <Text style={{ fontWeight: "bold" }}>sign in</Text>
           </Link>
         </Text>
       }
