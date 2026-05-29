@@ -21,4 +21,5 @@ export type PasswordFieldProps = {
    * Useful later if you add proper icons.
    */
   rightAccessory?: React.ReactNode;
+  labelAccessory?: React.ReactNode;
 };

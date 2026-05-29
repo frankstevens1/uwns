@@ -36,7 +36,7 @@ export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo 
       subtitle="We’ll send a password reset link to your email."
       footer={
         <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
-          <Link href={login} onPress={() => navigate?.(login)} style={{ textDecorationLine: "underline" }}>
+          <Link href={login} onPress={() => navigate?.(login)}>
             Back to sign in
           </Link>
         </Text>

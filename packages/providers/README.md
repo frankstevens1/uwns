@@ -110,13 +110,13 @@ All methods throw on error — handle them at the call site.
 await sendEmailOtp({
   email,
   emailRedirectTo,
-  shouldCreateUser: false,
+  shouldCreateUser: true,
 });
 
 await verifyEmailOtp({ email, token });
 ```
 
-Use `shouldCreateUser: false` for login and `shouldCreateUser: true` for signup.
+Use `shouldCreateUser: true` when magic link should create an account on first request.
 Supabase controls whether the email contains a magic link, a one-time code, or both through the email template. Include both `{{ .ConfirmationURL }}` and `{{ .Token }}` when the app should support both paths.
 
 Add the app redirect targets in Supabase Auth settings:
