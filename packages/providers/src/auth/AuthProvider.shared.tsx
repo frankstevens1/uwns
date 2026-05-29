@@ -42,6 +42,18 @@ async function applyAuthUrl(supabase: any, url: string) {
   }
 }
 
+function normalizeAuthError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (
+    message === "Load failed" ||
+    message === "Network request failed" ||
+    message === "Failed to fetch"
+  ) {
+    return "Could not reach Supabase Auth. Check that Supabase is running and the app Supabase URL matches supabase/config.toml.";
+  }
+  return message;
+}
+
 export function createAuthProvider(
   createSupabaseClient: () => any,
   authUrlEvents?: AuthUrlEvents
@@ -132,14 +144,24 @@ export function createAuthProvider(
         },
 
         async sendEmailOtp({ email, emailRedirectTo, shouldCreateUser }) {
-          const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: {
-              emailRedirectTo,
-              shouldCreateUser,
-            },
-          });
-          if (error) throw new Error(error.message);
+          try {
+            const options: {
+              emailRedirectTo?: string;
+              shouldCreateUser?: boolean;
+            } = {};
+            if (emailRedirectTo) options.emailRedirectTo = emailRedirectTo;
+            if (typeof shouldCreateUser === "boolean") {
+              options.shouldCreateUser = shouldCreateUser;
+            }
+
+            const { error } = await supabase.auth.signInWithOtp({
+              email,
+              options,
+            });
+            if (error) throw new Error(error.message);
+          } catch (error) {
+            throw new Error(normalizeAuthError(error));
+          }
         },
 
         async verifyEmailOtp({ email, token }) {

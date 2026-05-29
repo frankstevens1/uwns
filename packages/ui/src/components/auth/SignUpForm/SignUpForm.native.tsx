@@ -6,12 +6,15 @@ import { Label } from "../../../primitives/Label/Label.native";
 import { Link } from "../../../primitives/Link/Link.native";
 import { PasswordField } from "../PasswordField/PasswordField.native";
 import { PasswordRequirementsList } from "../PasswordRequirementsList/PasswordRequirementsList.native";
+import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.native";
 import { evaluatePassword, generatePassword } from "../../../utils/auth/password";
 import type { SignUpFormProps } from "./SignUpForm.types";
 import type { AuthMethod } from "../LoginForm/LoginForm.types";
-import { useThemeTokens } from "../../../theme";
+import { buttonTokens, inputTokens, useThemeTokens } from "../../../theme";
 import { useAuthFormState } from "../useAuthFormState";
 import * as React from "react";
+
+const OTP_LENGTH = 6;
 
 export function SignUpForm({
   auth,
@@ -32,6 +35,7 @@ export function SignUpForm({
   const [method, setMethod] = React.useState<AuthMethod>(initialMethod);
   const [otpSent, setOtpSent] = React.useState(false);
   const [token, setToken] = React.useState("");
+  const [verifyingToken, setVerifyingToken] = React.useState<string | null>(null);
 
   const afterSignUp = routes?.afterSignUp ?? "/auth/welcome";
   const afterOtpVerify = routes?.afterOtpVerify ?? "/";
@@ -67,6 +71,8 @@ export function SignUpForm({
     }
 
     setOtpSent(true);
+    setToken("");
+    setVerifyingToken(null);
     notify?.success?.("Check your email.", {
       description: "Use the magic link or enter the code here.",
     });
@@ -85,11 +91,15 @@ export function SignUpForm({
   const verifyOtp = async () => {
     if (!auth.verifyEmailOtp) return;
 
-    const { error } = await auth.verifyEmailOtp({ email, token: token.trim() });
+    const currentToken = token.trim();
+    setVerifyingToken(currentToken);
+    setIsLoading(true);
+    const { error } = await auth.verifyEmailOtp({ email, token: currentToken });
     if (error) {
       notify?.error?.(error.message, {
         description: "Check the code and try again.",
       });
+      setIsLoading(false);
       return false;
     }
 
@@ -97,6 +107,14 @@ export function SignUpForm({
     navigate?.(afterOtpVerify);
     return true;
   };
+
+  React.useEffect(() => {
+    if (!isOtp || !otpSent || token.length !== OTP_LENGTH || isLoading || verifyingToken === token) {
+      return;
+    }
+
+    void verifyOtp();
+  }, [isOtp, otpSent, token, isLoading, verifyingToken]);
 
   const onSubmit = async () => {
     if (!isOtp && !evalRes.ok) {
@@ -135,7 +153,7 @@ export function SignUpForm({
       footer={
         <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
           Already have an account?{" "}
-          <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: "600", textDecorationLine: "underline" }}>
+          <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: "600" }}>
             Sign in
           </Link>
         </Text>
@@ -147,52 +165,72 @@ export function SignUpForm({
             <Pressable
               accessibilityRole="button"
               onPress={() => selectMethod("password")}
-              style={[styles.segmentButton, { backgroundColor: method === "password" ? tokens.color.subtleBg : "transparent" }]}
+              style={[
+                styles.segmentButton,
+                {
+                  backgroundColor: method === "password" ? tokens.color.subtleBg : "transparent",
+                  borderColor: method === "password" ? tokens.color.border : "transparent",
+                },
+              ]}
             >
               <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Password</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={() => selectMethod("otp")}
-              style={[styles.segmentButton, { backgroundColor: method === "otp" ? tokens.color.subtleBg : "transparent" }]}
+              style={[
+                styles.segmentButton,
+                {
+                  backgroundColor: method === "otp" ? tokens.color.subtleBg : "transparent",
+                  borderColor: method === "otp" ? tokens.color.border : "transparent",
+                },
+              ]}
             >
               <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Magic link</Text>
             </Pressable>
           </View>
         ) : null}
 
-        <View style={styles.field}>
-          <Label>Email</Label>
-          <Input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={onEmailChange}
-            disabled={isLoading}
-            autoCapitalize="none"
-          />
-        </View>
+        {otpSent ? (
+          <View style={styles.field}>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: tokens.color.mutedFg }}>Email</Text>
+            <View style={[styles.lockedEmail, { borderColor: tokens.color.border, backgroundColor: tokens.color.bg }]}>
+              <Text style={{ fontSize: inputTokens.base.fontSize, color: tokens.color.fg }}>{email}</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.field}>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={onEmailChange}
+              disabled={isLoading}
+              autoCapitalize="none"
+            />
+          </View>
+        )}
 
         {isOtp ? (
           otpSent ? (
             <View style={styles.field}>
-              <Label>Code</Label>
-              <Input
-                type="text"
-                placeholder="123456"
+              <View style={styles.labelRow}>
+                <Label>Code</Label>
+                <Link
+                  onPress={onResendOtp}
+                  disabled={isLoading || !email}
+                  size="sm"
+                  tone="muted"
+                >
+                  Resend
+                </Link>
+              </View>
+              <OtpCodeInput
                 value={token}
                 onChangeText={setToken}
                 disabled={isLoading}
-                keyboardType="number-pad"
-                autoComplete="one-time-code"
-                maxLength={6}
               />
-              <Text
-                style={{ fontSize: 12, fontWeight: "700", textDecorationLine: "underline", color: tokens.color.fg }}
-                onPress={isLoading || !email ? undefined : onResendOtp}
-              >
-                Resend code
-              </Text>
             </View>
           ) : null
         ) : (
@@ -201,25 +239,29 @@ export function SignUpForm({
 
             <View style={styles.row}>
               <Text style={{ fontSize: 12, color: tokens.color.mutedFg }}>Password requirements</Text>
-              <Text
-                style={{ fontSize: 12, fontWeight: "700", textDecorationLine: "underline", color: tokens.color.fg }}
-                onPress={isLoading ? undefined : () => setPassword(generatePassword())}
+              <Link
+                onPress={() => setPassword(generatePassword())}
+                disabled={isLoading}
+                size="sm"
+                tone="muted"
               >
                 Generate
-              </Text>
+              </Link>
             </View>
 
             <PasswordRequirementsList password={password} />
           </>
         )}
 
-        <Button
-          onPress={onSubmit}
-          loading={isLoading}
-          disabled={isLoading || !email || (isOtp ? otpSent && !token : !password || !evalRes.ok)}
-        >
-          {isLoading ? "Creating…" : isOtp ? (otpSent ? "Verify code" : "Email me a link") : "Create account"}
-        </Button>
+        {!otpSent ? (
+          <Button
+            onPress={onSubmit}
+            loading={isLoading}
+            disabled={isLoading || !email || (isOtp ? false : !password || !evalRes.ok)}
+          >
+            {isLoading ? "Creating…" : isOtp ? "Email me a link" : "Create account"}
+          </Button>
+        ) : null}
       </View>
     </AuthCard>
   );
@@ -228,9 +270,30 @@ export function SignUpForm({
 const styles = StyleSheet.create({
   form: { gap: 12 },
   field: { gap: 6 },
+  labelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  segment: { flexDirection: "row", gap: 2, borderWidth: 1, borderRadius: 5, padding: 2 },
-  segmentButton: { flex: 1, height: 28, borderRadius: 3, alignItems: "center", justifyContent: "center" },
-  segmentText: { fontSize: 12, fontWeight: "700" },
+  lockedEmail: {
+    minHeight: inputTokens.base.height.md,
+    borderWidth: inputTokens.base.borderWidth,
+    borderRadius: inputTokens.base.radius,
+    paddingHorizontal: inputTokens.base.paddingX,
+    justifyContent: "center",
+  },
+  segment: {
+    flexDirection: "row",
+    gap: 2,
+    borderWidth: buttonTokens.base.borderWidth,
+    borderRadius: buttonTokens.base.radius,
+    padding: 2,
+  },
+  segmentButton: {
+    flex: 1,
+    height: buttonTokens.size.sm.height,
+    borderWidth: 1,
+    borderRadius: buttonTokens.base.radius,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentText: { fontSize: buttonTokens.size.sm.fontSize, fontWeight: buttonTokens.base.fontWeight as any },
   // hint, gen, and footer colors will be injected inline using theme tokens
 });

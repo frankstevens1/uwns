@@ -5,10 +5,13 @@ import { Input } from "../../../primitives/Input/Input.native";
 import { Label } from "../../../primitives/Label/Label.native";
 import { Link } from "../../../primitives/Link/Link.native";
 import { PasswordField } from "../PasswordField/PasswordField.native";
+import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.native";
 import type { AuthMethod, LoginFormProps } from "./LoginForm.types";
-import { useThemeTokens } from "../../../theme";
+import { buttonTokens, inputTokens, useThemeTokens } from "../../../theme";
 import { useAuthFormState } from "../useAuthFormState";
 import * as React from "react";
+
+const OTP_LENGTH = 6;
 
 export function LoginForm({
   auth,
@@ -29,6 +32,7 @@ export function LoginForm({
   const [method, setMethod] = React.useState<AuthMethod>(initialMethod);
   const [otpSent, setOtpSent] = React.useState(false);
   const [token, setToken] = React.useState("");
+  const [verifyingToken, setVerifyingToken] = React.useState<string | null>(null);
 
   const forgotPassword = routes?.forgotPassword ?? "/auth/forgot-password";
   const signUp = routes?.signUp ?? "/auth/sign-up";
@@ -53,16 +57,18 @@ export function LoginForm({
     const { error } = await auth.sendEmailOtp({
       email,
       emailRedirectTo,
-      shouldCreateUser: false,
+      shouldCreateUser: true,
     });
     if (error) {
       notify?.error?.(error.message, {
-        description: "Use an existing account email or sign up first.",
+        description: "Check the email address and try again.",
       });
       return false;
     }
 
     setOtpSent(true);
+    setToken("");
+    setVerifyingToken(null);
     notify?.success?.("Check your email.", {
       description: "Use the magic link or enter the code here.",
     });
@@ -81,11 +87,15 @@ export function LoginForm({
   const verifyOtp = async () => {
     if (!auth.verifyEmailOtp) return;
 
-    const { error } = await auth.verifyEmailOtp({ email, token: token.trim() });
+    const currentToken = token.trim();
+    setVerifyingToken(currentToken);
+    setIsLoading(true);
+    const { error } = await auth.verifyEmailOtp({ email, token: currentToken });
     if (error) {
       notify?.error?.(error.message, {
         description: "Check the code and try again.",
       });
+      setIsLoading(false);
       return false;
     }
 
@@ -95,6 +105,14 @@ export function LoginForm({
     navigate?.("/");
     return true;
   };
+
+  React.useEffect(() => {
+    if (!isOtp || !otpSent || token.length !== OTP_LENGTH || isLoading || verifyingToken === token) {
+      return;
+    }
+
+    void verifyOtp();
+  }, [isOtp, otpSent, token, isLoading, verifyingToken]);
 
   const onSubmit = async () => {
     setIsLoading(true);
@@ -133,9 +151,9 @@ export function LoginForm({
       title="Sign in"
       subtitle={isOtp ? "Use an emailed magic link or code to continue." : "Use your email + password to continue."}
       footer={
-        <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
+        isOtp ? null : <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
           Don&apos;t have an account?{" "}
-          <Link href={signUp} onPress={() => navigate?.(signUp)} style={{ fontWeight: "600", textDecorationLine: "underline" }}>
+          <Link href={signUp} onPress={() => navigate?.(signUp)} style={{ fontWeight: "600" }}>
             Sign up
           </Link>
         </Text>
@@ -147,72 +165,103 @@ export function LoginForm({
             <Pressable
               accessibilityRole="button"
               onPress={() => selectMethod("password")}
-              style={[styles.segmentButton, { backgroundColor: method === "password" ? tokens.color.subtleBg : "transparent" }]}
+              style={[
+                styles.segmentButton,
+                {
+                  backgroundColor: method === "password" ? tokens.color.subtleBg : "transparent",
+                  borderColor: method === "password" ? tokens.color.border : "transparent",
+                },
+              ]}
             >
               <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Password</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={() => selectMethod("otp")}
-              style={[styles.segmentButton, { backgroundColor: method === "otp" ? tokens.color.subtleBg : "transparent" }]}
+              style={[
+                styles.segmentButton,
+                {
+                  backgroundColor: method === "otp" ? tokens.color.subtleBg : "transparent",
+                  borderColor: method === "otp" ? tokens.color.border : "transparent",
+                },
+              ]}
             >
               <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Magic link</Text>
             </Pressable>
           </View>
         ) : null}
 
-        <View style={styles.field}>
-          <Label>Email</Label>
-          <Input
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={onEmailChange}
-            disabled={isLoading}
-            autoCapitalize="none"
-          />
-        </View>
+        {otpSent ? (
+          <View style={styles.field}>
+            <Text style={{ fontSize: 12, fontWeight: "600", color: tokens.color.mutedFg }}>Email</Text>
+            <View style={[styles.lockedEmail, { borderColor: tokens.color.border, backgroundColor: tokens.color.bg }]}>
+              <Text style={{ fontSize: inputTokens.base.fontSize, color: tokens.color.fg }}>{email}</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.field}>
+            <Label>Email</Label>
+            <Input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={onEmailChange}
+              disabled={isLoading}
+              autoCapitalize="none"
+            />
+          </View>
+        )}
 
         {isOtp ? (
           otpSent ? (
             <View style={styles.field}>
-              <Label>Code</Label>
-              <Input
-                type="text"
-                placeholder="123456"
+              <View style={styles.labelRow}>
+                <Label>Code</Label>
+                <Link
+                  onPress={onResendOtp}
+                  disabled={isLoading || !email}
+                  size="sm"
+                  tone="muted"
+                >
+                  Resend
+                </Link>
+              </View>
+              <OtpCodeInput
                 value={token}
                 onChangeText={setToken}
                 disabled={isLoading}
-                keyboardType="number-pad"
-                autoComplete="one-time-code"
-                maxLength={6}
               />
-              <Text
-                style={{ fontSize: 12, fontWeight: "700", textDecorationLine: "underline", color: tokens.color.fg }}
-                onPress={isLoading || !email ? undefined : onResendOtp}
-              >
-                Resend code
-              </Text>
             </View>
           ) : null
         ) : (
           <View style={styles.field}>
-            <PasswordField value={password} onChangeText={setPassword} disabled={isLoading} />
-            <View style={styles.row}>
-              <Link href={forgotPassword} onPress={() => navigate?.(forgotPassword)} style={{ fontSize: 13 }}>
-                Forgot?
-              </Link>
-            </View>
+            <PasswordField
+              value={password}
+              onChangeText={setPassword}
+              disabled={isLoading}
+              labelAccessory={
+                <Link
+                  href={forgotPassword}
+                  onPress={() => navigate?.(forgotPassword)}
+                  size="sm"
+                  tone="muted"
+                >
+                  Forgot?
+                </Link>
+              }
+            />
           </View>
         )}
 
-        <Button
-          onPress={onSubmit}
-          loading={isLoading}
-          disabled={isLoading || !email || (isOtp ? otpSent && !token : !password)}
-        >
-          {isLoading ? "Signing in…" : isOtp ? (otpSent ? "Verify code" : "Email me a link") : "Submit"}
-        </Button>
+        {!otpSent ? (
+          <Button
+            onPress={onSubmit}
+            loading={isLoading}
+            disabled={isLoading || !email || (isOtp ? false : !password)}
+          >
+            {isLoading ? "Signing in…" : isOtp ? "Email me a link" : "Submit"}
+          </Button>
+        ) : null}
       </View>
     </AuthCard>
   );
@@ -221,9 +270,29 @@ export function LoginForm({
 const styles = StyleSheet.create({
   form: { gap: 12 },
   field: { gap: 6 },
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  segment: { flexDirection: "row", gap: 2, borderWidth: 1, borderRadius: 5, padding: 2 },
-  segmentButton: { flex: 1, height: 28, borderRadius: 3, alignItems: "center", justifyContent: "center" },
-  segmentText: { fontSize: 12, fontWeight: "700" },
+  labelRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
+  lockedEmail: {
+    minHeight: inputTokens.base.height.md,
+    borderWidth: inputTokens.base.borderWidth,
+    borderRadius: inputTokens.base.radius,
+    paddingHorizontal: inputTokens.base.paddingX,
+    justifyContent: "center",
+  },
+  segment: {
+    flexDirection: "row",
+    gap: 2,
+    borderWidth: buttonTokens.base.borderWidth,
+    borderRadius: buttonTokens.base.radius,
+    padding: 2,
+  },
+  segmentButton: {
+    flex: 1,
+    height: buttonTokens.size.sm.height,
+    borderWidth: 1,
+    borderRadius: buttonTokens.base.radius,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  segmentText: { fontSize: buttonTokens.size.sm.fontSize, fontWeight: buttonTokens.base.fontWeight as any },
   // footer color will be injected inline using theme tokens
 });

@@ -1,5 +1,7 @@
 import * as React from "react";
 import type { LinkProps } from "./Link.types";
+import { labelTokens } from "../../theme";
+import { px } from "../../utils/platform.web";
 
 type WebProps = LinkProps &
   Omit<
@@ -15,6 +17,8 @@ export function Link({
   href,
   onPress,
   disabled,
+  size = "md",
+  tone = "default",
   className = "",
   style,
   ...props
@@ -30,8 +34,8 @@ export function Link({
   // If no href is provided, keep it keyboard-accessible and prevent navigation.
   const finalHref = href ?? "#";
 
-  // Inline hover effect for color swap
   const [hover, setHover] = React.useState(false);
+  const baseColor = tone === "muted" ? "var(--ui-muted-fg)" : "var(--ui-fg)";
   return (
     <a
       {...props}
@@ -41,10 +45,13 @@ export function Link({
       tabIndex={disabled ? -1 : props.tabIndex}
       className={className}
       style={{
-        color: hover ? "var(--ui-primary-fg)" : "var(--ui-fg)",
+        color: baseColor,
         cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.6 : 1,
-        textDecoration: "underline",
+        opacity: disabled ? 0.6 : hover ? 0.72 : 1,
+        fontSize: size === "sm" ? px(labelTokens.fontSize) : undefined,
+        fontWeight: size === "sm" ? (labelTokens.fontWeight as any) : undefined,
+        textDecoration: "none",
+        transition: "color 140ms ease, opacity 140ms ease",
         ...style,
       }}
       onMouseEnter={() => setHover(true)}

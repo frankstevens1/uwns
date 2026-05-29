@@ -7,8 +7,13 @@ import { Input } from "../../../primitives/Input/Input.web";
 import { Label } from "../../../primitives/Label/Label.web";
 import { Link } from "../../../primitives/Link/Link.web";
 import { PasswordField } from "../PasswordField/PasswordField.web";
+import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.web";
+import { buttonTokens, inputTokens } from "../../../theme";
+import { px } from "../../../utils/platform.web";
 import type { AuthMethod, LoginFormProps } from "./LoginForm.types";
 import { useAuthFormState } from "../useAuthFormState";
+
+const OTP_LENGTH = 6;
 
 export function LoginForm({
   auth,
@@ -29,10 +34,46 @@ export function LoginForm({
   const [method, setMethod] = React.useState<AuthMethod>(initialMethod);
   const [otpSent, setOtpSent] = React.useState(false);
   const [token, setToken] = React.useState("");
+  const [verifyingToken, setVerifyingToken] = React.useState<string | null>(null);
 
   const forgotPassword = routes?.forgotPassword ?? "/auth/forgot-password";
   const signUp = routes?.signUp ?? "/auth/sign-up";
   const isOtp = method === "otp" && canUseOtp;
+  const methodSelectorStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: px(2),
+    borderRadius: px(buttonTokens.base.radius),
+    borderWidth: px(buttonTokens.base.borderWidth),
+    borderStyle: "solid",
+    borderColor: "var(--ui-border)",
+    padding: px(2),
+  };
+  const methodButtonStyle = (selected: boolean): React.CSSProperties => ({
+    height: px(buttonTokens.size.sm.height),
+    borderStyle: "solid",
+    borderColor: selected ? "var(--ui-border)" : "transparent",
+    borderRadius: px(buttonTokens.base.radius),
+    borderWidth: 1,
+    background: selected ? "var(--ui-subtle-bg)" : "transparent",
+    color: "var(--ui-fg)",
+    fontSize: px(buttonTokens.size.sm.fontSize),
+    fontWeight: buttonTokens.base.fontWeight as any,
+  });
+  const lockedEmailStyle: React.CSSProperties = {
+    minHeight: px(inputTokens.base.height.md),
+    borderRadius: px(inputTokens.base.radius),
+    borderWidth: px(inputTokens.base.borderWidth),
+    borderStyle: "solid",
+    borderColor: "var(--ui-border)",
+    paddingLeft: px(inputTokens.base.paddingX),
+    paddingRight: px(inputTokens.base.paddingX),
+    display: "flex",
+    alignItems: "center",
+    background: "var(--ui-bg)",
+    color: "var(--ui-fg)",
+    fontSize: px(inputTokens.base.fontSize),
+  };
 
   const selectMethod = (nextMethod: AuthMethod) => {
     setMethod(nextMethod);
@@ -53,16 +94,18 @@ export function LoginForm({
     const { error } = await auth.sendEmailOtp({
       email,
       emailRedirectTo,
-      shouldCreateUser: false,
+      shouldCreateUser: true,
     });
     if (error) {
       notify?.error?.(error.message, {
-        description: "Use an existing account email or sign up first.",
+        description: "Check the email address and try again.",
       });
       return false;
     }
 
     setOtpSent(true);
+    setToken("");
+    setVerifyingToken(null);
     notify?.success?.("Check your email.", {
       description: "Use the magic link or enter the code here.",
     });
@@ -81,11 +124,15 @@ export function LoginForm({
   const verifyOtp = async () => {
     if (!auth.verifyEmailOtp) return;
 
-    const { error } = await auth.verifyEmailOtp({ email, token: token.trim() });
+    const currentToken = token.trim();
+    setVerifyingToken(currentToken);
+    setIsLoading(true);
+    const { error } = await auth.verifyEmailOtp({ email, token: currentToken });
     if (error) {
       notify?.error?.(error.message, {
         description: "Check the code and try again.",
       });
+      setIsLoading(false);
       return false;
     }
 
@@ -95,6 +142,14 @@ export function LoginForm({
     navigate?.("/");
     return true;
   };
+
+  React.useEffect(() => {
+    if (!isOtp || !otpSent || token.length !== OTP_LENGTH || isLoading || verifyingToken === token) {
+      return;
+    }
+
+    void verifyOtp();
+  }, [isOtp, otpSent, token, isLoading, verifyingToken]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,9 +189,9 @@ export function LoginForm({
       title="Sign in"
       subtitle={isOtp ? "Use an emailed magic link or code to continue." : "Use your email + password to continue."}
       footer={
-        <div style={{ fontSize: 13 }}>
+        isOtp ? null : <div style={{ fontSize: 13 }}>
           Don&apos;t have an account?{" "}
-          <Link href={signUp} onPress={() => navigate?.(signUp)} style={{ fontWeight: 600, textDecorationLine: "underline" as any }}>
+          <Link href={signUp} onPress={() => navigate?.(signUp)} style={{ fontWeight: 600 }}>
             Sign up
           </Link>
         </div>
@@ -144,70 +199,65 @@ export function LoginForm({
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {canChooseMethod ? (
-          <div className="grid grid-cols-2 gap-0.5 rounded border border-(--ui-border) bg-transparent p-0.5">
+          <div style={methodSelectorStyle}>
             <button
               type="button"
               onClick={() => selectMethod("password")}
-              className="h-7 rounded text-xs font-semibold"
-              style={{
-                background: method === "password" ? "var(--ui-subtle-bg)" : "transparent",
-                color: "var(--ui-fg)",
-              }}
+              style={methodButtonStyle(method === "password")}
             >
               Password
             </button>
             <button
               type="button"
               onClick={() => selectMethod("otp")}
-              className="h-7 rounded text-xs font-semibold"
-              style={{
-                background: method === "otp" ? "var(--ui-subtle-bg)" : "transparent",
-                color: "var(--ui-fg)",
-              }}
+              style={methodButtonStyle(method === "otp")}
             >
               Magic link
             </button>
           </div>
         ) : null}
 
-        <div className="space-y-1">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={onEmailChange}
-            autoComplete="email"
-            disabled={isLoading}
-          />
-        </div>
+        {otpSent ? (
+          <div className="space-y-1">
+            <div className="text-xs font-medium" style={{ color: "var(--ui-muted-fg)" }}>Email</div>
+            <div style={lockedEmailStyle}>
+              {email}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={onEmailChange}
+              autoComplete="email"
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         {isOtp ? (
           otpSent ? (
             <div className="space-y-1">
-              <Label htmlFor="otp">Code</Label>
-              <Input
-                id="otp"
-                name="otp"
-                type="text"
-                placeholder="123456"
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <Label>Code</Label>
+                <Link
+                  onPress={onResendOtp}
+                  disabled={isLoading || !email}
+                  size="sm"
+                  tone="muted"
+                >
+                  Resend
+                </Link>
+              </div>
+              <OtpCodeInput
                 value={token}
                 onChangeText={setToken}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={6}
                 disabled={isLoading}
               />
-              <button
-                type="button"
-                onClick={onResendOtp}
-                className="text-xs font-semibold underline"
-                style={{ color: "var(--ui-fg)" }}
-                disabled={isLoading || !email}
-              >
-                Resend code
-              </button>
             </div>
           ) : null
         ) : (
@@ -217,20 +267,29 @@ export function LoginForm({
               value={password}
               onChangeText={setPassword}
               disabled={isLoading}
+              labelAccessory={
+                <Link
+                  href={forgotPassword}
+                  onPress={() => navigate?.(forgotPassword)}
+                  size="sm"
+                  tone="muted"
+                >
+                  Forgot?
+                </Link>
+              }
             />
-            <Link href={forgotPassword} onPress={() => navigate?.(forgotPassword)} style={{ fontSize: 13 }}>
-              Forgot?
-            </Link>
           </div>
         )}
 
-        <Button
-          type="submit"
-          loading={isLoading}
-          disabled={isLoading || !email || (isOtp ? otpSent && !token : !password)}
-        >
-          {isLoading ? "Signing in…" : isOtp ? (otpSent ? "Verify code" : "Email me a link") : "Submit"}
-        </Button>
+        {!otpSent ? (
+          <Button
+            type="submit"
+            loading={isLoading}
+            disabled={isLoading || !email || (isOtp ? false : !password)}
+          >
+            {isLoading ? "Signing in…" : isOtp ? "Email me a link" : "Submit"}
+          </Button>
+        ) : null}
       </form>
     </AuthCard>
   );

@@ -8,10 +8,15 @@ import { Label } from "../../../primitives/Label/Label.web";
 import { Link } from "../../../primitives/Link/Link.web";
 import { PasswordField } from "../PasswordField/PasswordField.web";
 import { PasswordRequirementsList } from "../PasswordRequirementsList/PasswordRequirementsList.web";
+import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.web";
 import { evaluatePassword, generatePassword } from "../../../utils/auth/password";
+import { buttonTokens, inputTokens } from "../../../theme";
+import { px } from "../../../utils/platform.web";
 import type { SignUpFormProps } from "./SignUpForm.types";
 import type { AuthMethod } from "../LoginForm/LoginForm.types";
 import { useAuthFormState } from "../useAuthFormState";
+
+const OTP_LENGTH = 6;
 
 export function SignUpForm({
   auth,
@@ -32,11 +37,47 @@ export function SignUpForm({
   const [method, setMethod] = React.useState<AuthMethod>(initialMethod);
   const [otpSent, setOtpSent] = React.useState(false);
   const [token, setToken] = React.useState("");
+  const [verifyingToken, setVerifyingToken] = React.useState<string | null>(null);
 
   const afterSignUp = routes?.afterSignUp ?? "/auth/welcome";
   const afterOtpVerify = routes?.afterOtpVerify ?? "/";
   const login = routes?.login ?? "/auth/login";
   const isOtp = method === "otp" && canUseOtp;
+  const methodSelectorStyle: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: px(2),
+    borderRadius: px(buttonTokens.base.radius),
+    borderWidth: px(buttonTokens.base.borderWidth),
+    borderStyle: "solid",
+    borderColor: "var(--ui-border)",
+    padding: px(2),
+  };
+  const methodButtonStyle = (selected: boolean): React.CSSProperties => ({
+    height: px(buttonTokens.size.sm.height),
+    borderStyle: "solid",
+    borderColor: selected ? "var(--ui-border)" : "transparent",
+    borderRadius: px(buttonTokens.base.radius),
+    borderWidth: 1,
+    background: selected ? "var(--ui-subtle-bg)" : "transparent",
+    color: "var(--ui-fg)",
+    fontSize: px(buttonTokens.size.sm.fontSize),
+    fontWeight: buttonTokens.base.fontWeight as any,
+  });
+  const lockedEmailStyle: React.CSSProperties = {
+    minHeight: px(inputTokens.base.height.md),
+    borderRadius: px(inputTokens.base.radius),
+    borderWidth: px(inputTokens.base.borderWidth),
+    borderStyle: "solid",
+    borderColor: "var(--ui-border)",
+    paddingLeft: px(inputTokens.base.paddingX),
+    paddingRight: px(inputTokens.base.paddingX),
+    display: "flex",
+    alignItems: "center",
+    background: "var(--ui-bg)",
+    color: "var(--ui-fg)",
+    fontSize: px(inputTokens.base.fontSize),
+  };
 
   const evalRes = evaluatePassword(password);
 
@@ -67,6 +108,8 @@ export function SignUpForm({
     }
 
     setOtpSent(true);
+    setToken("");
+    setVerifyingToken(null);
     notify?.success?.("Check your email.", {
       description: "Use the magic link or enter the code here.",
     });
@@ -85,11 +128,15 @@ export function SignUpForm({
   const verifyOtp = async () => {
     if (!auth.verifyEmailOtp) return;
 
-    const { error } = await auth.verifyEmailOtp({ email, token: token.trim() });
+    const currentToken = token.trim();
+    setVerifyingToken(currentToken);
+    setIsLoading(true);
+    const { error } = await auth.verifyEmailOtp({ email, token: currentToken });
     if (error) {
       notify?.error?.(error.message, {
         description: "Check the code and try again.",
       });
+      setIsLoading(false);
       return false;
     }
 
@@ -97,6 +144,14 @@ export function SignUpForm({
     navigate?.(afterOtpVerify);
     return true;
   };
+
+  React.useEffect(() => {
+    if (!isOtp || !otpSent || token.length !== OTP_LENGTH || isLoading || verifyingToken === token) {
+      return;
+    }
+
+    void verifyOtp();
+  }, [isOtp, otpSent, token, isLoading, verifyingToken]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,7 +190,7 @@ export function SignUpForm({
       footer={
         <div style={{ fontSize: 13 }}>
           Already have an account?{" "}
-          <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: 600, textDecorationLine: "underline" as any }}>
+          <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: 600 }}>
             Sign in
           </Link>
         </div>
@@ -143,70 +198,65 @@ export function SignUpForm({
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {canChooseMethod ? (
-          <div className="grid grid-cols-2 gap-0.5 rounded border border-(--ui-border) bg-transparent p-0.5">
+          <div style={methodSelectorStyle}>
             <button
               type="button"
               onClick={() => selectMethod("password")}
-              className="h-7 rounded text-xs font-semibold"
-              style={{
-                background: method === "password" ? "var(--ui-subtle-bg)" : "transparent",
-                color: "var(--ui-fg)",
-              }}
+              style={methodButtonStyle(method === "password")}
             >
               Password
             </button>
             <button
               type="button"
               onClick={() => selectMethod("otp")}
-              className="h-7 rounded text-xs font-semibold"
-              style={{
-                background: method === "otp" ? "var(--ui-subtle-bg)" : "transparent",
-                color: "var(--ui-fg)",
-              }}
+              style={methodButtonStyle(method === "otp")}
             >
               Magic link
             </button>
           </div>
         ) : null}
 
-        <div className="space-y-1">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChangeText={onEmailChange}
-            autoComplete="email"
-            disabled={isLoading}
-          />
-        </div>
+        {otpSent ? (
+          <div className="space-y-1">
+            <div className="text-xs font-medium" style={{ color: "var(--ui-muted-fg)" }}>Email</div>
+            <div style={lockedEmailStyle}>
+              {email}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-1">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChangeText={onEmailChange}
+              autoComplete="email"
+              disabled={isLoading}
+            />
+          </div>
+        )}
 
         {isOtp ? (
           otpSent ? (
             <div className="space-y-1">
-              <Label htmlFor="otp">Code</Label>
-              <Input
-                id="otp"
-                name="otp"
-                type="text"
-                placeholder="123456"
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <Label>Code</Label>
+                <Link
+                  onPress={onResendOtp}
+                  disabled={isLoading || !email}
+                  size="sm"
+                  tone="muted"
+                >
+                  Resend
+                </Link>
+              </div>
+              <OtpCodeInput
                 value={token}
                 onChangeText={setToken}
-                autoComplete="one-time-code"
-                inputMode="numeric"
-                maxLength={6}
                 disabled={isLoading}
               />
-              <button
-                type="button"
-                onClick={onResendOtp}
-                className="text-xs font-semibold underline"
-                style={{ color: "var(--ui-fg)" }}
-                disabled={isLoading || !email}
-              >
-                Resend code
-              </button>
             </div>
           ) : null
         ) : (
@@ -215,28 +265,29 @@ export function SignUpForm({
 
             <div className="flex items-center justify-between">
               <div className="text-xs" style={{ color: "var(--ui-muted-fg)" }}>Password requirements</div>
-              <button
-                type="button"
-                onClick={() => setPassword(generatePassword())}
-                className="text-xs font-semibold underline"
-                style={{ color: "var(--ui-fg)" }}
+              <Link
+                onPress={() => setPassword(generatePassword())}
                 disabled={isLoading}
+                size="sm"
+                tone="muted"
               >
                 Generate
-              </button>
+              </Link>
             </div>
 
             <PasswordRequirementsList password={password} />
           </>
         )}
 
-        <Button
-          type="submit"
-          loading={isLoading}
-          disabled={isLoading || !email || (isOtp ? otpSent && !token : !password || !evalRes.ok)}
-        >
-          {isLoading ? "Creating…" : isOtp ? (otpSent ? "Verify code" : "Email me a link") : "Create account"}
-        </Button>
+        {!otpSent ? (
+          <Button
+            type="submit"
+            loading={isLoading}
+            disabled={isLoading || !email || (isOtp ? false : !password || !evalRes.ok)}
+          >
+            {isLoading ? "Creating…" : isOtp ? "Email me a link" : "Create account"}
+          </Button>
+        ) : null}
       </form>
     </AuthCard>
   );

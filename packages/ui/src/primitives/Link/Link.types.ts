@@ -10,4 +10,6 @@ export type LinkProps = {
   href?: string;
   onPress?: () => void;
   disabled?: boolean;
+  size?: "md" | "sm";
+  tone?: "default" | "muted";
 };

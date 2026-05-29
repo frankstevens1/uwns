@@ -16,6 +16,7 @@ export function PasswordField({
   id = "password",
   name = "password",
   rightAccessory,
+  labelAccessory,
 }: PasswordFieldProps) {
   const [show, setShow] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -27,7 +28,10 @@ export function PasswordField({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <Label htmlFor={id}>{label}</Label>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <Label htmlFor={id}>{label}</Label>
+        {labelAccessory}
+      </div>
 
       <div style={{ position: "relative" }}>
         <Input
