@@ -88,6 +88,7 @@ export const Input = React.forwardRef<HTMLInputElement, WebProps>(function Input
 
   const inputElement = (
     <input
+      suppressHydrationWarning
       ref={(node) => {
         inputRef.current = node;
         assignInputRef(ref, node);
