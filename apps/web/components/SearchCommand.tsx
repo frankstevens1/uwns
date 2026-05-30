@@ -8,7 +8,7 @@ import {
   Search,
   ArrowRight,
   LogOut,
-  LayoutDashboard,
+  Home,
   FileText,
   BookOpen,
   Sparkles,
@@ -197,10 +197,10 @@ export function SearchCommand({
       },
       {
         id: "app",
-        label: "App overview",
+        label: "Home",
         href: "/app",
-        icon: <LayoutDashboard size={14} />,
-        keywords: ["dashboard", "product", "overview", "feed"],
+        icon: <Home size={14} />,
+        keywords: ["home", "product", "overview", "feed"],
         when: "always",
       },
       {
@@ -356,6 +356,7 @@ export function SearchCommand({
           {/* Overlay darkness stays consistent because only one instance hotkeys */}
           <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35" />
           <Dialog.Content
+            aria-describedby={undefined}
             className={[
               "fixed left-1/2 top-[16%] z-50 w-[min(92vw,520px)] -translate-x-1/2",
               "rounded-xl bg-(--ui-panel) shadow-2xl ring-1 ring-(--ui-border)",

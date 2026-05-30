@@ -1,33 +1,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button, Card, CardBody, CardHeader } from "@repo/ui";
+import { Blocks, Route, UserRound } from "lucide-react";
+import { Button, Card, CardBody, CardHeader, Code, Tip } from "@repo/ui";
 
-const overviewItems = [
-  { label: "Active workspaces", value: "3", detail: "Shared app contexts ready" },
-  { label: "Unread updates", value: "12", detail: "Product and system notices" },
-  { label: "Reusable surfaces", value: "8", detail: "UI patterns wired across apps" },
-];
-
-const feedItems = [
+const homeCards = [
   {
-    title: "Provider boundary updated",
-    body: "Shared providers stay in @repo/providers while route definitions remain inside each app.",
+    title: "Product flows",
+    subtitle: "Your app logic starts here.",
+    body: "Replace this route with your authenticated product home. Keep routing, layouts, and platform glue close to the app.",
+    icon: Route,
   },
   {
-    title: "UI tokens aligned",
-    body: "Web and native surfaces now read from the same theme contract for light and dark mode.",
+    title: "Shared providers",
+    subtitle: "Reuse real app state.",
+    body: "Move auth, account context, feature flags, and other cross-platform state into shared providers when both apps need it.",
+    icon: Blocks,
   },
   {
-    title: "Account route available",
-    body: "User-specific identity and session details now live on a dedicated account page.",
+    title: "Account pattern",
+    subtitle: "Concrete auth example.",
+    body: "The account page shows provider state composed with shared UI primitives in a small, inspectable component.",
+    icon: UserRound,
   },
-];
-
-const activityItems = [
-  "Magic link and OTP flows are enabled for auth forms.",
-  "Native tab navigation is token themed.",
-  "The web header uses a stable user avatar seeded from the account id.",
 ];
 
 export default function AppHome() {
@@ -35,67 +30,62 @@ export default function AppHome() {
 
   return (
     <section className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-xl font-semibold tracking-tight">App overview</h2>
-          <p className="max-w-2xl text-sm text-(--ui-muted-fg)">
-            A global authenticated landing page for product-wide summaries,
-            updates, and activity across the app.
-          </p>
-        </div>
-
-        <Button variant="ghost" onPress={() => router.push("/app/account")}>
-          Account
-        </Button>
+      <header className="space-y-1">
+        <h2 className="text-xl font-semibold tracking-tight">Home</h2>
+        <p className="max-w-2xl text-sm text-(--ui-muted-fg)">
+          This authenticated route is the first place to build product-specific
+          flows. The demo keeps the page simple so the app structure, provider
+          boundary, and shared UI patterns are easy to see.
+        </p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        {overviewItems.map((item) => (
-          <Card key={item.label} padding="none" elevation="sm">
+      <Tip>
+        Compose app state from <Code>@repo/providers</Code> with shared building
+        blocks from <Code>@repo/ui</Code>. Keep the contract shared, but let each
+        platform choose the layout and interaction details that feel native.
+      </Tip>
+
+      <div className="mx-2 grid gap-6 md:grid-cols-3">
+        {homeCards.map(({ title, subtitle, body, icon: Icon }) => (
+          <Card key={title} padding="none" elevation="sm">
             <CardHeader divider={false}>
-              <div className="text-sm text-(--ui-muted-fg)">{item.label}</div>
-              <div className="mt-2 text-2xl font-semibold tracking-tight">
-                {item.value}
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-(--ui-border) bg-(--ui-subtle-bg) text-(--ui-fg)">
+                  <Icon size={16} strokeWidth={1.8} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-medium">{title}</div>
+                  <div className="mt-0.5 text-xs font-light leading-4 text-(--ui-muted-fg)">
+                    {subtitle}
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 text-sm text-(--ui-muted-fg)">{item.detail}</div>
             </CardHeader>
+            <CardBody
+              padding="sm"
+              style={{ paddingBottom: 18, paddingLeft: 18, paddingRight: 18, paddingTop: 14 }}
+            >
+              <div className="text-sm font-light leading-5 text-(--ui-muted-fg)">
+                {body}
+              </div>
+            </CardBody>
           </Card>
         ))}
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1.4fr_0.8fr]">
-        <Card padding="none">
-          <CardHeader>
-            <div className="text-sm font-medium">News feed</div>
-            <div className="mt-1 text-sm text-(--ui-muted-fg)">
-              Product-level updates that are not tied to a single user account.
-            </div>
-          </CardHeader>
-          <CardBody padding="sm">
-            <div className="space-y-4">
-              {feedItems.map((item) => (
-                <article key={item.title} className="space-y-1">
-                  <h3 className="text-sm font-medium">{item.title}</h3>
-                  <p className="text-sm text-(--ui-muted-fg)">{item.body}</p>
-                </article>
-              ))}
-            </div>
-          </CardBody>
-        </Card>
-
-        <Card padding="none" variant="subtle">
-          <CardHeader divider={false}>
-            <div className="text-sm font-medium">Recent activity</div>
-          </CardHeader>
-          <CardBody padding="sm">
-            <ul className="list-inside list-disc space-y-2 text-sm text-(--ui-muted-fg)">
-              {activityItems.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </CardBody>
-        </Card>
-      </div>
+      <Card padding="none" variant="subtle">
+        <CardBody padding="sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-(--ui-muted-fg)">
+              The account page shows the same provider and UI pattern applied to
+              a concrete authenticated component.
+            </p>
+            <Button variant="primary" onPress={() => router.push("/app/account")}>
+              Account demo
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
     </section>
   );
 }

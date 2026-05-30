@@ -25,8 +25,11 @@
     "@types/react-native": "^0.73.0"
   },
   "dependencies": {
-    "@radix-ui/react-dialog": "^1.1.15",
+    "@codemirror/lang-javascript": "^6.2.5",
     "@expo/vector-icons": "^15.0.3",
+    "@radix-ui/react-dialog": "^1.1.15",
+    "@uiw/react-codemirror": "^4.25.10",
+    "expo-clipboard": "~8.0.8",
     "lucide-react": "^0.562.0"
   }
 }
