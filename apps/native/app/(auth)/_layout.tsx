@@ -1,24 +1,26 @@
 import { Stack } from "expo-router";
 import { View, Text, StyleSheet } from "react-native";
-
-const BG = "#fff";
+import { useThemeTokens } from "@repo/ui";
 
 export default function AuthLayout() {
-  return (
-    <View style={styles.root}>
-      <View style={styles.container}>
+  const tokens = useThemeTokens();
+  const backgroundStyle = { backgroundColor: tokens.color.bg };
 
-        <View style={styles.stack}>
+  return (
+    <View style={[styles.root, backgroundStyle]}>
+      <View style={[styles.container, backgroundStyle]}>
+
+        <View style={[styles.stack, backgroundStyle]}>
           <Stack
             screenOptions={{
               headerShown: false,
               animation: "none",
-              contentStyle: styles.content,
+              contentStyle: [styles.content, backgroundStyle],
             }}
           />
         </View>
 
-        <Text style={styles.footer}>datafluent</Text>
+        <Text style={[styles.footer, { color: tokens.color.mutedFg }, backgroundStyle]}>datafluent</Text>
 
       </View>
     </View>
@@ -30,27 +32,23 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     alignItems: "center",
-    backgroundColor: BG,
   },
 
   container: {
     flex: 1,
     width: "100%",
     maxWidth: 420,
-    backgroundColor: BG,
   },
   
   stack: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: BG,
   },
 
   content: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: BG,
   },
 
   footer: {
@@ -58,8 +56,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
     textAlign: "center",
     fontSize: 12,
-    color: "rgba(0,0,0,0.45)",
     fontWeight: "500",
-    backgroundColor: BG,
   },
 });

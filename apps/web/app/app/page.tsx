@@ -1,123 +1,101 @@
 "use client";
 
-import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, CardBody, CardFooter, CardHeader } from "@repo/ui";
-import { useAuth } from "@repo/providers";
+import { Button, Card, CardBody, CardHeader } from "@repo/ui";
+
+const overviewItems = [
+  { label: "Active workspaces", value: "3", detail: "Shared app contexts ready" },
+  { label: "Unread updates", value: "12", detail: "Product and system notices" },
+  { label: "Reusable surfaces", value: "8", detail: "UI patterns wired across apps" },
+];
+
+const feedItems = [
+  {
+    title: "Provider boundary updated",
+    body: "Shared providers stay in @repo/providers while route definitions remain inside each app.",
+  },
+  {
+    title: "UI tokens aligned",
+    body: "Web and native surfaces now read from the same theme contract for light and dark mode.",
+  },
+  {
+    title: "Account route available",
+    body: "User-specific identity and session details now live on a dedicated account page.",
+  },
+];
+
+const activityItems = [
+  "Magic link and OTP flows are enabled for auth forms.",
+  "Native tab navigation is token themed.",
+  "The web header uses a stable user avatar seeded from the account id.",
+];
 
 export default function AppHome() {
   const router = useRouter();
-  const { user, session, loading, signOut } = useAuth();
-  const [busy, setBusy] = React.useState(false);
-
-  const status = loading ? "Loading…" : user ? "Signed in" : "Signed out";
-
-  const onSignOut = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await signOut();
-      router.replace("/login");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <section className="space-y-6">
-      <header className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight">Dashboard</h2>
-        <p className="text-sm text-neutral-600">
-          Authenticated area using shared providers + shared UI semantics.
-        </p>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-xl font-semibold tracking-tight">App overview</h2>
+          <p className="max-w-2xl text-sm text-(--ui-muted-fg)">
+            A global authenticated landing page for product-wide summaries,
+            updates, and activity across the app.
+          </p>
+        </div>
+
+        <Button variant="ghost" onPress={() => router.push("/app/account")}>
+          Account
+        </Button>
       </header>
 
-      <Card padding="none" elevation="sm">
-        <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-sm font-medium">Session</div>
-              <div className="mt-1 text-sm text-neutral-600">
-                Current auth state from{" "}
-                <span className="font-medium">@repo/providers</span>.
+      <div className="grid gap-3 sm:grid-cols-3">
+        {overviewItems.map((item) => (
+          <Card key={item.label} padding="none" elevation="sm">
+            <CardHeader divider={false}>
+              <div className="text-sm text-(--ui-muted-fg)">{item.label}</div>
+              <div className="mt-2 text-2xl font-semibold tracking-tight">
+                {item.value}
               </div>
+              <div className="mt-1 text-sm text-(--ui-muted-fg)">{item.detail}</div>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[1.4fr_0.8fr]">
+        <Card padding="none">
+          <CardHeader>
+            <div className="text-sm font-medium">News feed</div>
+            <div className="mt-1 text-sm text-(--ui-muted-fg)">
+              Product-level updates that are not tied to a single user account.
             </div>
-
-            <div className="text-xs text-neutral-500">
-              Status:{" "}
-              <span
-                className={
-                  loading
-                    ? "text-neutral-500"
-                    : user
-                      ? "text-emerald-600"
-                      : "text-neutral-500"
-                }
-              >
-                {status}
-              </span>
+          </CardHeader>
+          <CardBody padding="sm">
+            <div className="space-y-4">
+              {feedItems.map((item) => (
+                <article key={item.title} className="space-y-1">
+                  <h3 className="text-sm font-medium">{item.title}</h3>
+                  <p className="text-sm text-(--ui-muted-fg)">{item.body}</p>
+                </article>
+              ))}
             </div>
-          </div>
-        </CardHeader>
+          </CardBody>
+        </Card>
 
-        <CardBody>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="text-sm">
-              <div className="text-neutral-500">Email</div>
-              <div className="mt-1 font-medium text-neutral-800">
-                {user?.email ?? (loading ? "…" : "—")}
-              </div>
-            </div>
-
-            <div className="text-sm">
-              <div className="text-neutral-500">User ID</div>
-              <div className="mt-1 font-medium text-neutral-800 truncate">
-                {user?.id ?? (loading ? "…" : "—")}
-              </div>
-            </div>
-
-            <div className="text-sm">
-              <div className="text-neutral-500">Session</div>
-              <div className="mt-1 font-medium text-neutral-800">
-                {session ? "Active" : loading ? "…" : "None"}
-              </div>
-            </div>
-          </div>
-        </CardBody>
-
-        <CardFooter>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" onPress={() => router.push("/")}>
-              Back home
-            </Button>
-
-            <Button
-              onPress={onSignOut}
-              disabled={loading || !user || busy}
-              variant="primary"
-            >
-              {busy ? "Signing out…" : "Sign out"}
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-
-      <Card padding="none" variant="subtle">
-        <CardHeader divider={false}>
-          <div className="text-sm font-medium">What this page demonstrates</div>
-        </CardHeader>
-        <CardBody padding="sm">
-          <ul className="list-inside list-disc space-y-1 text-sm text-neutral-700">
-            <li>Shared providers across web + native</li>
-            <li>Shared UI primitives with platform implementations</li>
-            <li>
-              Cross-platform event prop:{" "}
-              <span className="font-medium">onPress</span>
-            </li>
-            <li>Route gating (unauthenticated users go to /login)</li>
-          </ul>
-        </CardBody>
-      </Card>
+        <Card padding="none" variant="subtle">
+          <CardHeader divider={false}>
+            <div className="text-sm font-medium">Recent activity</div>
+          </CardHeader>
+          <CardBody padding="sm">
+            <ul className="list-inside list-disc space-y-2 text-sm text-(--ui-muted-fg)">
+              {activityItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </CardBody>
+        </Card>
+      </div>
     </section>
   );
 }

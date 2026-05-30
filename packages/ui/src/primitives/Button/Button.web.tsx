@@ -43,7 +43,7 @@ export function Button({
       : "var(--ui-bg)";
 
   const hoverBg = isPrimary
-    ? String(v.hoverBg ?? "var(--ui-primary-bg)")
+    ? String(v.hoverBg ?? "var(--ui-primary-hover-bg)")
     : isGhost
       ? "var(--ui-subtle-bg)"
       : String(v.hoverBg ?? "var(--ui-subtle-bg)");

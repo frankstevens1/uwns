@@ -16,7 +16,6 @@
     "@repo/providers": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@supabase/supabase-js": "^2.90.1",
     "@tailwindcss/postcss": "^4.1.18",
     "cmdk": "^1.1.1",
     "lucide-react": "^0.562.0",

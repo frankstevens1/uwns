@@ -11,6 +11,7 @@ export function tokensToCssVars(tokens: ThemeTokens) {
   --ui-ring: ${c.border};
   --ui-primary-bg: ${c.primaryBg};
   --ui-primary-fg: ${c.primaryFg};
+  --ui-primary-hover-bg: ${c.primaryHoverBg};
   --ui-success-fg: ${c.successFg};
   --ui-danger-fg: ${c.dangerFg};
   --ui-warning-fg: ${c.warningFg};

@@ -16,7 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <AuthProvider>
         {children}
-        <Toaster />
+        <Toaster position="bottom-center" />
       </AuthProvider>
     </NextThemesProvider>
   );

@@ -19,7 +19,7 @@ export const buttonTokens = {
       bg: tokens.color.primaryBg,
       fg: tokens.color.primaryFg,
       border: "transparent",
-      hoverBg: "rgba(0,0,0,0.92)",
+      hoverBg: "var(--ui-primary-hover-bg)",
       activeOpacity: 0.9,
     },
     ghost: {

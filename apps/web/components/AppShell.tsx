@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogOut, LayoutDashboard, User } from "lucide-react";
 import { Button } from "@repo/ui";
 import { useAuth } from "@repo/providers";
 import { LogoUwns } from "./LogoSvg";
@@ -72,11 +72,44 @@ function AppHeader({ title }: { title: string }) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const userMenuRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
     setMobileOpen(false);
     setMenuOpen(false);
   }, [pathname]);
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (userMenuRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (userMenuRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   const go = (href: string) => router.push(href);
 
@@ -91,7 +124,8 @@ function AppHeader({ title }: { title: string }) {
     }
   };
 
-  const initials = getInitials(user?.email ?? "U");
+  const avatarSeed = encodeURIComponent(user?.id ?? "user");
+  const avatarUrl = `https://api.dicebear.com/10.x/glyphs/svg?seed=${avatarSeed}`;
 
   return (
     <header
@@ -110,27 +144,33 @@ function AppHeader({ title }: { title: string }) {
         {/* Desktop */}
         <div className="hidden items-center gap-2 sm:flex">
           <SearchCommand hotkey />
+          <ThemeSwitcher />
 
-          <div className="relative">
+          <div className="relative flex h-9 items-center" ref={userMenuRef}>
             <button
               type="button"
               onClick={() => setMenuOpen((v) => !v)}
               className={[
                 "inline-flex h-9 w-9 items-center justify-center rounded-full",
-                "bg-(--ui-subtle-bg) text-(--ui-fg)",
-                "hover:opacity-90 transition",
+                "text-(--ui-fg)",
+                "transition",
                 "focus:outline-none focus:ring-2 focus:ring-(--ui-border)",
               ].join(" ")}
               aria-label="User menu"
               aria-expanded={menuOpen}
             >
-              <span className="text-xs font-semibold">{initials}</span>
+              <img
+                src={avatarUrl}
+                alt=""
+                className="h-full w-full rounded-full border border-transparent bg-(--ui-subtle-bg) transition-colors hover:border-(--ui-border)"
+                aria-hidden="true"
+              />
             </button>
 
             {menuOpen && (
               <div
                 className={[
-                  "absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl",
+                  "absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl",
                   "bg-(--ui-panel) shadow-lg",
                   "ring-1 ring-(--ui-border)",
                 ].join(" ")}
@@ -148,15 +188,17 @@ function AppHeader({ title }: { title: string }) {
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-(--ui-subtle-bg) transition"
                 >
                   <LayoutDashboard size={16} />
-                  Dashboard
+                  App overview
                 </button>
 
-                <div className="px-3 py-2 flex items-center justify-between">
-                  <span className="text-sm text-(--ui-muted-fg)">Theme</span>
-                  <ThemeSwitcher />
-                </div>
-
-                <div className="h-px bg-(--ui-border)" />
+                <button
+                  type="button"
+                  onClick={() => go("/app/account")}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-(--ui-subtle-bg) transition"
+                >
+                  <User size={16} />
+                  Account
+                </button>
 
                 <button
                   type="button"
@@ -190,7 +232,11 @@ function AppHeader({ title }: { title: string }) {
           <div className="mx-auto max-w-5xl px-4 pb-3 pt-2">
             <div className="flex flex-col gap-2">
               <Button variant="ghost" onPress={() => go("/app")}>
-                Dashboard
+                App overview
+              </Button>
+
+              <Button variant="ghost" onPress={() => go("/app/account")}>
+                Account
               </Button>
 
               <div className="flex items-center justify-between rounded-xl bg-(--ui-subtle-bg) px-3 py-2">
@@ -231,15 +277,4 @@ function AppFooter() {
       </div>
     </footer>
   );
-}
-
-function getInitials(input: string) {
-  const s = input.trim();
-  if (!s) return "U";
-  // email -> first char before @
-  const beforeAt = s.split("@")[0] || s;
-  const parts = beforeAt.split(/[._-]+/).filter(Boolean);
-  const first = parts[0]?.[0] ?? beforeAt[0] ?? "U";
-  const second = parts[1]?.[0] ?? "";
-  return (first + second).toUpperCase();
 }

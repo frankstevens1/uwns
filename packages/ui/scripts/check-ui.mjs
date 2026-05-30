@@ -1,7 +1,22 @@
 import fs from "node:fs/promises";
+import fsSync from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const UI_ROOT = path.resolve(process.cwd(), "packages/ui");
+function resolveUiRoot() {
+  let dir = path.dirname(fileURLToPath(import.meta.url));
+
+  for (let i = 0; i < 6; i++) {
+    const hasSrc = fsSync.existsSync(path.join(dir, "src"));
+    const hasPkgJson = fsSync.existsSync(path.join(dir, "package.json"));
+    if (hasSrc && hasPkgJson) return dir;
+    dir = path.dirname(dir);
+  }
+
+  return path.resolve(process.cwd(), "packages/ui");
+}
+
+const UI_ROOT = resolveUiRoot();
 const SRC = path.join(UI_ROOT, "src");
 
 async function listComponentFolders() {
@@ -14,7 +29,14 @@ async function listComponentFolders() {
       for (const name of names) {
         const dir = path.join(p, name);
         const st = await fs.stat(dir);
-        if (st.isDirectory()) out.push({ bucket, name, dir });
+        if (!st.isDirectory()) continue;
+
+        const hasComponentFiles =
+          fsSync.existsSync(path.join(dir, `${name}.types.ts`)) ||
+          fsSync.existsSync(path.join(dir, `${name}.web.tsx`)) ||
+          fsSync.existsSync(path.join(dir, `${name}.native.tsx`));
+
+        if (hasComponentFiles) out.push({ bucket, name, dir });
       }
     } catch {
       // ignore missing bucket
