@@ -1,6 +1,8 @@
 import type { FormControlProps } from "./FormControl.types";
 import { View } from "react-native";
-import { Text, Label, Stack } from "../../index.native";
+import { Label } from "../../primitives/Label/Label.native";
+import { Stack } from "../../primitives/Stack/Stack.native";
+import { Text } from "../../primitives/Text/Text.native";
 
 export function FormControl({
   label,

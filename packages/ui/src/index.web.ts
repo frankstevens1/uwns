@@ -9,8 +9,10 @@ export { Card } from "./components/Card/Card.web";
 export { CardBody } from "./components/Card/CardBody.web";
 export { CardFooter } from "./components/Card/CardFooter.web";
 export { CardHeader } from "./components/Card/CardHeader.web";
-export { ConfirmDialog } from "./components/ConfirmDialog/ConfirmDialog.web";
 export { Checkbox } from "./primitives/Checkbox/Checkbox.web";
+export { Code } from "./primitives/Code/Code.web";
+export { CodeBlock } from "./components/CodeBlock/CodeBlock.web";
+export { ConfirmDialog } from "./components/ConfirmDialog/ConfirmDialog.web";
 export {
   DialogClose,
   DialogContent,
@@ -33,14 +35,16 @@ export { Link } from "./primitives/Link/Link.web";
 export { LoginForm } from "./components/auth/LoginForm/LoginForm.web";
 export { PasswordField } from "./components/auth/PasswordField/PasswordField.web";
 export { PasswordRequirementsList } from "./components/auth/PasswordRequirementsList/PasswordRequirementsList.web";
+export { ReadOnlyInput } from "./primitives/ReadOnlyInput/ReadOnlyInput.web";
 export { Select } from "./primitives/Select/Select.web";
+export { SettingsRow } from "./components/SettingsRow/SettingsRow.web";
 export { SignUpForm } from "./components/auth/SignUpForm/SignUpForm.web";
 export { Spinner } from "./primitives/Spinner/Spinner.web";
 export { Stack } from "./primitives/Stack/Stack.web";
-export { SettingsRow } from "./components/SettingsRow/SettingsRow.web";
 export { TableEmptyState } from "./components/TableEmptyState/TableEmptyState.web";
 export { Text } from "./primitives/Text/Text.web";
 export { Textarea } from "./primitives/Textarea/Textarea.web";
+export { Tip } from "./components/Tip/Tip.web";
 export { UpdatePasswordForm } from "./components/auth/UpdatePasswordForm/UpdatePasswordForm.web";
 export { Welcome } from "./components/auth/Welcome/Welcome.web";
 export * from "./theme";

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, LayoutDashboard, User } from "lucide-react";
+import { Menu, X, LogOut, Home, User } from "lucide-react";
 import { Button } from "@repo/ui";
 import { useAuth } from "@repo/providers";
 import { LogoUwns } from "./LogoSvg";
@@ -25,7 +25,7 @@ export function AppShell({
       <AppHeader title={title} />
 
       <div
-        className="relative"
+        className="no-scrollbar relative overflow-y-auto"
         style={{
           paddingTop: HEADER_H,
           paddingBottom: FOOTER_H,
@@ -142,7 +142,7 @@ function AppHeader({ title }: { title: string }) {
         </Link>
 
         {/* Desktop */}
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-4 sm:flex">
           <SearchCommand hotkey />
           <ThemeSwitcher />
 
@@ -162,7 +162,7 @@ function AppHeader({ title }: { title: string }) {
               <img
                 src={avatarUrl}
                 alt=""
-                className="h-full w-full rounded-full border border-transparent bg-(--ui-subtle-bg) transition-colors hover:border-(--ui-border)"
+                className="h-full w-full rounded-full border border-transparent bg-(--ui-subtle-bg) transition-colors hover:border-(--ui-muted-fg)"
                 aria-hidden="true"
               />
             </button>
@@ -187,8 +187,8 @@ function AppHeader({ title }: { title: string }) {
                   onClick={() => go("/app")}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-(--ui-subtle-bg) transition"
                 >
-                  <LayoutDashboard size={16} />
-                  App overview
+                  <Home size={16} />
+                  Home
                 </button>
 
                 <button
@@ -232,7 +232,7 @@ function AppHeader({ title }: { title: string }) {
           <div className="mx-auto max-w-5xl px-4 pb-3 pt-2">
             <div className="flex flex-col gap-2">
               <Button variant="ghost" onPress={() => go("/app")}>
-                App overview
+                Home
               </Button>
 
               <Button variant="ghost" onPress={() => go("/app/account")}>

@@ -30,6 +30,8 @@ export function ConfirmDialog({
   disabled,
   onConfirm,
 }: ConfirmDialogProps) {
+  const descriptionId = React.useId();
+
   const onConfirmClick = async () => {
     if (confirming || disabled) return;
     await onConfirm();
@@ -40,12 +42,13 @@ export function ConfirmDialog({
       <DialogPortal>
         <DialogOverlay />
         <DialogContent
+          aria-describedby={description ? descriptionId : undefined}
           position="center"
           className="rounded-2xl border border-(--ui-border) bg-(--ui-panel) p-4 shadow-xl"
         >
           <DialogTitle>{toLabel(title)}</DialogTitle>
           {description ? (
-            <DialogDescription>{description}</DialogDescription>
+            <DialogDescription id={descriptionId}>{description}</DialogDescription>
           ) : null}
           <DialogFooter>
             <DialogClose asChild>

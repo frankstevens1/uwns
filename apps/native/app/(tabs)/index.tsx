@@ -1,123 +1,197 @@
-import * as React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "@repo/providers";
-import { Button, Card, CardBody, CardFooter, CardHeader, useThemeTokens } from "@repo/ui";
+import { MaterialIcons } from "@expo/vector-icons";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Code,
+  Tip,
+  useThemeTokens,
+} from "@repo/ui";
+
+const homeCards = [
+  {
+    title: "Product flows",
+    subtitle: "Your app logic starts here.",
+    body: "Replace this tab with your authenticated product home. Keep navigation, layout, and native-only glue in the Expo app.",
+    icon: "route",
+  },
+  {
+    title: "Shared providers",
+    subtitle: "Reuse real app state.",
+    body: "Move auth, account context, feature flags, and other cross-platform state into shared providers when both apps need it.",
+    icon: "widgets",
+  },
+  {
+    title: "Account pattern",
+    subtitle: "Concrete auth example.",
+    body: "The account tab shows provider state composed with shared UI primitives in a small, inspectable component.",
+    icon: "account-circle",
+  },
+];
+
+const SECTION_GAP = 24;
 
 export default function HomeTab() {
-  const { user, session, loading, signOut } = useAuth();
   const tokens = useThemeTokens();
   const insets = useSafeAreaInsets();
-  const [busy, setBusy] = React.useState(false);
-
-  const status = loading ? "Loading…" : user ? "Signed in" : "Signed out";
-
-  const onSignOut = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await signOut();
-      router.replace("/login");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 24, backgroundColor: tokens.color.bg }]}>
-      <Text style={[styles.title, { color: tokens.color.fg }]}>UWNS • Native</Text>
-      <Text style={[styles.subtitle, { color: tokens.color.mutedFg }]}>
-        A minimal demo app wired to shared auth + shared UI.
-      </Text>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: tokens.color.bg }}
+      contentContainerStyle={[
+        styles.screen,
+        {
+          paddingTop: insets.top + 24,
+          paddingBottom: insets.bottom + 24,
+        },
+      ]}
+    >
+      <View style={styles.header}>
+        <Text style={[styles.title, { color: tokens.color.fg }]}>
+          Home
+        </Text>
+        <Text style={[styles.subtitle, { color: tokens.color.mutedFg }]}>
+          This protected tab is the first place to build product-specific flows.
+          The demo keeps the screen simple so the app structure, provider
+          boundary, and shared UI patterns are easy to see.
+        </Text>
+      </View>
 
-      <Card padding="none" elevation="sm">
-        <CardHeader>
-          <Text style={[styles.cardTitle, { color: tokens.color.fg }]}>Session</Text>
-          <Text style={[styles.cardSubtitle, { color: tokens.color.mutedFg }]}>
-            State from <Text style={styles.mono}>@repo/providers</Text>
-          </Text>
-        </CardHeader>
+      <Tip>
+        Compose app state from <Code>@repo/providers</Code> with shared building
+        blocks from <Code>@repo/ui</Code>. Keep the contract shared, but let each
+        platform choose the layout and interaction details that feel native.
+      </Tip>
 
-        <CardBody>
-          <View style={styles.kv}>
-            <Text style={[styles.label, { color: tokens.color.mutedFg }]}>Status</Text>
-            <Text style={[styles.value, { color: tokens.color.fg }]}>{status}</Text>
-          </View>
-
-          <View style={styles.kv}>
-            <Text style={[styles.label, { color: tokens.color.mutedFg }]}>Email</Text>
-            <Text style={[styles.value, { color: tokens.color.fg }]}>{user?.email ?? "—"}</Text>
-          </View>
-
-          <View style={styles.kv}>
-            <Text style={[styles.label, { color: tokens.color.mutedFg }]}>User ID</Text>
-            <Text style={[styles.value, { color: tokens.color.fg }]} numberOfLines={1}>
-              {user?.id ?? "—"}
-            </Text>
-          </View>
-
-          <View style={styles.kv}>
-            <Text style={[styles.label, { color: tokens.color.mutedFg }]}>Session</Text>
-            <Text style={[styles.value, { color: tokens.color.fg }]}>
-              {session ? "Active" : loading ? "—" : "None"}
-            </Text>
-          </View>
-        </CardBody>
-
-        <CardFooter>
-          <View style={styles.row}>
-            <Button
-              onPress={() => router.push("/modal")}
-              disabled={loading}
+      <View style={styles.cards}>
+        {homeCards.map((item) => (
+          <Card key={item.title} padding="none" elevation="sm">
+            <CardHeader divider={false}>
+              <View style={styles.cardHeading}>
+                <View
+                  style={[
+                    styles.iconBox,
+                    {
+                      backgroundColor: tokens.color.subtleBg,
+                      borderColor: tokens.color.border,
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={item.icon as any}
+                    size={17}
+                    color={tokens.color.fg}
+                  />
+                </View>
+                <View style={styles.cardHeadingText}>
+                  <Text style={[styles.cardTitle, { color: tokens.color.fg }]}>
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.cardSubtitle,
+                      { color: tokens.color.mutedFg },
+                    ]}
+                  >
+                    {item.subtitle}
+                  </Text>
+                </View>
+              </View>
+            </CardHeader>
+            <CardBody
+              padding="sm"
+              style={styles.cardBody}
             >
-              Open modal
-            </Button>
-
-            <Button
-              variant="ghost"
-              onPress={onSignOut}
-              disabled={loading || !user || busy}
-            >
-              {busy ? "Signing out…" : "Sign out"}
-            </Button>
-          </View>
-        </CardFooter>
-      </Card>
+              <Text style={[styles.cardBodyText, { color: tokens.color.mutedFg }]}>
+                {item.body}
+              </Text>
+            </CardBody>
+          </Card>
+        ))}
+      </View>
 
       <Card padding="none" variant="subtle">
-        <CardHeader divider={false}>
-          <Text style={[styles.cardTitle, { color: tokens.color.fg }]}>Next steps</Text>
-          <Text style={[styles.cardSubtitle, { color: tokens.color.mutedFg }]}>
-            This repo is meant to be a starting point.
-          </Text>
-        </CardHeader>
-
         <CardBody padding="sm">
-          <Text style={[styles.bullet, { color: tokens.color.mutedFg }]}>• Replace this tab with your product home.</Text>
-          <Text style={[styles.bullet, { color: tokens.color.mutedFg }]}>• Use shared UI + tokens for consistency.</Text>
-          <Text style={[styles.bullet, { color: tokens.color.mutedFg }]}>• Keep routing + platform glue in the app.</Text>
+          <View style={styles.accountCta}>
+            <Text style={[styles.ctaText, { color: tokens.color.mutedFg }]}>
+              The account tab shows the same provider and UI pattern applied to
+              a concrete authenticated component.
+            </Text>
+            <Button variant="primary" onPress={() => router.push("/account")}>
+              Account demo
+            </Button>
+          </View>
         </CardBody>
       </Card>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 24, gap: 12 },
-  title: { fontSize: 20, fontWeight: "700" },
-  subtitle: { fontSize: 13 },
-
-  mono: { fontFamily: "System", fontWeight: "600" },
-
-  row: { flexDirection: "row", gap: 10, flexWrap: "wrap" },
-
-  cardTitle: { fontSize: 14, fontWeight: "600" },
-  cardSubtitle: { marginTop: 4, fontSize: 13 },
-
-  kv: { marginTop: 10 },
-  label: { fontSize: 12 },
-  value: { marginTop: 4, fontSize: 14, fontWeight: "600" },
-
-  bullet: { fontSize: 13, marginTop: 6 },
+  screen: {
+    gap: SECTION_GAP,
+    paddingHorizontal: 24,
+  },
+  header: {
+    gap: 6,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  subtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  cards: {
+    gap: SECTION_GAP,
+    marginHorizontal: 8,
+  },
+  cardHeading: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
+  },
+  cardHeadingText: {
+    flex: 1,
+  },
+  iconBox: {
+    alignItems: "center",
+    borderRadius: 6,
+    borderWidth: 1,
+    height: 32,
+    justifyContent: "center",
+    width: 32,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  cardSubtitle: {
+    fontSize: 12,
+    fontWeight: "300",
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  cardBody: {
+    paddingBottom: 18,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+  },
+  cardBodyText: {
+    fontSize: 13,
+    fontWeight: "300",
+    lineHeight: 19,
+  },
+  accountCta: {
+    gap: 12,
+  },
+  ctaText: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
 });

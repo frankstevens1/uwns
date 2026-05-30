@@ -8,7 +8,6 @@ import { Button } from "@repo/ui";
 import { useAuth } from "@repo/providers";
 import ThemeSwitcher from "@/components/ThemeSwitch";
 import { LogoUwns } from "./LogoSvg";
-import { SearchCommand } from "./SearchCommand";
 
 const HEADER_H = 56;
 const FOOTER_H = 64;
@@ -25,7 +24,7 @@ export function MarketingShell({
       <MarketingHeader title={title} />
 
       <div
-        className="relative"
+        className="no-scrollbar relative overflow-y-auto"
         style={{
           paddingTop: HEADER_H,
           paddingBottom: FOOTER_H,
@@ -85,7 +84,7 @@ function MarketingHeader({ title }: { title: string }) {
 
   // One primary action: "View demo" (logged out) or "Enter app" (logged in).
   const primaryHref = user ? "/app" : "/login";
-  const primaryLabel = user ? "Enter app" : "View demo";
+  const primaryLabel = user ? "Demo" : "Demo";
 
   return (
     <header
@@ -103,8 +102,6 @@ function MarketingHeader({ title }: { title: string }) {
 
         {/* Desktop: quiet utilities + one CTA */}
         <div className="hidden items-center gap-2 sm:flex">
-          <SearchCommand hotkey />
-
           {!loading && !isAuthRoute && (
             <Button variant="primary" onPress={() => go(primaryHref)}>
               {primaryLabel}
@@ -114,7 +111,6 @@ function MarketingHeader({ title }: { title: string }) {
 
         {/* Mobile: keep menu variant */}
         <div className="flex items-center gap-2 sm:hidden">
-          <SearchCommand compact hotkey={false} />
           <Button
             variant="ghost"
             onPress={() => setMobileOpen((v) => !v)}
@@ -126,11 +122,15 @@ function MarketingHeader({ title }: { title: string }) {
       </div>
 
       {mobileOpen && (
-        <div className="bg-(--ui-panel)/95 supports-backdrop-filter:backdrop-blur">
+        <div className="bg-(--ui-panel) supports-backdrop-filter:backdrop-blur border-b">
           <div className="mx-auto max-w-5xl px-4 pb-3 pt-2">
             <div className="flex flex-col gap-2">
               <Button variant="ghost" onPress={() => go("/")}>
                 Home
+              </Button>
+
+              <Button variant="ghost" onPress={() => go("/legal")}>
+                Legal
               </Button>
 
               {/* Keep this minimal. Don’t turn it into a nav bar. */}
@@ -139,14 +139,6 @@ function MarketingHeader({ title }: { title: string }) {
                   {primaryLabel}
                 </Button>
               )}
-
-              {/* “Secondary” links belong in the menu, not the header */}
-              <div className="pt-2">
-                <div className="flex items-center justify-between rounded-xl bg-(--ui-subtle-bg) px-3 py-2">
-                  <div className="text-sm text-(--ui-muted-fg)">Theme</div>
-                  <ThemeSwitcher />
-                </div>
-              </div>
             </div>
           </div>
         </div>

@@ -1,5 +1,7 @@
 import type { FormControlProps } from "./FormControl.types";
-import { Label, Text, Stack } from "../../index.web";
+import { Label } from "../../primitives/Label/Label.web";
+import { Stack } from "../../primitives/Stack/Stack.web";
+import { Text } from "../../primitives/Text/Text.web";
 
 export function FormControl({
   label,
