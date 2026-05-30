@@ -38,7 +38,11 @@ export function Welcome({
           )}
 
           {onContinue && (
-            <Link onPress={onContinue}>Back to login</Link>
+            <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
+              <Link onPress={onContinue}>
+              ← Back to <Text style={{ fontWeight: "bold" }}>sign in</Text>
+              </Link>
+            </Text>
           )}
         </View>
       </CardFooter>

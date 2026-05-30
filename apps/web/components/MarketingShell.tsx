@@ -158,9 +158,9 @@ function MarketingHeader({ title }: { title: string }) {
 function MarketingFooter() {
   const year = new Date().getFullYear();
 
-  const MAILTO = process.env.NEXT_PUBLIC_MAILTO || process.env.MAILTO;
+  const MAILTO = process.env.NEXT_PUBLIC_MAILTO || process.env.MAILTO || "frank@datafluent.one";
   const GITHUB_USERNAME =
-    process.env.NEXT_PUBLIC_GITHUB_USERNAME || process.env.GITHUB_USERNAME;
+    process.env.NEXT_PUBLIC_GITHUB_USERNAME || process.env.GITHUB_USERNAME || "frankstevens1";
 
   const PRIVACY_URL = process.env.NEXT_PUBLIC_PRIVACY_URL || "/legal#privacy";
   const TERMS_URL = process.env.NEXT_PUBLIC_TERMS_URL || "/legal#terms";

@@ -21,7 +21,6 @@
     "@repo/providers": "workspace:*",
     "@repo/types": "workspace:*",
     "@repo/ui": "workspace:*",
-    "@supabase/supabase-js": "^2.90.1",
     "expo": "~54.0.31",
     "expo-constants": "~18.0.13",
     "expo-font": "~14.0.10",

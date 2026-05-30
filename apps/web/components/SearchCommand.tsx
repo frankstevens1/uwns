@@ -9,17 +9,16 @@ import {
   ArrowRight,
   LogOut,
   LayoutDashboard,
-  Settings,
   FileText,
   BookOpen,
   Sparkles,
+  User,
 } from "lucide-react";
 import { Button } from "@repo/ui";
 import { useAuth } from "@repo/providers";
 
 type FeatureFlags = {
   docs?: boolean;
-  settings?: boolean;
   playground?: boolean;
 };
 
@@ -91,13 +90,13 @@ function useFeatureFlags(explicit?: FeatureFlags): FeatureFlags {
       process.env.NEXT_PUBLIC_FEATURE_FLAGS ||
       process.env.NEXT_PUBLIC_UWNS_FEATURE_FLAGS;
 
-    if (!raw) return { docs: true, settings: true, playground: false };
+    if (!raw) return { docs: true, playground: false };
 
     try {
       const parsed = JSON.parse(raw) as FeatureFlags;
-      return { docs: true, settings: true, playground: false, ...parsed };
+      return { docs: true, playground: false, ...parsed };
     } catch {
-      return { docs: true, settings: true, playground: false };
+      return { docs: true, playground: false };
     }
   }, [explicit]);
 }
@@ -198,10 +197,10 @@ export function SearchCommand({
       },
       {
         id: "app",
-        label: "Demo App",
+        label: "App overview",
         href: "/app",
         icon: <LayoutDashboard size={14} />,
-        keywords: ["dashboard", "product"],
+        keywords: ["dashboard", "product", "overview", "feed"],
         when: "always",
       },
       {
@@ -232,13 +231,12 @@ export function SearchCommand({
 
     const actions: CommandItem[] = [
       {
-        id: "settings",
-        label: "Settings",
-        href: "/app/settings",
-        icon: <Settings size={14} />,
-        keywords: ["preferences"],
+        id: "account",
+        label: "Account",
+        href: "/app/account",
+        icon: <User size={14} />,
+        keywords: ["user", "profile", "identity", "settings"],
         when: "authed",
-        flag: "settings",
       },
       {
         id: "playground",

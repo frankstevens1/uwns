@@ -150,7 +150,7 @@ export function SignUpForm({
     <AuthCard
       title="Create account"
       subtitle={isOtp ? "Sign up with an emailed magic link or code." : "Sign up with email and a strong password."}
-      footer={
+      footer={isOtp ? null : 
         <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
           Already have an account?{" "}
           <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: "600" }}>

@@ -26,6 +26,7 @@ export type ThemeTokens = {
 
     primaryBg: string;
     primaryFg: string;
+    primaryHoverBg: string;
     successFg: string;
     dangerFg: string;
     warningFg: string;
@@ -61,6 +62,7 @@ export const baseTokens: ThemeTokens = {
 
     primaryBg: "#0a0a0a",
     primaryFg: "#ffffff",
+    primaryHoverBg: "rgba(0,0,0,0.86)",
     successFg: "#107c10",
     dangerFg: "#dc2626",
     warningFg: "#f59e0b",
@@ -90,6 +92,7 @@ export const lightTokens: ThemeTokens = {
     border: "rgba(0,0,0,0.28)",
     primaryBg: "#0a0a0a",
     primaryFg: "#ffffff",
+    primaryHoverBg: "rgba(0,0,0,0.86)",
     successFg: "#107c10",
     dangerFg: "#dc2626",
     warningFg: "#f59e0b",
@@ -114,6 +117,7 @@ export const darkTokens: ThemeTokens = {
     border: "rgba(255,255,255,0.22)",
     primaryBg: "#f3f3f4",
     primaryFg: "#0b0b0c",
+    primaryHoverBg: "rgba(255,255,255,0.86)",
     successFg: "#4ade80",
     dangerFg: "#f87171",
     warningFg: "#fbbf24",

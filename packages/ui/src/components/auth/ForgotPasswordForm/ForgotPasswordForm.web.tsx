@@ -9,6 +9,11 @@ import { Link } from "../../../primitives/Link/Link.web";
 import type { ForgotPasswordFormProps } from "./ForgotPasswordForm.types";
 import { useAuthFormState } from "../useAuthFormState";
 
+function withEmailParam(path: string, email: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}email=${encodeURIComponent(email)}`;
+}
+
 export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo }: ForgotPasswordFormProps) {
   const { email, setEmail, isLoading, setIsLoading } = useAuthFormState();
 
@@ -25,7 +30,7 @@ export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo 
         return;
       }
       notify?.success?.("Email sent.", { description: "Check your inbox for the reset link." });
-      navigate?.(afterRequest);
+      navigate?.(withEmailParam(afterRequest, email));
     } finally {
       setIsLoading(false);
     }

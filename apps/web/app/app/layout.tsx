@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
 
-  if (loading) return <div className="p-8 text-sm text-neutral-600">Loading…</div>;
+  if (loading) return <div className="p-8 text-sm text-(--ui-muted-fg)">Loading…</div>;
   if (!user) return null;
 
   return <>{children}</>;
