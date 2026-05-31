@@ -12,7 +12,7 @@
   },
   "scripts": {
     "gen": "node ./scripts/create-component.mjs",
-    "check": "node ./scripts/check-ui.mjs",
+    "validate": "node ./scripts/validate-ui.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "peerDependencies": {

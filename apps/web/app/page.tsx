@@ -1,9 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Blocks, DatabaseZap, Palette } from "lucide-react";
-import { Button, Card, CardBody, CardHeader, Code } from "@repo/ui";
-import { useAuth } from "@repo/providers";
+import { Card, CardBody, CardHeader, Code } from "@repo/ui";
 
 const featureCards = [
   {
@@ -27,17 +25,6 @@ const featureCards = [
 ];
 
 export default function Home() {
-  const router = useRouter();
-  const { user, loading, signOut } = useAuth();
-
-  const onSignOut = async () => {
-    if (loading) return;
-    try {
-      await signOut();
-    } catch {
-      // Handle error
-    }
-  };
 
   return (
     <section className="space-y-10">

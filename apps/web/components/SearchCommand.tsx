@@ -15,7 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@repo/ui";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 
 type FeatureFlags = {
   docs?: boolean;
@@ -116,6 +116,7 @@ export function SearchCommand({
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
+  const { trackEvent } = useActivity();
 
   const ff = useFeatureFlags(flags);
   const isAuthed = !!user && !loading;
@@ -254,6 +255,10 @@ export function SearchCommand({
         keywords: ["logout", "sign out"],
         when: "authed",
         action: async () => {
+          await trackEvent({
+            eventName: "signed_out",
+            metadata: { trigger: "search_command" },
+          });
           await signOut();
           router.replace("/login");
         },
@@ -321,7 +326,7 @@ export function SearchCommand({
     }));
 
     return [...base, ...injected].filter((s) => s.items.length > 0 || !!s.emptyText);
-  }, [recents, isAuthed, ff, extraSections, signOut, router]);
+  }, [recents, isAuthed, ff, extraSections, signOut, router, trackEvent]);
 
   const closeOnEscCapture = (e: React.KeyboardEvent) => {
     if (e.key !== "Escape") return;

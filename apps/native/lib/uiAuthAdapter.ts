@@ -1,4 +1,4 @@
-import type { AuthContextValue } from "@repo/providers";
+import type { AuthContextValue, TrackEventArgs } from "@repo/providers";
 
 export type UiAuthClient = {
   signInWithPassword: (args: {
@@ -39,11 +39,23 @@ function toMsg(e: unknown) {
   return e instanceof Error ? e.message : "An error occurred";
 }
 
-export function toUiAuthClient(auth: AuthContextValue): UiAuthClient {
+type AuthTrackingOptions = {
+  flow: "login" | "sign-up";
+  trackEvent: (args: TrackEventArgs) => Promise<void>;
+};
+
+export function toUiAuthClient(
+  auth: AuthContextValue,
+  tracking?: AuthTrackingOptions,
+): UiAuthClient {
   return {
     signInWithPassword: async ({ email, password }) => {
       try {
         await auth.signInWithPassword({ email, password });
+        await tracking?.trackEvent({
+          eventName: "logged_in",
+          metadata: { authMethod: "password" },
+        });
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };
@@ -53,6 +65,10 @@ export function toUiAuthClient(auth: AuthContextValue): UiAuthClient {
     signUp: async ({ email, password /* emailRedirectTo ignored */ }) => {
       try {
         await auth.signUpWithPassword({ email, password });
+        await tracking?.trackEvent({
+          eventName: "signed_up",
+          metadata: { authMethod: "password" },
+        });
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };
@@ -71,6 +87,10 @@ export function toUiAuthClient(auth: AuthContextValue): UiAuthClient {
     verifyEmailOtp: async ({ email, token }) => {
       try {
         await auth.verifyEmailOtp({ email, token });
+        await tracking?.trackEvent({
+          eventName: tracking.flow === "sign-up" ? "signed_up" : "logged_in",
+          metadata: { authMethod: "otp" },
+        });
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };
@@ -97,6 +117,10 @@ export function toUiAuthClient(auth: AuthContextValue): UiAuthClient {
 
     signOut: async () => {
       try {
+        await tracking?.trackEvent({
+          eventName: "signed_out",
+          metadata: { trigger: "auth_client" },
+        });
         await auth.signOut?.();
         return { error: null };
       } catch (e) {

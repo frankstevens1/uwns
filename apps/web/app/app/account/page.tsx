@@ -1,6 +1,8 @@
 "use client";
 
+import * as React from "react";
 import { Code, CodeBlock, Tip } from "@repo/ui";
+import { useActivity } from "@repo/providers";
 import { useTheme } from "next-themes";
 import { SignedInIdentity } from "./SignedInIdentity";
 
@@ -15,10 +17,11 @@ import {
   CardHeader,
   ReadOnlyInput,
 } from "@repo/ui";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 
 export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
+  const { trackEvent } = useActivity();
   const [busy, setBusy] = React.useState(false);
 
   const handleSignOut = async () => {
@@ -26,6 +29,10 @@ export function SignedInIdentity() {
 
     setBusy(true);
     try {
+      await trackEvent({
+        eventName: "signed_out",
+        metadata: { trigger: "account_card" },
+      });
       await signOut();
     } finally {
       setBusy(false);
@@ -68,6 +75,19 @@ export function SignedInIdentity() {
 
 export default function AccountPage() {
   const { resolvedTheme } = useTheme();
+  const { trackEvent } = useActivity();
+
+  React.useEffect(() => {
+    void trackEvent({
+      eventName: "account_viewed",
+      uniqueKey: "web:account_viewed",
+      metadata: {
+        source: "account",
+        screen: "account_page",
+        trigger: "first_page_visit",
+      },
+    });
+  }, [trackEvent]);
 
   return (
     <section className="space-y-6 pb-14">

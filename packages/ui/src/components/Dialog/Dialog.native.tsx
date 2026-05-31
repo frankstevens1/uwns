@@ -8,6 +8,7 @@ import type {
   DialogRootProps,
   DialogTextProps,
 } from "./Dialog.types";
+import { useThemeTokens } from "../../theme";
 
 type DialogContextValue = {
   open: boolean;
@@ -32,6 +33,19 @@ function composePressHandlers(
     first?.(...args);
     second?.(...args);
   };
+}
+
+function isDarkHex(hex: string) {
+  if (!hex.startsWith("#")) return false;
+  const value = hex.slice(1);
+  if (value.length !== 6) return false;
+
+  const red = Number.parseInt(value.slice(0, 2), 16);
+  const green = Number.parseInt(value.slice(2, 4), 16);
+  const blue = Number.parseInt(value.slice(4, 6), 16);
+  const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+
+  return luminance < 0.5;
 }
 
 export function DialogRoot({
@@ -122,11 +136,19 @@ export function DialogContent({
   children,
   position = "center",
 }: DialogContentProps) {
+  const tokens = useThemeTokens();
+  const dark = isDarkHex(tokens.color.bg);
+
   return (
     <View pointerEvents="box-none" style={styles.contentFrame}>
       <View
         style={[
           styles.contentBase,
+          {
+            backgroundColor: dark ? "#1b1b1f" : tokens.color.bg,
+            borderColor: tokens.color.border,
+            borderRadius: tokens.radius.lg,
+          },
           position === "right" ? styles.contentRight : styles.contentCenter,
         ]}
       >
@@ -137,11 +159,21 @@ export function DialogContent({
 }
 
 export function DialogTitle({ children }: DialogTextProps) {
-  return <Text style={styles.title}>{children}</Text>;
+  const tokens = useThemeTokens();
+  return (
+    <Text style={[styles.title, { color: tokens.color.fg }]}>
+      {children}
+    </Text>
+  );
 }
 
 export function DialogDescription({ children }: DialogTextProps) {
-  return <Text style={styles.description}>{children}</Text>;
+  const tokens = useThemeTokens();
+  return (
+    <Text style={[styles.description, { color: tokens.color.mutedFg }]}>
+      {children}
+    </Text>
+  );
 }
 
 export function DialogFooter({ children }: DialogFooterProps) {
@@ -165,10 +197,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   contentBase: {
-    backgroundColor: "#ffffff",
-    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.12)",
     shadowColor: "#000000",
     shadowOpacity: 0.16,
     shadowRadius: 12,

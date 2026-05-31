@@ -12,6 +12,7 @@ Monorepo boilerplate for building web and native apps with shared UI and provide
 - `packages/types`: Shared TypeScript types
 - `packages/eslint-config`: Shared ESLint presets
 - `packages/typescript-config`: Shared TypeScript presets
+- `services/api`: FastAPI backend for lightweight Python data services
 
 ## Prerequisites
 
@@ -46,6 +47,7 @@ Run one app:
 ```bash
 pnpm --filter web dev
 pnpm --filter native dev
+pnpm api:dev
 ```
 
 ## Build and Checks
@@ -56,11 +58,12 @@ pnpm lint
 pnpm check-types
 ```
 
-## Supabase (Blank Baseline)
+## Supabase
 
-`supabase/` is intentionally reset to a boilerplate baseline:
+`supabase/` contains source-controlled app schema:
 
-- one baseline migration with no domain tables/policies/functions
+- one boilerplate baseline migration
+- one activity events migration for the FastAPI service demo
 - no-op seed file
 
 Commands:
@@ -70,4 +73,26 @@ supabase start
 supabase db reset
 ```
 
-These commands should initialize/reset a clean project schema with no product-specific data model.
+These commands should initialize/reset the local app schema.
+
+## Python Data Services
+
+`services/api` demonstrates the repo pattern for Python-backed product services. The Activity service accepts authenticated app events from web/native and stores them in Supabase.
+
+Configure:
+
+```bash
+cp .env.example apps/web/.env.local
+cp .env.example apps/native/.env
+cp services/api/.env.example services/api/.env
+```
+
+The root `.env.example` contains app-exposed values for web/native. The
+service-local `services/api/.env.example` is the source of truth for FastAPI
+service secrets and CORS config.
+
+Run:
+
+```bash
+pnpm api:dev
+```

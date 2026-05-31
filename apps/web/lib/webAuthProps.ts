@@ -2,12 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 import { toUiAuthClient } from "./uiAuthAdapter";
 
-export function useWebAuthWiring() {
+export function useWebAuthWiring(flow: "login" | "sign-up" = "login") {
   const router = useRouter();
   const auth = useAuth();
+  const { trackEvent } = useActivity();
 
   const notify = {
     success: (title: string, opts?: { description?: string }) =>
@@ -18,5 +19,5 @@ export function useWebAuthWiring() {
 
   const navigate = (href: string) => router.push(href);
 
-  return { auth: toUiAuthClient(auth), notify, navigate };
+  return { auth: toUiAuthClient(auth, { flow, trackEvent }), notify, navigate };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { AuthProvider } from "@repo/providers";
+import { ActivityProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "@/components/Sonner";
 
@@ -15,8 +15,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableColorScheme
     >
       <AuthProvider>
-        {children}
-        <Toaster position="bottom-center" />
+        <ActivityProvider>
+          {children}
+          <Toaster position="bottom-center" />
+        </ActivityProvider>
       </AuthProvider>
     </NextThemesProvider>
   );

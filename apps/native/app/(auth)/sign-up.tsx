@@ -3,7 +3,7 @@ import { useNativeAuthWiring } from "@/lib/nativeAuthProps";
 import * as Linking from "expo-linking";
 
 export default function SignUpScreen() {
-  const { auth, notify, navigate } = useNativeAuthWiring();
+  const { auth, notify, navigate } = useNativeAuthWiring("sign-up");
   const emailRedirectTo = Linking.createURL("/");
 
   return (

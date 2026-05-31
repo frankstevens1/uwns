@@ -54,6 +54,21 @@ function normalizeAuthError(error: unknown) {
   return message;
 }
 
+function isInvalidRefreshTokenError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("Invalid Refresh Token") ||
+    message.includes("Refresh Token Not Found")
+  );
+}
+
+async function clearLocalAuthSession(supabase: any) {
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  if (error && !isInvalidRefreshTokenError(error)) {
+    throw new Error(error.message);
+  }
+}
+
 export function createAuthProvider(
   createSupabaseClient: () => any,
   authUrlEvents?: AuthUrlEvents
@@ -75,13 +90,33 @@ export function createAuthProvider(
         .getSession()
         .then(({ data, error }: any) => {
           if (!mounted) return;
-          if (error) console.warn("[AuthProvider] getSession error:", error.message);
+          if (error) {
+            if (isInvalidRefreshTokenError(error)) {
+              clearLocalAuthSession(supabase).catch((err) => {
+                console.warn(
+                  "[AuthProvider] stale session cleanup error:",
+                  err instanceof Error ? err.message : String(err)
+                );
+              });
+            } else {
+              console.warn("[AuthProvider] getSession error:", error.message);
+            }
+          }
           setSession(data.session ?? null);
           setLoading(false);
         })
         .catch((err: any) => {
           if (!mounted) return;
-          console.warn("[AuthProvider] getSession exception:", String(err));
+          if (isInvalidRefreshTokenError(err)) {
+            clearLocalAuthSession(supabase).catch((cleanupErr) => {
+              console.warn(
+                "[AuthProvider] stale session cleanup error:",
+                cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)
+              );
+            });
+          } else {
+            console.warn("[AuthProvider] getSession exception:", String(err));
+          }
           setLoading(false);
         });
 
@@ -134,13 +169,15 @@ export function createAuthProvider(
         loading,
 
         async signInWithPassword({ email, password }) {
-          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
           if (error) throw new Error(error.message);
+          setSession(data.session ?? null);
         },
 
         async signUpWithPassword({ email, password }) {
-          const { error } = await supabase.auth.signUp({ email, password });
+          const { data, error } = await supabase.auth.signUp({ email, password });
           if (error) throw new Error(error.message);
+          if (data.session) setSession(data.session);
         },
 
         async sendEmailOtp({ email, emailRedirectTo, shouldCreateUser }) {
@@ -165,17 +202,27 @@ export function createAuthProvider(
         },
 
         async verifyEmailOtp({ email, token }) {
-          const { error } = await supabase.auth.verifyOtp({
+          const { data, error } = await supabase.auth.verifyOtp({
             email,
             token,
             type: "email",
           });
           if (error) throw new Error(error.message);
+          setSession(data.session ?? null);
         },
 
         async signOut() {
           const { error } = await supabase.auth.signOut();
-          if (error) throw new Error(error.message);
+          if (!error) {
+            setSession(null);
+            return;
+          }
+          if (isInvalidRefreshTokenError(error)) {
+            await clearLocalAuthSession(supabase);
+            setSession(null);
+            return;
+          }
+          throw new Error(error.message);
         },
 
         async resetPasswordForEmail(email) {

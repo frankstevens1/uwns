@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 import {
   Button,
   Card,
@@ -17,7 +17,7 @@ import {
 
 const signedInIdentityExample = `import * as React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 import {
   Button,
   Card,
@@ -30,6 +30,7 @@ import {
 
 export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
+  const { trackEvent } = useActivity();
   const tokens = useThemeTokens();
   const [busy, setBusy] = React.useState(false);
 
@@ -38,6 +39,10 @@ export function SignedInIdentity() {
 
     setBusy(true);
     try {
+      await trackEvent({
+        eventName: "signed_out",
+        metadata: { trigger: "account_card" },
+      });
       await signOut();
     } finally {
       setBusy(false);
@@ -89,6 +94,7 @@ const SECTION_GAP = 24;
 
 function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
+  const { trackEvent } = useActivity();
   const tokens = useThemeTokens();
   const [busy, setBusy] = React.useState(false);
 
@@ -97,6 +103,10 @@ function SignedInIdentity() {
 
     setBusy(true);
     try {
+      await trackEvent({
+        eventName: "signed_out",
+        metadata: { trigger: "account_card" },
+      });
       await signOut();
     } finally {
       setBusy(false);
@@ -142,8 +152,21 @@ function SignedInIdentity() {
 export default function AccountTab() {
   const tokens = useThemeTokens();
   const insets = useSafeAreaInsets();
+  const { trackEvent } = useActivity();
   const [view, setView] = React.useState<"component" | "code">("component");
   const showComponent = view === "component";
+
+  React.useEffect(() => {
+    void trackEvent({
+      eventName: "account_viewed",
+      uniqueKey: "native:account_viewed",
+      metadata: {
+        source: "account",
+        screen: "account_tab",
+        trigger: "first_tab_visit",
+      },
+    });
+  }, [trackEvent]);
 
   return (
     <ScrollView

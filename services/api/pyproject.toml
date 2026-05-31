@@ -1,0 +1,18 @@
+[project]
+name = "uwns-api"
+version = "0.1.0"
+description = "Lightweight FastAPI data service for UWNS"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.116.0",
+  "requests>=2.32.0",
+  "uvicorn[standard]>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

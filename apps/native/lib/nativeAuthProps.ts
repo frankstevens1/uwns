@@ -1,10 +1,11 @@
 import { Alert } from "react-native";
 import { router } from "expo-router";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 import { toUiAuthClient } from "./uiAuthAdapter";
 
-export function useNativeAuthWiring() {
+export function useNativeAuthWiring(flow: "login" | "sign-up" = "login") {
   const auth = useAuth();
+  const { trackEvent } = useActivity();
 
   const notify = {
     success: (title: string, opts?: { description?: string }) =>
@@ -15,5 +16,5 @@ export function useNativeAuthWiring() {
 
   const navigate = (href: string) => router.push(href as any);
 
-  return { auth: toUiAuthClient(auth), notify, navigate };
+  return { auth: toUiAuthClient(auth, { flow, trackEvent }), notify, navigate };
 }

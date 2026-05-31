@@ -5,6 +5,11 @@ node_modules
 .pnp
 .pnp.js
 .pnpm-store/
+.venv/
+.uv-cache/
+__pycache__/
+*.pyc
+.pytest_cache/
 
 # Local env files
 .env
@@ -16,9 +21,9 @@ node_modules
 # secrets
 .secrets/
 
-# Supabase local-only seeds (developer private)
-supabase/seed.local.sql
-supabase/seed.local.*.sql
+# Supabase 
+.branches
+.temp
 
 # sample data
 json/

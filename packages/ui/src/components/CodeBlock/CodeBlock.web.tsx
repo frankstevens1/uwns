@@ -77,6 +77,17 @@ const compactEditorTheme = EditorView.theme({
   },
 });
 
+function inferLanguage(language: string, filename?: string) {
+  if (language !== "text") return language;
+
+  const extension = filename?.split(".").pop()?.toLowerCase();
+  if (extension === "ts" || extension === "tsx") return "tsx";
+  if (extension === "js" || extension === "jsx") return "jsx";
+  if (extension === "json") return "json";
+
+  return language;
+}
+
 function languageExtensions(language: string): Extension[] {
   if (language === "tsx" || language === "typescript") {
     return [javascript({ jsx: true, typescript: true })];
@@ -84,6 +95,10 @@ function languageExtensions(language: string): Extension[] {
 
   if (language === "jsx" || language === "javascript") {
     return [javascript({ jsx: language === "jsx" })];
+  }
+
+  if (language === "json") {
+    return [javascript()];
   }
 
   return [];
@@ -103,14 +118,15 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const label = filename ?? language;
   const [copied, setCopied] = React.useState(false);
+  const resolvedLanguage = inferLanguage(language, filename);
   const extensions = React.useMemo(
     () => [
       editorTheme,
       EditorView.lineWrapping,
       !showLineNumbers ? compactEditorTheme : [],
-      ...languageExtensions(language),
+      ...languageExtensions(resolvedLanguage),
     ],
-    [language, showLineNumbers],
+    [resolvedLanguage, showLineNumbers],
   );
   const setup = React.useMemo(
     () => getBasicSetup(showLineNumbers),

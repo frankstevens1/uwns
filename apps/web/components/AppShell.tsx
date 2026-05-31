@@ -5,13 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LogOut, Home, User } from "lucide-react";
 import { Button } from "@repo/ui";
-import { useAuth } from "@repo/providers";
+import { useActivity, useAuth } from "@repo/providers";
 import { LogoUwns } from "./LogoSvg";
 import ThemeSwitcher from "@/components/ThemeSwitch";
 import { SearchCommand } from "./SearchCommand";
 
 const HEADER_H = 56;
-const FOOTER_H = 64;
+const BOTTOM_FADE_H = 18;
 
 export function AppShell({
   title = "df",
@@ -28,7 +28,6 @@ export function AppShell({
         className="no-scrollbar relative overflow-y-auto"
         style={{
           paddingTop: HEADER_H,
-          paddingBottom: FOOTER_H,
           height: "100dvh",
         }}
       >
@@ -49,8 +48,8 @@ export function AppShell({
           aria-hidden
           className="pointer-events-none fixed left-0 right-0 z-10"
           style={{
-            bottom: FOOTER_H,
-            height: 18,
+            bottom: 0,
+            height: BOTTOM_FADE_H,
             background:
               "linear-gradient(to top, var(--ui-fade-from), rgba(0,0,0,0))",
           }}
@@ -58,8 +57,6 @@ export function AppShell({
 
         <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
       </div>
-
-      <AppFooter />
     </div>
   );
 }
@@ -68,6 +65,7 @@ function AppHeader({ title }: { title: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
+  const { trackEvent } = useActivity();
 
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -117,6 +115,10 @@ function AppHeader({ title }: { title: string }) {
     if (busy) return;
     setBusy(true);
     try {
+      await trackEvent({
+        eventName: "signed_out",
+        metadata: { trigger: "app_header" },
+      });
       await signOut();
       router.replace("/login");
     } finally {
@@ -137,7 +139,7 @@ function AppHeader({ title }: { title: string }) {
       style={{ height: HEADER_H }}
     >
       <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
-        <Link href="/app" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center gap-2">
           <LogoUwns className="h-6 w-auto text-foreground" version={"1"} />
         </Link>
 
@@ -252,29 +254,5 @@ function AppHeader({ title }: { title: string }) {
         </div>
       )}
     </header>
-  );
-}
-
-function AppFooter() {
-  return (
-    <footer
-      className={[
-        "fixed bottom-0 left-0 right-0 z-30",
-        "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
-        "transition-colors",
-      ].join(" ")}
-      style={{ height: FOOTER_H }}
-    >
-      <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
-        <div className="text-xs text-(--ui-muted-fg)">
-          <span className="font-medium text-(--ui-fg)">UWNS</span> demo surface
-        </div>
-
-        <div className="text-xs text-(--ui-muted-fg)">
-          Tip: press <kbd className="rounded bg-(--ui-subtle-bg) px-1.5 py-0.5">⌘K</kbd>{" "}
-          for search
-        </div>
-      </div>
-    </footer>
   );
 }
