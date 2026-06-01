@@ -12,6 +12,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useActivity } from "@repo/providers";
 import type { ActivityEvent, ActivityMetadata } from "@repo/lib";
 import {
+  abbreviatedCodeSnippet,
   Button,
   Card,
   CardBody,
@@ -25,6 +26,9 @@ import {
   DialogPortal,
   DialogRoot,
   DialogTitle,
+  Stopwatch,
+  type StopwatchStartEvent,
+  type StopwatchStopEvent,
   Tip,
   useThemeTokens,
 } from "@repo/ui";
@@ -49,13 +53,6 @@ function timestamp() {
   return new Date().toISOString();
 }
 
-function formatStopwatch(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
 function makeHomeViewedEvent(): PendingActivityEvent {
   const occurredAt = timestamp();
   return {
@@ -71,107 +68,135 @@ function makeHomeViewedEvent(): PendingActivityEvent {
   };
 }
 
-function makeTimerStartedEvent(runId: string): PendingActivityEvent {
-  const occurredAt = timestamp();
-  return {
-    eventName: "timer_started",
-    occurredAt,
-    metadata: {
-      source: "home_demo",
-      controlId: "timer-toggle",
-      runId,
-      state: "running",
-      timestamp: occurredAt,
-    },
-  };
-}
-
-function makeTimerStoppedEvent(runId: string, durationMs: number): PendingActivityEvent {
-  const occurredAt = timestamp();
-  return {
-    eventName: "timer_stopped",
-    occurredAt,
-    metadata: {
-      source: "home_demo",
-      controlId: "timer-toggle",
-      runId,
-      state: "stopped",
-      durationMs,
-      durationSeconds: Math.round(durationMs / 1000),
-      timestamp: occurredAt,
-    },
-  };
-}
-
-const activityStopwatchExample = `function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
+const activityStopwatchNativeExample = abbreviatedCodeSnippet([
+  `import {
+  Stopwatch,
+  type StopwatchStartEvent,
+  type StopwatchStopEvent,
+} from "@repo/ui";
+import { useActivity } from "@repo/providers";`,
+  `export function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
   const { trackEvent } = useActivity();
-  const [running, setRunning] = React.useState(false);
-  const startedAt = React.useRef<number | null>(null);
-  const runId = React.useRef<string | null>(null);
 
-  async function send(event: PendingActivityEvent) {
+  async function handleStart({ runId, startedAt }: StopwatchStartEvent) {
     await trackEvent({
-      eventName: event.eventName,
-      metadata: event.metadata,
-      uniqueKey: event.uniqueKey,
-      occurredAt: event.occurredAt,
+      eventName: "timer_started",
+      occurredAt: startedAt,
+      metadata: { source: "home_demo", runId, state: "running" },
     });
-
     await onEventTracked();
   }
 
-  async function startTimer() {
-    const nextRunId = \`timer-\${Date.now()}\`;
-    runId.current = nextRunId;
-    startedAt.current = Date.now();
-    setRunning(true);
-    await send(makeTimerStartedEvent(nextRunId));
+  async function handleStop(event: StopwatchStopEvent) {
+    await trackEvent({
+      eventName: "timer_stopped",
+      occurredAt: event.stoppedAt,
+      metadata: {
+        source: "home_demo",
+        runId: event.runId,
+        state: "stopped",
+        durationSeconds: event.durationSeconds,
+      },
+    });
+    await onEventTracked();
   }
 
-  async function stopTimer() {
-    if (!startedAt.current) return;
+  return <Stopwatch onStart={handleStart} onStop={handleStop} />;
+}`,
+]);
 
-    const durationMs = Date.now() - startedAt.current;
-    const event = makeTimerStoppedEvent(runId.current ?? "timer-demo", durationMs);
+const activityStopwatchWebExample = abbreviatedCodeSnippet([
+  `"use client";
 
-    await send(event);
-    setRunning(false);
+import {
+  Stopwatch,
+  type StopwatchStartEvent,
+  type StopwatchStopEvent,
+} from "@repo/ui";
+import { useActivity } from "@repo/providers";`,
+  `export function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
+  const { trackEvent } = useActivity();
+
+  async function handleStart({ runId, startedAt }: StopwatchStartEvent) {
+    await trackEvent({
+      eventName: "timer_started",
+      occurredAt: startedAt,
+      metadata: { source: "home_demo", runId, state: "running" },
+    });
+    await onEventTracked();
   }
+
+  async function handleStop(event: StopwatchStopEvent) {
+    await trackEvent({
+      eventName: "timer_stopped",
+      occurredAt: event.stoppedAt,
+      metadata: {
+        source: "home_demo",
+        runId: event.runId,
+        state: "stopped",
+        durationSeconds: event.durationSeconds,
+      },
+    });
+    await onEventTracked();
+  }
+
+  return <Stopwatch onStart={handleStart} onStop={handleStop} />;
+}`,
+]);
+
+const nativeLayoutExample = abbreviatedCodeSnippet([
+  `import { Stack } from "expo-router";
+import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ThemeProvider, darkTokens, lightTokens } from "@repo/ui";
+import { useColorScheme } from "react-native";`,
+  `export default function RootLayout() {
+  const scheme = useColorScheme();
+  const tokens = scheme === "dark" ? darkTokens : lightTokens;
 
   return (
-    <Pressable onPress={running ? stopTimer : startTimer}>
-      <Text>{running ? "Stop" : "Start"}</Text>
-    </Pressable>
+    <AuthProvider>
+      <ActivityProvider>
+        <ThemeProvider tokens={tokens}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </ThemeProvider>
+      </ActivityProvider>
+    </AuthProvider>
   );
-}`;
+}`,
+]);
+
+const webLayoutExample = abbreviatedCodeSnippet([
+  `import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Shell } from "@/components/Shell";`,
+  `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <ActivityProvider>
+          <Shell>{children}</Shell>
+        </ActivityProvider>
+      </AuthProvider>
+    </NextThemesProvider>
+  );
+}`,
+]);
 
 function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
-  const tokens = useThemeTokens();
   const { trackEvent } = useActivity();
-  const [timerRunning, setTimerRunning] = React.useState(false);
-  const [elapsedMs, setElapsedMs] = React.useState(0);
-  const [busy, setBusy] = React.useState(false);
-  const startedAt = React.useRef<number | null>(null);
-  const runId = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
-    if (!timerRunning || !startedAt.current) return;
-
-    const interval = globalThis.setInterval(() => {
-      if (!startedAt.current) return;
-      setElapsedMs(Date.now() - startedAt.current);
-    }, 250);
-
-    return () => globalThis.clearInterval(interval);
-  }, [timerRunning]);
-
-  const trackTimerEvent = React.useCallback(
-    async (event: PendingActivityEvent) => {
+  const handleStart = React.useCallback(
+    async ({ runId, startedAt }: StopwatchStartEvent) => {
       await trackEvent({
-        eventName: event.eventName,
-        metadata: event.metadata,
-        uniqueKey: event.uniqueKey,
-        occurredAt: event.occurredAt,
+        eventName: "timer_started",
+        occurredAt: startedAt,
+        metadata: {
+          source: "home_demo",
+          controlId: "timer-toggle",
+          runId,
+          state: "running",
+          timestamp: startedAt,
+        },
       });
 
       await onEventTracked();
@@ -179,99 +204,28 @@ function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
     [onEventTracked, trackEvent],
   );
 
-  const onTimerPress = async () => {
-    if (busy) return;
+  const handleStop = React.useCallback(
+    async (event: StopwatchStopEvent) => {
+      await trackEvent({
+        eventName: "timer_stopped",
+        occurredAt: event.stoppedAt,
+        metadata: {
+          source: "home_demo",
+          controlId: "timer-toggle",
+          runId: event.runId,
+          state: "stopped",
+          durationMs: event.durationMs,
+          durationSeconds: event.durationSeconds,
+          timestamp: event.stoppedAt,
+        },
+      });
 
-    setBusy(true);
-    try {
-      if (!timerRunning) {
-        const nextRunId = `timer-${Date.now()}`;
-        runId.current = nextRunId;
-        startedAt.current = Date.now();
-        setElapsedMs(0);
-        setTimerRunning(true);
-        await trackTimerEvent(makeTimerStartedEvent(nextRunId));
-        return;
-      }
-
-      const durationMs = startedAt.current ? Date.now() - startedAt.current : 0;
-      const currentRunId = runId.current ?? `timer-${Date.now()}`;
-      startedAt.current = null;
-      runId.current = null;
-      setTimerRunning(false);
-      setElapsedMs(durationMs);
-      await trackTimerEvent(makeTimerStoppedEvent(currentRunId, durationMs));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <View style={styles.stopwatchContainer}>
-      <View
-        style={[
-          styles.timerPanel,
-          {
-            backgroundColor: tokens.color.subtleBg,
-            borderColor: tokens.color.border,
-          },
-        ]}
-      >
-        <View style={styles.stopwatchHeader}>
-          <Text style={[styles.timerLabel, { color: tokens.color.mutedFg }]}>
-            Stopwatch
-          </Text>
-          <Text
-            style={[
-              styles.status,
-              {
-                backgroundColor: tokens.color.bg,
-                borderColor: tokens.color.border,
-                color: tokens.color.mutedFg,
-              },
-            ]}
-          >
-            {timerRunning ? "Running" : "Idle"}
-          </Text>
-        </View>
-        <Text
-          style={[
-            styles.timerValue,
-            {
-              backgroundColor: tokens.color.bg,
-              borderColor: tokens.color.border,
-              color: tokens.color.fg,
-            },
-          ]}
-        >
-          {formatStopwatch(elapsedMs)}
-        </Text>
-        <Pressable
-          onPress={onTimerPress}
-          disabled={busy}
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.stopwatchButton,
-            {
-              backgroundColor: tokens.color.bg,
-              borderColor: tokens.color.border,
-            },
-            pressed && { backgroundColor: tokens.color.subtleBg },
-            busy && styles.stopwatchButtonDisabled,
-          ]}
-        >
-          <MaterialIcons
-            name={timerRunning ? "stop" : "play-arrow"}
-            size={16}
-            color={tokens.color.fg}
-          />
-          <Text style={[styles.stopwatchButtonText, { color: tokens.color.fg }]}>
-            {busy ? "Saving..." : timerRunning ? "Stop" : "Start"}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
+      await onEventTracked();
+    },
+    [onEventTracked, trackEvent],
   );
+
+  return <Stopwatch onStart={handleStart} onStop={handleStop} />;
 }
 
 export default function HomeTab() {
@@ -279,7 +233,8 @@ export default function HomeTab() {
   const insets = useSafeAreaInsets();
   const { listRecentEvents, trackEvent } = useActivity();
   const [events, setEvents] = React.useState<ActivityEvent[]>([]);
-  const [selectedEvent, setSelectedEvent] = React.useState<ActivityEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] =
+    React.useState<ActivityEvent | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
   const [timerView, setTimerView] = React.useState<TimerView>("component");
   const showTimerComponent = timerView === "component";
@@ -327,9 +282,7 @@ export default function HomeTab() {
       ]}
     >
       <View style={styles.header}>
-        <Text style={[styles.title, { color: tokens.color.fg }]}>
-          Home
-        </Text>
+        <Text style={[styles.title, { color: tokens.color.fg }]}>Home</Text>
         <Text style={[styles.subtitle, { color: tokens.color.mutedFg }]}>
           This tab is the starting point for building product-specific
           authenticated flows.
@@ -337,9 +290,8 @@ export default function HomeTab() {
       </View>
 
       <Tip>
-        The stopwatch is intentionally local UI. The service pattern is the
-        reusable part: call <Code>trackEvent</Code> through
-        <Code>ActivityProvider</Code> with an event name and JSON metadata.
+        The stopwatch is shared <Code>@repo/ui</Code>. The app-specific part is
+        calling <Code>trackEvent</Code> through <Code>ActivityProvider</Code>.
       </Tip>
 
       <View
@@ -406,15 +358,46 @@ export default function HomeTab() {
         <ActivityStopwatch onEventTracked={refreshEvents} />
       ) : (
         <CodeBlock
-          code={activityStopwatchExample}
-          filename="ActivityStopwatch.native.tsx"
-          language="tsx"
+          snippets={[
+            {
+              id: "track-event",
+              label: "ActivityStopwatch.native.tsx",
+              group: "native",
+              filename: "ActivityStopwatch.native.tsx",
+              language: "tsx",
+              code: activityStopwatchNativeExample,
+            },
+            {
+              id: "native-layout",
+              label: "_layout.tsx",
+              group: "native",
+              filename: "apps/native/app/_layout.tsx",
+              language: "tsx",
+              code: nativeLayoutExample,
+            },
+            {
+              id: "track-event-web",
+              label: "ActivityStopwatch.web.tsx",
+              group: "web",
+              filename: "ActivityStopwatch.web.tsx",
+              language: "tsx",
+              code: activityStopwatchWebExample,
+            },
+            {
+              id: "web-layout",
+              label: "layout.tsx",
+              group: "web",
+              filename: "apps/web/app/layout.tsx",
+              language: "tsx",
+              code: webLayoutExample,
+            },
+          ]}
           showLineNumbers={false}
         />
       )}
 
       <Card padding="none" elevation="sm" variant="subtle">
-        <CardHeader divider={false}>
+        <CardHeader>
           <View style={styles.eventsHeader}>
             <Text style={[styles.eventsTitle, { color: tokens.color.fg }]}>
               Recent events
@@ -468,7 +451,10 @@ export default function HomeTab() {
                 >
                   <View style={styles.eventCell}>
                     <Text
-                      style={[styles.eventText, { color: tokens.color.mutedFg }]}
+                      style={[
+                        styles.eventText,
+                        { color: tokens.color.mutedFg },
+                      ]}
                     >
                       {event.event_name}
                     </Text>
@@ -484,7 +470,7 @@ export default function HomeTab() {
                   </Text>
                   <View style={styles.metaCell}>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       accessibilityLabel={`View metadata for ${event.event_name}`}
                       onPress={() => setSelectedEvent(event)}
@@ -589,60 +575,6 @@ const styles = StyleSheet.create({
   segmentText: {
     fontSize: 12,
     fontWeight: "500",
-  },
-  stopwatchContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  timerPanel: {
-    borderRadius: 8,
-    borderWidth: 1,
-    gap: 10,
-    padding: 14,
-    width: 224,
-  },
-  stopwatchHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  timerLabel: {
-    fontSize: 11,
-  },
-  timerValue: {
-    borderRadius: 6,
-    borderWidth: 1,
-    fontFamily: "monospace",
-    fontSize: 34,
-    fontWeight: "700",
-    fontVariant: ["tabular-nums"],
-    overflow: "hidden",
-    paddingVertical: 10,
-    textAlign: "center",
-  },
-  status: {
-    borderRadius: 6,
-    borderWidth: 1,
-    fontSize: 12,
-    overflow: "hidden",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  stopwatchButton: {
-    alignItems: "center",
-    borderRadius: 7,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "center",
-    minHeight: 34,
-  },
-  stopwatchButtonDisabled: {
-    opacity: 0.6,
-  },
-  stopwatchButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
   },
   emptyText: {
     fontSize: 14,

@@ -12,7 +12,7 @@ export default function UpdatePasswordPage() {
       notify={notify}
       navigate={navigate}
       routes={{
-        afterUpdate: "/login"
+        afterUpdate: "/login",
       }}
     />
   );

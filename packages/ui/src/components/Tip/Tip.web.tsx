@@ -20,12 +20,9 @@ export function Tip({
     >
       <div className="flex items-start gap-2">
         {icon ? (
-          <Info
-            aria-hidden="true"
-            className="mt-1 shrink-0 text-(--ui-muted-fg)"
-            size={14}
-            strokeWidth={2}
-          />
+          <span className="flex h-6 shrink-0 items-center text-(--ui-muted-fg)">
+            <Info aria-hidden="true" size={14} strokeWidth={2} />
+          </span>
         ) : null}
 
         <div className="min-w-0 flex-1">

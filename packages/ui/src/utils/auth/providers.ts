@@ -17,7 +17,8 @@ export const mailProviders: MailProvider[] = [
   {
     id: "outlook",
     label: "Outlook",
-    match: (e) => ["outlook.com", "hotmail.com", "live.com"].includes(domain(e)),
+    match: (e) =>
+      ["outlook.com", "hotmail.com", "live.com"].includes(domain(e)),
     mailboxUrl: "https://outlook.live.com/mail/",
   },
   {
@@ -29,12 +30,13 @@ export const mailProviders: MailProvider[] = [
   {
     id: "yahoo",
     label: "Yahoo",
-    match: (e) => ["yahoo.com", "yahoo.co.uk", "yahoo.fr", "ymail.com"].includes(domain(e)),
+    match: (e) =>
+      ["yahoo.com", "yahoo.co.uk", "yahoo.fr", "ymail.com"].includes(domain(e)),
     mailboxUrl: "https://mail.yahoo.com",
   },
 ];
 
 export function getMailboxUrl(email: string) {
   const provider = mailProviders.find((p) => p.match(email));
-  return provider?.mailboxUrl ?? "mailto:";
+  return provider?.mailboxUrl;
 }

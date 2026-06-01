@@ -7,6 +7,16 @@ import { cx } from "../../utils/cx";
 import { useFocusVisible } from "../../utils/focusVisible";
 import { px } from "../../utils/platform.web";
 
+type VisualOptionEntry =
+  | { kind: "group"; id: string; label: string }
+  | { kind: "option"; option: SelectOption; logicalIndex: number };
+
+type KeyboardShortcutEvent = {
+  key: string;
+  preventDefault: () => void;
+  stopPropagation: () => void;
+};
+
 function ChevronDownIcon({
   className,
   style,
@@ -41,6 +51,7 @@ export function Select({
   disabled,
   search = false,
   size = "md",
+  variant = "default",
   className = "",
   style,
 }: SelectProps) {
@@ -50,7 +61,7 @@ export function Select({
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
   const [menuReady, setMenuReady] = React.useState(false);
   const [menuPlacement, setMenuPlacement] = React.useState<"top" | "bottom">(
-    "bottom"
+    "bottom",
   );
   const [listMaxHeight, setListMaxHeight] = React.useState(240);
   const [menuFrame, setMenuFrame] = React.useState<{
@@ -70,7 +81,7 @@ export function Select({
   const listRef = React.useRef<HTMLDivElement>(null);
   const menuRef = React.useRef<HTMLDivElement>(null);
   const itemRefs = React.useRef<Map<string, HTMLButtonElement | null>>(
-    new Map()
+    new Map(),
   );
 
   const current = options.find((o) => o.value === value);
@@ -80,11 +91,14 @@ export function Select({
     return options.filter((opt) => {
       const label = opt.label.toLowerCase();
       const optionValue = opt.value.toLowerCase();
-      return label.includes(normalizedQuery) || optionValue.includes(normalizedQuery);
+      return (
+        label.includes(normalizedQuery) || optionValue.includes(normalizedQuery)
+      );
     });
   }, [normalizedQuery, options, search]);
   const t = inputTokens.base;
   const triggerHeight = size === "sm" ? t.height.sm : t.height.md;
+  const isGhost = variant === "ghost";
   const hasOptions = filteredOptions.length > 0;
   const menuGap = 3;
   const minListHeight = 96;
@@ -95,6 +109,29 @@ export function Select({
     // For upward-opening menus, mirror order so the first options sit next to the trigger.
     return [...filteredOptions].reverse();
   }, [filteredOptions, openAbove]);
+  const visualEntries = React.useMemo<VisualOptionEntry[]>(() => {
+    const entries: VisualOptionEntry[] = [];
+    let lastGroup: string | undefined;
+
+    visualOptions.forEach((option, visualIndex) => {
+      const logicalIndex = openAbove
+        ? filteredOptions.length - 1 - visualIndex
+        : visualIndex;
+
+      if (option.group && option.group !== lastGroup) {
+        entries.push({
+          kind: "group",
+          id: `group:${option.group}:${visualIndex}`,
+          label: option.group,
+        });
+        lastGroup = option.group;
+      }
+
+      entries.push({ kind: "option", option, logicalIndex });
+    });
+
+    return entries;
+  }, [filteredOptions.length, openAbove, visualOptions]);
 
   const computeMenuMetrics = React.useCallback(
     (lockedPlacement?: "top" | "bottom") => {
@@ -119,12 +156,12 @@ export function Select({
       const availableSpace = placement === "top" ? spaceAbove : spaceBelow;
       const adaptiveListHeight = Math.min(
         defaultListCap,
-        Math.max(minListHeight, availableSpace - headerReserve)
+        Math.max(minListHeight, availableSpace - headerReserve),
       );
 
       return { placement, listMax: adaptiveListHeight };
     },
-    [search, triggerHeight]
+    [search, triggerHeight],
   );
 
   const computeMenuFrame = React.useCallback(
@@ -136,7 +173,7 @@ export function Select({
       const minInset = 8;
       const maxLeft = Math.max(
         minInset,
-        window.innerWidth - rect.width - minInset
+        window.innerWidth - rect.width - minInset,
       );
       const left = Math.min(Math.max(rect.left, minInset), maxLeft);
 
@@ -154,7 +191,7 @@ export function Select({
         bottom: window.innerHeight - rect.top + menuGap,
       };
     },
-    [menuGap]
+    [menuGap],
   );
 
   const closeMenu = React.useCallback(() => {
@@ -162,6 +199,74 @@ export function Select({
     setMenuReady(false);
     setMenuFrame(null);
   }, []);
+
+  const getOptionByIndex = React.useCallback(
+    (index: number) => filteredOptions[index],
+    [filteredOptions],
+  );
+
+  const moveActiveIndex = React.useCallback(
+    (delta: number) => {
+      if (!hasOptions) return;
+      setActiveIndex((idx) => {
+        const next = idx < 0 ? 0 : idx + delta;
+        return Math.max(0, Math.min(next, filteredOptions.length - 1));
+      });
+    },
+    [filteredOptions.length, hasOptions],
+  );
+
+  const selectActiveOption = React.useCallback(() => {
+    const opt = getOptionByIndex(activeIndex);
+    if (!opt) return;
+    onChange(opt.value);
+    closeMenu();
+  }, [activeIndex, closeMenu, getOptionByIndex, onChange]);
+
+  const handleOpenKeyDown = React.useCallback(
+    (event: KeyboardShortcutEvent) => {
+      if (disabled) return;
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (search && searchQuery) {
+          setSearchQuery("");
+        } else {
+          closeMenu();
+        }
+        return;
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        selectActiveOption();
+        return;
+      }
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        event.stopPropagation();
+        moveActiveIndex(1);
+        return;
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        event.stopPropagation();
+        moveActiveIndex(-1);
+      }
+    },
+    [
+      closeMenu,
+      disabled,
+      moveActiveIndex,
+      search,
+      searchQuery,
+      selectActiveOption,
+    ],
+  );
 
   const openMenu = React.useCallback(() => {
     const metrics = computeMenuMetrics();
@@ -186,6 +291,17 @@ export function Select({
     window.addEventListener("mousedown", handler);
     return () => window.removeEventListener("mousedown", handler);
   }, [closeMenu, open]);
+
+  React.useEffect(() => {
+    if (!open || search) return;
+    menuRef.current?.focus();
+  }, [open, search]);
+
+  React.useEffect(() => {
+    if (!open) return;
+    window.addEventListener("keydown", handleOpenKeyDown, true);
+    return () => window.removeEventListener("keydown", handleOpenKeyDown, true);
+  }, [handleOpenKeyDown, open]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -247,7 +363,8 @@ export function Select({
     const isFromInsideMenu = (target: EventTarget | null) => {
       if (!(target instanceof Node)) return false;
       return Boolean(
-        containerRef.current?.contains(target) || menuRef.current?.contains(target)
+        containerRef.current?.contains(target) ||
+        menuRef.current?.contains(target),
       );
     };
 
@@ -367,14 +484,6 @@ export function Select({
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (disabled) return;
-    if (event.key === "Escape") {
-      if (search && searchQuery) {
-        setSearchQuery("");
-      } else {
-        closeMenu();
-      }
-      return;
-    }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       if (open) {
@@ -389,54 +498,26 @@ export function Select({
       event.preventDefault();
       if (!open) openMenu();
       if (!hasOptions) return;
-      setActiveIndex((idx) => Math.min(idx + 1, filteredOptions.length - 1));
+      moveActiveIndex(1);
       return;
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
       if (!open) openMenu();
       if (!hasOptions) return;
-      setActiveIndex((idx) => Math.max(idx - 1, 0));
+      moveActiveIndex(-1);
     }
   };
 
   const onSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      event.stopPropagation();
-      if (searchQuery) {
-        setSearchQuery("");
-      } else {
-        closeMenu();
-      }
-      return;
-    }
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      if (!hasOptions) return;
-      setActiveIndex((idx) => Math.min(idx + 1, filteredOptions.length - 1));
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      if (!hasOptions) return;
-      setActiveIndex((idx) => Math.max(idx - 1, 0));
-      return;
-    }
-    if (event.key === "Enter") {
-      const opt = filteredOptions[activeIndex];
-      if (opt) {
-        event.preventDefault();
-        pick(opt);
-      }
-    }
+    handleOpenKeyDown(event);
   };
 
   const searchNode = search ? (
     <div
       className={cx(
         "z-10 bg-(--ui-bg)",
-        openAbove ? "sticky bottom-0 border-t" : "sticky top-0 border-b"
+        openAbove ? "sticky bottom-0 border-t" : "sticky top-0 border-b",
       )}
       style={{
         borderColor: "var(--ui-border)",
@@ -477,6 +558,8 @@ export function Select({
       <div
         ref={menuRef}
         role="listbox"
+        tabIndex={-1}
+        onKeyDownCapture={handleOpenKeyDown}
         className="fixed overflow-hidden border bg-(--ui-bg) text-(--ui-fg) shadow-sm pointer-events-auto"
         style={{
           zIndex: 70,
@@ -499,11 +582,34 @@ export function Select({
           }}
         >
           {hasOptions ? (
-            visualOptions.map((opt, index) => {
+            visualEntries.map((entry) => {
+              if (entry.kind === "group") {
+                return (
+                  <div
+                    key={entry.id}
+                    className="text-(--ui-muted-fg)"
+                    style={{
+                      borderTop: entry.id.includes(":0")
+                        ? undefined
+                        : "1px solid var(--ui-border)",
+                      marginTop: entry.id.includes(":0") ? 0 : px(5),
+                      paddingLeft: px(6),
+                      paddingRight: px(t.paddingX),
+                      paddingTop: entry.id.includes(":0") ? px(7) : px(10),
+                      paddingBottom: px(4),
+                      fontSize: px(11),
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {entry.label}
+                  </div>
+                );
+              }
+
+              const opt = entry.option;
               const selected = opt.value === value;
-              const logicalIndex = openAbove
-                ? filteredOptions.length - 1 - index
-                : index;
+              const logicalIndex = entry.logicalIndex;
               const active = logicalIndex === activeIndex;
               return (
                 <button
@@ -518,29 +624,40 @@ export function Select({
                     itemRefs.current.set(opt.value, node);
                   }}
                   className={cx(
-                    "flex w-full min-w-0 items-center gap-1.5 text-left",
+                    "flex w-full min-w-0 items-center text-left",
                     active ? "bg-(--ui-subtle-bg)" : "",
-                    selected ? "font-semibold" : ""
                   )}
                   style={{
-                    paddingLeft: px(t.paddingX),
+                    gap: px(8),
+                    paddingLeft: px(6),
                     paddingRight: px(t.paddingX),
-                    paddingTop: px(7),
-                    paddingBottom: px(7),
+                    paddingTop: px(8),
+                    paddingBottom: px(8),
                     fontSize: px(t.fontSize),
+                    fontFamily: isGhost
+                      ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+                      : undefined,
                   }}
                 >
-                  <span className="flex w-4 shrink-0 justify-center">
+                  <span
+                    className="flex shrink-0 items-center justify-center"
+                    style={{ width: px(18) }}
+                  >
                     {selected ? (
                       <Check
-                        size={14}
+                        size={15}
                         strokeWidth={2.2}
                         aria-hidden="true"
                         className="text-(--ui-fg)"
                       />
                     ) : null}
                   </span>
-                  <span className="min-w-0 flex-1 truncate">{opt.label}</span>
+                  <span
+                    className="min-w-0 flex-1 truncate text-(--ui-fg)"
+                    style={{ fontWeight: selected ? 600 : 500 }}
+                  >
+                    {opt.label}
+                  </span>
                 </button>
               );
             })
@@ -621,16 +738,21 @@ export function Select({
         onBlur={onBlur}
         className={cx(
           "flex w-full min-w-0 items-center border outline-none",
-          "bg-(--ui-bg) text-(--ui-fg) border-(--ui-border)",
-          disabled ? "opacity-70" : ""
+          isGhost
+            ? "border-transparent bg-transparent text-(--ui-muted-fg) hover:text-(--ui-fg)"
+            : "bg-(--ui-bg) text-(--ui-fg) border-(--ui-border)",
+          disabled ? "opacity-70" : "",
         )}
         style={{
           height: px(triggerHeight),
           borderRadius: px(t.radius),
-          borderWidth: px(t.borderWidth),
+          borderWidth: isGhost ? 0 : px(t.borderWidth),
           paddingLeft: px(t.paddingX),
           paddingRight: px(32),
           fontSize: px(t.fontSize),
+          fontFamily: isGhost
+            ? 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+            : undefined,
           boxShadow: isFocusVisible
             ? "0 0 0 3px var(--ui-ring, rgba(0,0,0,0.25))"
             : undefined,
@@ -640,7 +762,11 @@ export function Select({
           title={current?.label ?? undefined}
           className={cx(
             "min-w-0 flex-1 truncate text-left",
-            current ? "text-(--ui-fg)" : "text-(--ui-muted-fg)"
+            isGhost
+              ? "text-(--ui-muted-fg)"
+              : current
+                ? "text-(--ui-fg)"
+                : "text-(--ui-muted-fg)",
           )}
         >
           {current?.label ?? placeholder}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { EmailOtpType, Session } from "@supabase/supabase-js";
 import type { AuthContextValue } from "./auth.types";
 
 type AuthUrlEvents = {
@@ -22,24 +22,49 @@ function getAuthUrlParams(url: string) {
   return params;
 }
 
+function isEmailOtpType(value: string | null): value is EmailOtpType {
+  return (
+    value === "signup" ||
+    value === "invite" ||
+    value === "magiclink" ||
+    value === "recovery" ||
+    value === "email_change" ||
+    value === "email"
+  );
+}
+
 async function applyAuthUrl(supabase: any, url: string) {
   const params = getAuthUrlParams(url);
+  const tokenHash = params.get("token_hash");
+  const otpType = params.get("type");
+  if (tokenHash && isEmailOtpType(otpType)) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type: otpType,
+    });
+    if (error) throw new Error(error.message);
+    return data.session ?? null;
+  }
+
   const code = params.get("code");
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) throw new Error(error.message);
-    return;
+    return data.session ?? null;
   }
 
   const accessToken = params.get("access_token");
   const refreshToken = params.get("refresh_token");
   if (accessToken && refreshToken) {
-    const { error } = await supabase.auth.setSession({
+    const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
     });
     if (error) throw new Error(error.message);
+    return data.session ?? null;
   }
+
+  return undefined;
 }
 
 function normalizeAuthError(error: unknown) {
@@ -71,7 +96,7 @@ async function clearLocalAuthSession(supabase: any) {
 
 export function createAuthProvider(
   createSupabaseClient: () => any,
-  authUrlEvents?: AuthUrlEvents
+  authUrlEvents?: AuthUrlEvents,
 ) {
   const AuthContext = React.createContext<AuthContextValue | null>(null);
 
@@ -95,7 +120,7 @@ export function createAuthProvider(
               clearLocalAuthSession(supabase).catch((err) => {
                 console.warn(
                   "[AuthProvider] stale session cleanup error:",
-                  err instanceof Error ? err.message : String(err)
+                  err instanceof Error ? err.message : String(err),
                 );
               });
             } else {
@@ -111,7 +136,9 @@ export function createAuthProvider(
             clearLocalAuthSession(supabase).catch((cleanupErr) => {
               console.warn(
                 "[AuthProvider] stale session cleanup error:",
-                cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr)
+                cleanupErr instanceof Error
+                  ? cleanupErr.message
+                  : String(cleanupErr),
               );
             });
           } else {
@@ -120,10 +147,12 @@ export function createAuthProvider(
           setLoading(false);
         });
 
-      const { data: sub } = supabase.auth.onAuthStateChange((_event: any, nextSession: any) => {
-        if (!mounted) return;
-        setSession(nextSession);
-      });
+      const { data: sub } = supabase.auth.onAuthStateChange(
+        (_event: any, nextSession: any) => {
+          if (!mounted) return;
+          setSession(nextSession);
+        },
+      );
 
       return () => {
         mounted = false;
@@ -132,15 +161,41 @@ export function createAuthProvider(
     }, [supabase]);
 
     React.useEffect(() => {
+      if (authUrlEvents) return;
+      if (typeof window === "undefined") return;
+
+      const url = window.location.href;
+      if (!url.includes("code=") && !url.includes("token_hash=")) return;
+
+      applyAuthUrl(supabase, url)
+        .then((nextSession) => {
+          if (nextSession !== undefined) setSession(nextSession);
+        })
+        .catch((err: any) => {
+          console.warn(
+            "[AuthProvider] auth URL error:",
+            err instanceof Error ? err.message : String(err),
+          );
+        });
+    }, [supabase]);
+
+    React.useEffect(() => {
       if (!authUrlEvents) return;
 
       let mounted = true;
 
       const handleUrl = (url: string) => {
-        applyAuthUrl(supabase, url).catch((err: any) => {
-          if (!mounted) return;
-          console.warn("[AuthProvider] auth URL error:", err instanceof Error ? err.message : String(err));
-        });
+        applyAuthUrl(supabase, url)
+          .then((nextSession) => {
+            if (mounted && nextSession !== undefined) setSession(nextSession);
+          })
+          .catch((err: any) => {
+            if (!mounted) return;
+            console.warn(
+              "[AuthProvider] auth URL error:",
+              err instanceof Error ? err.message : String(err),
+            );
+          });
       };
 
       authUrlEvents
@@ -169,13 +224,19 @@ export function createAuthProvider(
         loading,
 
         async signInWithPassword({ email, password }) {
-          const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
           if (error) throw new Error(error.message);
           setSession(data.session ?? null);
         },
 
         async signUpWithPassword({ email, password }) {
-          const { data, error } = await supabase.auth.signUp({ email, password });
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+          });
           if (error) throw new Error(error.message);
           if (data.session) setSession(data.session);
         },
@@ -211,6 +272,16 @@ export function createAuthProvider(
           setSession(data.session ?? null);
         },
 
+        async verifyPasswordResetOtp({ email, token }) {
+          const { data, error } = await supabase.auth.verifyOtp({
+            email,
+            token,
+            type: "recovery",
+          });
+          if (error) throw new Error(error.message);
+          setSession(data.session ?? null);
+        },
+
         async signOut() {
           const { error } = await supabase.auth.signOut();
           if (!error) {
@@ -225,20 +296,28 @@ export function createAuthProvider(
           throw new Error(error.message);
         },
 
-        async resetPasswordForEmail(email) {
-          const { error } = await supabase.auth.resetPasswordForEmail(email);
+        async resetPasswordForEmail(email, redirectTo) {
+          const options = redirectTo ? { redirectTo } : undefined;
+          const { error } = await supabase.auth.resetPasswordForEmail(
+            email,
+            options,
+          );
           if (error) throw new Error(error.message);
         },
 
         async updatePassword(newPassword) {
-          const { error } = await supabase.auth.updateUser({ password: newPassword });
+          const { error } = await supabase.auth.updateUser({
+            password: newPassword,
+          });
           if (error) throw new Error(error.message);
-        }
+        },
       }),
-      [supabase, session, user, loading]
+      [supabase, session, user, loading],
     );
 
-    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return (
+      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    );
   }
 
   function useAuth() {

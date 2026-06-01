@@ -1,6 +1,6 @@
 import { baseTokens as tokens } from "../theme";
 
-export type ButtonVariant = "primary" | "ghost";
+export type ButtonVariant = "primary" | "outline" | "ghost";
 export type ButtonSize = "sm" | "md" | "lg";
 
 export const buttonTokens = {
@@ -24,6 +24,13 @@ export const buttonTokens = {
     },
     ghost: {
       bg: "transparent",
+      fg: tokens.color.fg,
+      border: "transparent",
+      hoverBg: tokens.color.subtleBg,
+      activeOpacity: 0.9,
+    },
+    outline: {
+      bg: tokens.color.bg,
       fg: tokens.color.fg,
       border: tokens.color.border,
       hoverBg: tokens.color.subtleBg,

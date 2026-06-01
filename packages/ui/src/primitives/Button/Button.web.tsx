@@ -34,28 +34,28 @@ export function Button({
   const { height, paddingX, fontSize } = buttonTokens.size[size];
 
   const isPrimary = variant === "primary";
+  const isOutline = variant === "outline";
   const isGhost = variant === "ghost";
 
   const baseBg = isPrimary
     ? "var(--ui-primary-bg)"
-    : isGhost
-      ? "transparent"
-      : "var(--ui-bg)";
+    : isOutline
+      ? "var(--ui-bg)"
+      : "transparent";
 
   const hoverBg = isPrimary
     ? String(v.hoverBg ?? "var(--ui-primary-hover-bg)")
-    : isGhost
-      ? "var(--ui-subtle-bg)"
-      : String(v.hoverBg ?? "var(--ui-subtle-bg)");
+    : "var(--ui-subtle-bg)";
 
   const activeOpacity = 0.92;
 
-  const borderColor = isPrimary ? "transparent" : "var(--ui-border)";
+  const borderColor = isOutline ? "var(--ui-border)" : "transparent";
 
-  // NEW: disabled colors (with fallbacks so you don't have to add vars immediately)
-  const disabledBg = "var(--ui-disabled-bg, var(--ui-subtle-bg))";
+  const disabledBg = isGhost
+    ? "transparent"
+    : "var(--ui-disabled-bg, var(--ui-subtle-bg))";
   const disabledFg = "var(--ui-disabled-fg, var(--ui-muted-fg))";
-  const disabledBorder = "var(--ui-border)";
+  const disabledBorder = isOutline ? "var(--ui-border)" : "transparent";
 
   const resolvedBg = isDisabled ? disabledBg : baseBg;
   const resolvedFg = isDisabled
@@ -64,9 +64,7 @@ export function Button({
       ? "var(--ui-primary-fg)"
       : "var(--ui-fg)";
 
-  const resolvedBorder = isDisabled
-    ? disabledBorder
-    : borderColor;
+  const resolvedBorder = isDisabled ? disabledBorder : borderColor;
 
   const baseStyle: React.CSSProperties = {
     display: "inline-flex",

@@ -9,6 +9,7 @@ import CodeMirror, {
 import { javascript } from "@codemirror/lang-javascript";
 import { Check, Copy } from "lucide-react";
 import type { CodeBlockProps } from "./CodeBlock.types";
+import { Select } from "../../primitives/Select/Select.web";
 import { cx } from "../../utils/cx";
 
 function getBasicSetup(showLineNumbers: boolean): BasicSetupOptions {
@@ -106,9 +107,10 @@ function languageExtensions(language: string): Extension[] {
 
 export function CodeBlock({
   theme = "none",
-  code,
+  code = "",
   language = "text",
   filename,
+  snippets,
   showLineNumbers = true,
   copyable = true,
   copyLabel = "Copy",
@@ -116,9 +118,50 @@ export function CodeBlock({
   className = "",
   style,
 }: CodeBlockProps) {
-  const label = filename ?? language;
+  const availableSnippets = React.useMemo(
+    () =>
+      snippets?.length
+        ? snippets
+        : [
+            {
+              id: "default",
+              label: filename ?? language,
+              code,
+              language,
+              filename,
+            },
+          ],
+    [code, filename, language, snippets],
+  );
+  const [selectedSnippetId, setSelectedSnippetId] = React.useState(
+    availableSnippets[0]?.id ?? "default",
+  );
+  const selectedSnippet =
+    availableSnippets.find((snippet) => snippet.id === selectedSnippetId) ??
+    availableSnippets[0];
+  const currentCode = selectedSnippet?.code ?? "";
+  const currentLanguage = selectedSnippet?.language ?? language;
+  const currentFilename = selectedSnippet?.filename ?? filename;
+  const label =
+    selectedSnippet?.filename ?? selectedSnippet?.label ?? currentLanguage;
   const [copied, setCopied] = React.useState(false);
-  const resolvedLanguage = inferLanguage(language, filename);
+  const resolvedLanguage = inferLanguage(currentLanguage, currentFilename);
+  const hasSnippetPicker = availableSnippets.length > 1;
+  const snippetPickerWidth = React.useMemo(() => {
+    const longest = Math.max(
+      16,
+      ...availableSnippets.map((snippet) => snippet.label.length),
+    );
+    return `${Math.min(longest + 4, 34)}ch`;
+  }, [availableSnippets]);
+
+  React.useEffect(() => {
+    if (availableSnippets.some((snippet) => snippet.id === selectedSnippetId)) {
+      return;
+    }
+    setSelectedSnippetId(availableSnippets[0]?.id ?? "default");
+  }, [availableSnippets, selectedSnippetId]);
+
   const extensions = React.useMemo(
     () => [
       editorTheme,
@@ -136,7 +179,7 @@ export function CodeBlock({
   const onCopy = async () => {
     if (!copyable) return;
 
-    await navigator.clipboard.writeText(code);
+    await navigator.clipboard.writeText(currentCode);
     setCopied(true);
     globalThis.setTimeout(() => setCopied(false), 1200);
   };
@@ -149,19 +192,35 @@ export function CodeBlock({
       )}
       style={style}
     >
-      <div className="flex h-9 items-center justify-between border-b border-(--ui-border) bg-(--ui-subtle-bg) px-1.5">
+      <div className="flex h-9 items-center justify-between border-b border-(--ui-border) bg-(--ui-subtle-bg)">
         <div className="flex min-w-0 items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-(--ui-border)" />
-          <span className="truncate font-mono text-xs font-medium text-(--ui-muted-fg)">
-            {label}
-          </span>
+          {hasSnippetPicker ? (
+            <Select
+              value={selectedSnippetId}
+              onChange={setSelectedSnippetId}
+              options={availableSnippets.map((snippet) => ({
+                label: snippet.label,
+                value: snippet.id,
+                group: snippet.group,
+              }))}
+              size="sm"
+              variant="ghost"
+              className="min-w-36"
+              style={{ width: snippetPickerWidth }}
+            />
+          ) : (
+            <span className="truncate font-mono text-xs font-medium text-(--ui-muted-fg)">
+              {label}
+            </span>
+          )}
         </div>
 
         {copyable ? (
           <button
             type="button"
             onClick={onCopy}
-            className="inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs font-medium text-(--ui-muted-fg) hover:bg-(--ui-bg) hover:text-(--ui-fg)"
+            className="inline-flex h-7 items-center gap-1 rounded-md px-4 text-xs font-medium text-(--ui-muted-fg) hover:bg-(--ui-bg) hover:text-(--ui-fg)"
           >
             {copied ? <Check size={13} /> : <Copy size={13} />}
             <span>{copied ? copiedLabel : copyLabel}</span>
@@ -169,7 +228,7 @@ export function CodeBlock({
         ) : null}
       </div>
       <CodeMirror
-        value={code}
+        value={currentCode}
         editable={false}
         readOnly
         basicSetup={setup}

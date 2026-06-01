@@ -1,13 +1,14 @@
 import { Alert, Linking, Platform } from "react-native";
-import { Welcome } from "@repo/ui";
+import { PasswordResetCheckEmailForm, Welcome, getMailboxUrl } from "@repo/ui";
 import { router, useLocalSearchParams } from "expo-router";
-import { getMailboxUrl } from "@repo/ui";
+import * as ExpoLinking from "expo-linking";
+import { useNativeAuthWiring } from "@/lib/nativeAuthProps";
 
 async function openMailbox(email?: string) {
+  const providerUrl = email ? getMailboxUrl(email) : undefined;
   const candidates = [
     ...(Platform.OS === "ios" ? ["message://"] : []),
-    "mailto:",
-    email ? getMailboxUrl(email) : undefined,
+    providerUrl,
   ].filter((url): url is string => Boolean(url));
 
   for (const url of candidates) {
@@ -26,9 +27,32 @@ async function openMailbox(email?: string) {
 }
 
 export default function CheckEmailScreen() {
-  const { email } = useLocalSearchParams<{ email?: string }>();
+  const { email, type } = useLocalSearchParams<{
+    email?: string;
+    type?: string;
+  }>();
+  const { auth, notify, navigate } = useNativeAuthWiring();
 
   const emailStr = typeof email === "string" ? email : undefined;
+  const typeStr = typeof type === "string" ? type : undefined;
+  const redirectTo = ExpoLinking.createURL("/update-password");
+
+  if (typeStr === "recovery") {
+    return (
+      <PasswordResetCheckEmailForm
+        auth={auth}
+        email={emailStr}
+        notify={notify}
+        navigate={navigate}
+        redirectTo={redirectTo}
+        routes={{
+          login: "/login",
+          updatePassword: "/update-password",
+        }}
+        onOpenMailbox={() => openMailbox(emailStr)}
+      />
+    );
+  }
 
   return (
     <Welcome

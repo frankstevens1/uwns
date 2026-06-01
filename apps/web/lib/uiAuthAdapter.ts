@@ -25,6 +25,11 @@ export type UiAuthClient = {
     token: string;
   }) => Promise<{ error?: { message: string } | null }>;
 
+  verifyPasswordResetOtp: (args: {
+    email: string;
+    token: string;
+  }) => Promise<{ error?: { message: string } | null }>;
+
   resetPasswordForEmail: (args: {
     email: string;
     redirectTo?: string;
@@ -101,10 +106,18 @@ export function toUiAuthClient(
       }
     },
 
-    resetPasswordForEmail: async ({ email /* redirectTo ignored */ }) => {
+    verifyPasswordResetOtp: async ({ email, token }) => {
       try {
-        // ✅ provider: resetPasswordForEmail(email: string)
-        await auth.resetPasswordForEmail(email);
+        await auth.verifyPasswordResetOtp({ email, token });
+        return { error: null };
+      } catch (e) {
+        return { error: { message: toMsg(e) } };
+      }
+    },
+
+    resetPasswordForEmail: async ({ email, redirectTo }) => {
+      try {
+        await auth.resetPasswordForEmail(email, redirectTo);
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };
@@ -115,6 +128,10 @@ export function toUiAuthClient(
       try {
         // ✅ provider: updatePassword(password: string)
         await auth.updatePassword(password);
+        await tracking?.trackEvent({
+          eventName: "password_updated",
+          metadata: { source: "auth_flow" },
+        });
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };

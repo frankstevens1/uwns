@@ -56,7 +56,9 @@ function readRecents(): RecentItem[] {
     const parsed = raw ? (JSON.parse(raw) as RecentItem[]) : [];
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((x) => x && typeof x.href === "string" && typeof x.label === "string")
+      .filter(
+        (x) => x && typeof x.href === "string" && typeof x.label === "string",
+      )
       .sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
       .slice(0, RECENTS_MAX);
   } catch {
@@ -67,7 +69,10 @@ function readRecents(): RecentItem[] {
 function writeRecents(next: RecentItem[]) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next.slice(0, RECENTS_MAX)));
+    window.localStorage.setItem(
+      RECENTS_KEY,
+      JSON.stringify(next.slice(0, RECENTS_MAX)),
+    );
   } catch {
     // ignore
   }
@@ -77,7 +82,10 @@ function bumpRecent(item: { id: string; label: string; href: string }) {
   const curr = readRecents();
   const now = Date.now();
   const filtered = curr.filter((r) => r.href !== item.href);
-  const next: RecentItem[] = [{ ...item, ts: now }, ...filtered].slice(0, RECENTS_MAX);
+  const next: RecentItem[] = [{ ...item, ts: now }, ...filtered].slice(
+    0,
+    RECENTS_MAX,
+  );
   writeRecents(next);
   return next;
 }
@@ -176,7 +184,9 @@ export function SearchCommand({
   }, [open, close]);
 
   const go = (href: string, labelForRecent?: string) => {
-    setRecents(() => bumpRecent({ id: href, label: labelForRecent ?? href, href }));
+    setRecents(() =>
+      bumpRecent({ id: href, label: labelForRecent ?? href, href }),
+    );
     close();
     router.push(href);
   };
@@ -306,17 +316,25 @@ export function SearchCommand({
     };
 
     const base: CommandSection[] = [
-      { heading: "Recent", items: recentItems.filter(allow), emptyText: "No recent items yet." },
+      {
+        heading: "Recent",
+        items: recentItems.filter(allow),
+        emptyText: "No recent items yet.",
+      },
       { heading: "Navigate", items: navigate.filter(allow) },
       {
         heading: "Actions",
         items: actions.filter(allow),
-        emptyText: isAuthed ? "No actions available." : "Sign in to access actions.",
+        emptyText: isAuthed
+          ? "No actions available."
+          : "Sign in to access actions.",
       },
       {
         heading: "Docs",
         items: docs.filter(allow),
-        emptyText: ff.docs ? "No docs items." : "Docs are disabled by feature flags.",
+        emptyText: ff.docs
+          ? "No docs items."
+          : "Docs are disabled by feature flags.",
       },
     ];
 
@@ -325,7 +343,9 @@ export function SearchCommand({
       items: s.items.filter(allow),
     }));
 
-    return [...base, ...injected].filter((s) => s.items.length > 0 || !!s.emptyText);
+    return [...base, ...injected].filter(
+      (s) => s.items.length > 0 || !!s.emptyText,
+    );
   }, [recents, isAuthed, ff, extraSections, signOut, router, trackEvent]);
 
   const closeOnEscCapture = (e: React.KeyboardEvent) => {
@@ -338,10 +358,13 @@ export function SearchCommand({
   return (
     <>
       <Button
-        variant="ghost"
+        variant="outline"
         onPress={() => setOpen(true)}
         aria-label="Search"
-        className={[!compact ? "min-w-52" : "", "flex items-center justify-between"].join(" ")}
+        className={[
+          !compact ? "min-w-52" : "",
+          "flex items-center justify-between",
+        ].join(" ")}
       >
         <div className="flex items-center flex-1">
           <Search size={18} />
@@ -352,7 +375,9 @@ export function SearchCommand({
           ) : null}
         </div>
         {!compact ? (
-          <kbd className="ml-2 rounded bg-(--ui-subtle-bg) px-1.5 py-0.5 text-xs font-light tracking-[0.2em]">⌘K</kbd>
+          <kbd className="ml-2 rounded bg-(--ui-subtle-bg) px-1.5 py-0.5 text-xs font-light tracking-[0.2em]">
+            ⌘K
+          </kbd>
         ) : null}
       </Button>
 
@@ -403,7 +428,11 @@ function CommandRoot({
   onEscCapture: (e: React.KeyboardEvent) => void;
 }) {
   return (
-    <Command className="w-full" onKeyDownCapture={onEscCapture} onKeyUpCapture={onEscCapture}>
+    <Command
+      className="w-full"
+      onKeyDownCapture={onEscCapture}
+      onKeyUpCapture={onEscCapture}
+    >
       <div className="flex items-center gap-2 rounded-lg bg-(--ui-subtle-bg) px-3 py-2">
         <Search size={14} className="text-(--ui-muted-fg)" />
         <Command.Input
@@ -445,13 +474,19 @@ function CommandRoot({
             <div className="px-1">
               {section.items.length === 0 ? (
                 section.emptyText ? (
-                  <div className="px-3 py-2 text-sm text-(--ui-muted-fg)">{section.emptyText}</div>
+                  <div className="px-3 py-2 text-sm text-(--ui-muted-fg)">
+                    {section.emptyText}
+                  </div>
                 ) : null
               ) : (
                 section.items.map((item) => (
                   <Command.Item
                     key={item.id}
-                    value={[item.label, item.href ?? "", ...(item.keywords ?? [])].join(" ")}
+                    value={[
+                      item.label,
+                      item.href ?? "",
+                      ...(item.keywords ?? []),
+                    ].join(" ")}
                     onSelect={() => {
                       if (item.href) onGo(item.href, item.label);
                       else onAction(item);
@@ -471,9 +506,13 @@ function CommandRoot({
                     </span>
 
                     {item.href ? (
-                      <span className="text-xs text-(--ui-muted-fg) truncate">{item.href}</span>
+                      <span className="text-xs text-(--ui-muted-fg) truncate">
+                        {item.href}
+                      </span>
                     ) : (
-                      <span className="text-xs text-(--ui-muted-fg)">Action</span>
+                      <span className="text-xs text-(--ui-muted-fg)">
+                        Action
+                      </span>
                     )}
                   </Command.Item>
                 ))

@@ -14,7 +14,13 @@ function withEmailParam(path: string, email: string) {
   return `${path}${separator}email=${encodeURIComponent(email)}`;
 }
 
-export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo }: ForgotPasswordFormProps) {
+export function ForgotPasswordForm({
+  auth,
+  notify,
+  navigate,
+  routes,
+  redirectTo,
+}: ForgotPasswordFormProps) {
   const { email, setEmail, isLoading, setIsLoading } = useAuthFormState();
 
   const afterRequest = routes?.afterRequest ?? "/auth/welcome";
@@ -29,7 +35,9 @@ export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo 
         notify?.error?.(error.message);
         return;
       }
-      notify?.success?.("Email sent.", { description: "Check your inbox for the reset link." });
+      notify?.success?.("Email sent.", {
+        description: "Use the reset link or enter the code from the email.",
+      });
       navigate?.(withEmailParam(afterRequest, email));
     } finally {
       setIsLoading(false);
@@ -39,7 +47,7 @@ export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo 
   return (
     <AuthCard
       title="Reset password"
-      subtitle="We’ll send a password reset link to your email."
+      subtitle="We’ll send a password reset link and code to your email."
       footer={
         <div style={{ fontSize: 13 }}>
           <Link href={login} onPress={() => navigate?.(login)}>
@@ -62,8 +70,12 @@ export function ForgotPasswordForm({ auth, notify, navigate, routes, redirectTo 
           />
         </div>
 
-        <Button type="submit" loading={isLoading} disabled={isLoading || !email}>
-          {isLoading ? "Sending…" : "Send reset link"}
+        <Button
+          type="submit"
+          loading={isLoading}
+          disabled={isLoading || !email}
+        >
+          {isLoading ? "Sending…" : "Send reset email"}
         </Button>
       </form>
     </AuthCard>

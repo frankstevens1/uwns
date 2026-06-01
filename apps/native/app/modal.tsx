@@ -1,7 +1,14 @@
 import { View, Text, StyleSheet } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@repo/providers";
-import { Button, Card, CardBody, CardFooter, CardHeader, useThemeTokens } from "@repo/ui";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  useThemeTokens,
+} from "@repo/ui";
 
 export default function ModalScreen() {
   const { user } = useAuth();
@@ -18,14 +25,18 @@ export default function ModalScreen() {
         </CardHeader>
 
         <CardBody>
-          <Text style={[styles.label, { color: tokens.color.mutedFg }]}>Signed in as</Text>
-          <Text style={[styles.value, { color: tokens.color.fg }]}>{user?.email ?? "—"}</Text>
+          <Text style={[styles.label, { color: tokens.color.mutedFg }]}>
+            Signed in as
+          </Text>
+          <Text style={[styles.value, { color: tokens.color.fg }]}>
+            {user?.email ?? "—"}
+          </Text>
         </CardBody>
 
         <CardFooter>
           <View style={styles.row}>
             <Button onPress={() => router.back()}>Close</Button>
-            <Button variant="ghost" onPress={() => router.replace("/(tabs)")}>
+            <Button variant="outline" onPress={() => router.replace("/(tabs)")}>
               Go Home
             </Button>
           </View>

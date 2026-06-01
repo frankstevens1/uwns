@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { CodeBlockProps } from "./CodeBlock.types";
+import { Select } from "../../primitives/Select/Select.native";
 import { useThemeTokens } from "../../theme";
 
 type CodeToken = {
@@ -97,7 +98,11 @@ function tokenizeCodeLine(line: string, language: string): CodeToken[] {
 
     if (text.startsWith("//") || text.startsWith("/*")) {
       kind = "comment";
-    } else if (text.startsWith("\"") || text.startsWith("'") || text.startsWith("`")) {
+    } else if (
+      text.startsWith('"') ||
+      text.startsWith("'") ||
+      text.startsWith("`")
+    ) {
       kind = "string";
     } else if (text.startsWith("<")) {
       kind = "tag";
@@ -121,9 +126,10 @@ function tokenizeCodeLine(line: string, language: string): CodeToken[] {
 }
 
 export function CodeBlock({
-  code,
+  code = "",
   language = "text",
   filename,
+  snippets,
   showLineNumbers = true,
   copyable = true,
   copyLabel = "Copy",
@@ -131,14 +137,54 @@ export function CodeBlock({
   style,
 }: CodeBlockProps) {
   const tokens = useThemeTokens();
-  const label = filename ?? language;
+  const availableSnippets = React.useMemo(
+    () =>
+      snippets?.length
+        ? snippets
+        : [
+            {
+              id: "default",
+              label: filename ?? language,
+              code,
+              language,
+              filename,
+            },
+          ],
+    [code, filename, language, snippets],
+  );
+  const [selectedSnippetId, setSelectedSnippetId] = React.useState(
+    availableSnippets[0]?.id ?? "default",
+  );
+  const selectedSnippet =
+    availableSnippets.find((snippet) => snippet.id === selectedSnippetId) ??
+    availableSnippets[0];
+  const currentCode = selectedSnippet?.code ?? "";
+  const currentLanguage = selectedSnippet?.language ?? language;
+  const currentFilename = selectedSnippet?.filename ?? filename;
+  const label =
+    selectedSnippet?.filename ?? selectedSnippet?.label ?? currentLanguage;
+  const hasSnippetPicker = availableSnippets.length > 1;
+  const snippetPickerWidth = React.useMemo(() => {
+    const longest = Math.max(
+      16,
+      ...availableSnippets.map((snippet) => snippet.label.length),
+    );
+    return Math.min(longest * 7 + 38, 260);
+  }, [availableSnippets]);
   const [copied, setCopied] = React.useState(false);
-  const resolvedLanguage = inferLanguage(language, filename);
-  const lines = React.useMemo(() => code.split("\n"), [code]);
+  const resolvedLanguage = inferLanguage(currentLanguage, currentFilename);
+  const lines = React.useMemo(() => currentCode.split("\n"), [currentCode]);
   const highlightedLines = React.useMemo(
     () => lines.map((line) => tokenizeCodeLine(line, resolvedLanguage)),
     [lines, resolvedLanguage],
   );
+
+  React.useEffect(() => {
+    if (availableSnippets.some((snippet) => snippet.id === selectedSnippetId)) {
+      return;
+    }
+    setSelectedSnippetId(availableSnippets[0]?.id ?? "default");
+  }, [availableSnippets, selectedSnippetId]);
   const dark = isDarkHex(tokens.color.bg);
   const syntaxColors = dark
     ? {
@@ -163,7 +209,7 @@ export function CodeBlock({
   const onCopy = async () => {
     if (!copyable) return;
 
-    await Clipboard.setStringAsync(code);
+    await Clipboard.setStringAsync(currentCode);
     setCopied(true);
     globalThis.setTimeout(() => setCopied(false), 1200);
   };
@@ -193,12 +239,28 @@ export function CodeBlock({
           <View
             style={[styles.dot, { backgroundColor: tokens.color.border }]}
           />
-          <Text
-            numberOfLines={1}
-            style={[styles.title, { color: tokens.color.mutedFg }]}
-          >
-            {label}
-          </Text>
+          {hasSnippetPicker ? (
+            <Select
+              value={selectedSnippetId}
+              onChange={setSelectedSnippetId}
+              options={availableSnippets.map((snippet) => ({
+                label: snippet.label,
+                value: snippet.id,
+                group: snippet.group,
+              }))}
+              placeholder="Snippet"
+              size="sm"
+              variant="ghost"
+              style={[styles.snippetSelect, { width: snippetPickerWidth }]}
+            />
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={[styles.title, { color: tokens.color.mutedFg }]}
+            >
+              {label}
+            </Text>
+          )}
         </View>
 
         {copyable ? (
@@ -207,7 +269,9 @@ export function CodeBlock({
             style={({ pressed }) => [
               styles.copyButton,
               {
-                backgroundColor: pressed ? tokens.color.subtleBg : "transparent",
+                backgroundColor: pressed
+                  ? tokens.color.subtleBg
+                  : "transparent",
               },
             ]}
           >
@@ -232,7 +296,9 @@ export function CodeBlock({
           {highlightedLines.map((lineTokens, index) => (
             <View key={`${index}-${lines[index]}`} style={styles.line}>
               {showLineNumbers ? (
-                <Text style={[styles.lineNumber, { color: tokens.color.mutedFg }]}>
+                <Text
+                  style={[styles.lineNumber, { color: tokens.color.mutedFg }]}
+                >
                   {index + 1}
                 </Text>
               ) : null}
@@ -284,6 +350,9 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: "Menlo", android: "monospace" }),
     fontSize: 12,
     fontWeight: "500",
+  },
+  snippetSelect: {
+    flexShrink: 0,
   },
   copyButton: {
     alignItems: "center",

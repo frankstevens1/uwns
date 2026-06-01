@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useActivity, useAuth } from "@repo/providers";
 import {
+  abbreviatedCodeSnippet,
   Button,
   Card,
   CardBody,
@@ -15,8 +16,8 @@ import {
   useThemeTokens,
 } from "@repo/ui";
 
-const signedInIdentityExample = `import * as React from "react";
-import { StyleSheet, Text, View } from "react-native";
+const signedInIdentityNativeExample = abbreviatedCodeSnippet([
+  `import { Text, View } from "react-native";
 import { useActivity, useAuth } from "@repo/providers";
 import {
   Button,
@@ -26,38 +27,27 @@ import {
   CardHeader,
   ReadOnlyInput,
   useThemeTokens,
-} from "@repo/ui";
-
-export function SignedInIdentity() {
+} from "@repo/ui";`,
+  `export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
   const { trackEvent } = useActivity();
   const tokens = useThemeTokens();
-  const [busy, setBusy] = React.useState(false);
 
-  const handleSignOut = async () => {
-    if (busy) return;
-
-    setBusy(true);
-    try {
-      await trackEvent({
-        eventName: "signed_out",
-        metadata: { trigger: "account_card" },
-      });
-      await signOut();
-    } finally {
-      setBusy(false);
-    }
-  };
+  async function handleSignOut() {
+    await trackEvent({
+      eventName: "signed_out",
+      metadata: { trigger: "account_card" },
+    });
+    await signOut();
+  }
 
   return (
     <Card padding="none" elevation="sm">
       <CardHeader>
-        <Text style={[styles.cardTitle, { color: tokens.color.fg }]}>
-          Signed-in identity
-        </Text>
+        <Text style={{ color: tokens.color.fg }}>Signed-in identity</Text>
       </CardHeader>
       <CardBody>
-        <View style={styles.fields}>
+        <View style={{ gap: 12 }}>
           <ReadOnlyInput
             label="Email"
             value={user?.email}
@@ -75,20 +65,97 @@ export function SignedInIdentity() {
       <CardFooter>
         <Button
           onPress={handleSignOut}
-          disabled={loading || !user || busy}
+          disabled={loading || !user}
           variant="primary"
         >
-          {busy ? "Signing out..." : "Sign out"}
+          Sign out
         </Button>
       </CardFooter>
     </Card>
   );
-}
+}`,
+]);
 
-const styles = StyleSheet.create({
-  cardTitle: { fontSize: 14, fontWeight: "600" },
-  fields: { gap: 12 },
-});`;
+const signedInIdentityWebExample = abbreviatedCodeSnippet([
+  `"use client";
+
+import { useActivity, useAuth } from "@repo/providers";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  CardHeader,
+  ReadOnlyInput,
+} from "@repo/ui";`,
+  `export function SignedInIdentity() {
+  const { user, loading, signOut } = useAuth();
+  const { trackEvent } = useActivity();
+
+  async function handleSignOut() {
+    await trackEvent({
+      eventName: "signed_out",
+      metadata: { trigger: "account_card" },
+    });
+    await signOut();
+  }
+
+  return (
+    <Card padding="none" elevation="sm">
+      <CardHeader>
+        <div className="text-sm font-medium">Signed-in identity</div>
+      </CardHeader>
+      <CardBody>
+        <ReadOnlyInput label="Email" value={user?.email} loading={loading} />
+        <ReadOnlyInput label="User ID" value={user?.id} loading={loading} />
+      </CardBody>
+      <CardFooter>
+        <Button onPress={handleSignOut} disabled={loading || !user}>
+          Sign out
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}`,
+]);
+
+const nativeLayoutExample = abbreviatedCodeSnippet([
+  `import { Stack } from "expo-router";
+import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ThemeProvider, darkTokens, lightTokens } from "@repo/ui";
+import { useColorScheme } from "react-native";`,
+  `export default function RootLayout() {
+  const scheme = useColorScheme();
+  const tokens = scheme === "dark" ? darkTokens : lightTokens;
+
+  return (
+    <AuthProvider>
+      <ActivityProvider>
+        <ThemeProvider tokens={tokens}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </ThemeProvider>
+      </ActivityProvider>
+    </AuthProvider>
+  );
+}`,
+]);
+
+const webLayoutExample = abbreviatedCodeSnippet([
+  `import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Shell } from "@/components/Shell";`,
+  `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <ActivityProvider>
+          <Shell>{children}</Shell>
+        </ActivityProvider>
+      </AuthProvider>
+    </NextThemesProvider>
+  );
+}`,
+]);
 
 const SECTION_GAP = 24;
 
@@ -182,7 +249,8 @@ export default function AccountTab() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: tokens.color.fg }]}>Account</Text>
         <Text style={[styles.subtitle, { color: tokens.color.mutedFg }]}>
-          A minimal user-specific route showing authenticated data from Supabase.
+          A minimal user-specific route showing authenticated data from
+          Supabase.
         </Text>
       </View>
 
@@ -238,7 +306,9 @@ export default function AccountTab() {
           <Text
             style={[
               styles.segmentText,
-              { color: !showComponent ? tokens.color.fg : tokens.color.mutedFg },
+              {
+                color: !showComponent ? tokens.color.fg : tokens.color.mutedFg,
+              },
             ]}
           >
             Code
@@ -250,8 +320,40 @@ export default function AccountTab() {
         <SignedInIdentity />
       ) : (
         <CodeBlock
-          code={signedInIdentityExample}
-          filename="SignedInIdentity.native.tsx"
+          snippets={[
+            {
+              id: "native-identity",
+              label: "SignedInIdentity.native.tsx",
+              group: "native",
+              filename: "SignedInIdentity.native.tsx",
+              language: "tsx",
+              code: signedInIdentityNativeExample,
+            },
+            {
+              id: "native-layout",
+              label: "_layout.tsx",
+              group: "native",
+              filename: "apps/native/app/_layout.tsx",
+              language: "tsx",
+              code: nativeLayoutExample,
+            },
+            {
+              id: "web-identity",
+              label: "SignedInIdentity.web.tsx",
+              group: "web",
+              filename: "SignedInIdentity.web.tsx",
+              language: "tsx",
+              code: signedInIdentityWebExample,
+            },
+            {
+              id: "web-layout",
+              label: "layout.tsx",
+              group: "web",
+              filename: "apps/web/app/layout.tsx",
+              language: "tsx",
+              code: webLayoutExample,
+            },
+          ]}
           showLineNumbers={false}
         />
       )}

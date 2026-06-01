@@ -35,16 +35,24 @@ export { Link } from "./primitives/Link/Link.web";
 export { LoginForm } from "./components/auth/LoginForm/LoginForm.web";
 export { PasswordField } from "./components/auth/PasswordField/PasswordField.web";
 export { PasswordRequirementsList } from "./components/auth/PasswordRequirementsList/PasswordRequirementsList.web";
+export { PasswordResetCheckEmailForm } from "./components/auth/PasswordResetCheckEmailForm/PasswordResetCheckEmailForm.web";
 export { ReadOnlyInput } from "./primitives/ReadOnlyInput/ReadOnlyInput.web";
 export { Select } from "./primitives/Select/Select.web";
 export { SettingsRow } from "./components/SettingsRow/SettingsRow.web";
 export { SignUpForm } from "./components/auth/SignUpForm/SignUpForm.web";
 export { Spinner } from "./primitives/Spinner/Spinner.web";
 export { Stack } from "./primitives/Stack/Stack.web";
+export { Stopwatch } from "./components/Stopwatch/Stopwatch.web";
 export { TableEmptyState } from "./components/TableEmptyState/TableEmptyState.web";
 export { Text } from "./primitives/Text/Text.web";
 export { Textarea } from "./primitives/Textarea/Textarea.web";
 export { Tip } from "./components/Tip/Tip.web";
 export { UpdatePasswordForm } from "./components/auth/UpdatePasswordForm/UpdatePasswordForm.web";
 export { Welcome } from "./components/auth/Welcome/Welcome.web";
+export { abbreviatedCodeSnippet } from "./components/CodeBlock/snippets";
+export type {
+  StopwatchProps,
+  StopwatchStartEvent,
+  StopwatchStopEvent,
+} from "./components/Stopwatch/Stopwatch.types";
 export * from "./theme";

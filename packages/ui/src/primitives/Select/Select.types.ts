@@ -1,5 +1,6 @@
-export type SelectOption = { label: string; value: string };
+export type SelectOption = { label: string; value: string; group?: string };
 export type SelectSize = "sm" | "md";
+export type SelectVariant = "default" | "ghost";
 
 export type SelectProps = {
   value: string;
@@ -9,6 +10,7 @@ export type SelectProps = {
   disabled?: boolean;
   search?: boolean;
   size?: SelectSize;
+  variant?: SelectVariant;
 
   className?: string; // web escape hatch
   style?: any;

@@ -172,7 +172,7 @@ function AppHeader({ title }: { title: string }) {
             {menuOpen && (
               <div
                 className={[
-                  "absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl",
+                  "absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-lg",
                   "bg-(--ui-panel) shadow-lg",
                   "ring-1 ring-(--ui-border)",
                 ].join(" ")}

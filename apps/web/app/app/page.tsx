@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
-import { Braces, Play, RefreshCw, Square } from "lucide-react";
+import { Braces, RefreshCw } from "lucide-react";
 import {
+  abbreviatedCodeSnippet,
   Button,
   Card,
   CardBody,
@@ -18,6 +19,9 @@ import {
   DialogPortal,
   DialogRoot,
   DialogTitle,
+  Stopwatch,
+  type StopwatchStartEvent,
+  type StopwatchStopEvent,
   Tip,
 } from "@repo/ui";
 import { useActivity } from "@repo/providers";
@@ -40,13 +44,6 @@ function timestamp() {
   return new Date().toISOString();
 }
 
-function formatStopwatch(ms: number) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
 function makeHomeViewedEvent(): PendingActivityEvent {
   const occurredAt = timestamp();
   return {
@@ -62,106 +59,135 @@ function makeHomeViewedEvent(): PendingActivityEvent {
   };
 }
 
-function makeTimerStartedEvent(runId: string): PendingActivityEvent {
-  const occurredAt = timestamp();
-  return {
-    eventName: "timer_started",
-    occurredAt,
-    metadata: {
-      source: "home_demo",
-      controlId: "timer-toggle",
-      runId,
-      state: "running",
-      timestamp: occurredAt,
-    },
-  };
-}
+const activityStopwatchWebExample = abbreviatedCodeSnippet([
+  `"use client";
 
-function makeTimerStoppedEvent(runId: string, durationMs: number): PendingActivityEvent {
-  const occurredAt = timestamp();
-  return {
-    eventName: "timer_stopped",
-    occurredAt,
-    metadata: {
-      source: "home_demo",
-      controlId: "timer-toggle",
-      runId,
-      state: "stopped",
-      durationMs,
-      durationSeconds: Math.round(durationMs / 1000),
-      timestamp: occurredAt,
-    },
-  };
-}
-
-const activityStopwatchExample = `function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
+import {
+  Stopwatch,
+  type StopwatchStartEvent,
+  type StopwatchStopEvent,
+} from "@repo/ui";
+import { useActivity } from "@repo/providers";`,
+  `export function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
   const { trackEvent } = useActivity();
-  const [running, setRunning] = React.useState(false);
-  const startedAt = React.useRef<number | null>(null);
-  const runId = React.useRef<string | null>(null);
 
-  async function send(event: PendingActivityEvent) {
+  async function handleStart({ runId, startedAt }: StopwatchStartEvent) {
     await trackEvent({
-      eventName: event.eventName,
-      metadata: event.metadata,
-      uniqueKey: event.uniqueKey,
-      occurredAt: event.occurredAt,
+      eventName: "timer_started",
+      occurredAt: startedAt,
+      metadata: { source: "home_demo", runId, state: "running" },
     });
-
     await onEventTracked();
   }
 
-  async function startTimer() {
-    const nextRunId = \`timer-\${Date.now()}\`;
-    runId.current = nextRunId;
-    startedAt.current = Date.now();
-    setRunning(true);
-    await send(makeTimerStartedEvent(nextRunId));
+  async function handleStop(event: StopwatchStopEvent) {
+    await trackEvent({
+      eventName: "timer_stopped",
+      occurredAt: event.stoppedAt,
+      metadata: {
+        source: "home_demo",
+        runId: event.runId,
+        state: "stopped",
+        durationSeconds: event.durationSeconds,
+      },
+    });
+    await onEventTracked();
   }
 
-  async function stopTimer() {
-    if (!startedAt.current) return;
+  return <Stopwatch onStart={handleStart} onStop={handleStop} />;
+}`,
+]);
 
-    const durationMs = Date.now() - startedAt.current;
-    const event = makeTimerStoppedEvent(runId.current ?? "timer-demo", durationMs);
+const activityStopwatchNativeExample = abbreviatedCodeSnippet([
+  `import {
+  Stopwatch,
+  type StopwatchStartEvent,
+  type StopwatchStopEvent,
+} from "@repo/ui";
+import { useActivity } from "@repo/providers";`,
+  `export function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
+  const { trackEvent } = useActivity();
 
-    await send(event);
-    setRunning(false);
+  async function handleStart({ runId, startedAt }: StopwatchStartEvent) {
+    await trackEvent({
+      eventName: "timer_started",
+      occurredAt: startedAt,
+      metadata: { source: "home_demo", runId, state: "running" },
+    });
+    await onEventTracked();
   }
+
+  async function handleStop(event: StopwatchStopEvent) {
+    await trackEvent({
+      eventName: "timer_stopped",
+      occurredAt: event.stoppedAt,
+      metadata: {
+        source: "home_demo",
+        runId: event.runId,
+        state: "stopped",
+        durationSeconds: event.durationSeconds,
+      },
+    });
+    await onEventTracked();
+  }
+
+  return <Stopwatch onStart={handleStart} onStop={handleStop} />;
+}`,
+]);
+
+const webLayoutExample = abbreviatedCodeSnippet([
+  `import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { Shell } from "@/components/Shell";`,
+  `export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+      <AuthProvider>
+        <ActivityProvider>
+          <Shell>{children}</Shell>
+        </ActivityProvider>
+      </AuthProvider>
+    </NextThemesProvider>
+  );
+}`,
+]);
+
+const nativeLayoutExample = abbreviatedCodeSnippet([
+  `import { Stack } from "expo-router";
+import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ThemeProvider, darkTokens, lightTokens } from "@repo/ui";
+import { useColorScheme } from "react-native";`,
+  `export default function RootLayout() {
+  const scheme = useColorScheme();
+  const tokens = scheme === "dark" ? darkTokens : lightTokens;
 
   return (
-    <button onClick={running ? stopTimer : startTimer}>
-      {running ? "Stop" : "Start"}
-    </button>
+    <AuthProvider>
+      <ActivityProvider>
+        <ThemeProvider tokens={tokens}>
+          <Stack screenOptions={{ headerShown: false }} />
+        </ThemeProvider>
+      </ActivityProvider>
+    </AuthProvider>
   );
-}`;
+}`,
+]);
 
 function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
   const { trackEvent } = useActivity();
-  const [timerRunning, setTimerRunning] = React.useState(false);
-  const [elapsedMs, setElapsedMs] = React.useState(0);
-  const [busy, setBusy] = React.useState(false);
-  const startedAt = React.useRef<number | null>(null);
-  const runId = React.useRef<string | null>(null);
 
-  React.useEffect(() => {
-    if (!timerRunning || !startedAt.current) return;
-
-    const interval = window.setInterval(() => {
-      if (!startedAt.current) return;
-      setElapsedMs(Date.now() - startedAt.current);
-    }, 250);
-
-    return () => window.clearInterval(interval);
-  }, [timerRunning]);
-
-  const trackTimerEvent = React.useCallback(
-    async (event: PendingActivityEvent) => {
+  const handleStart = React.useCallback(
+    async ({ runId, startedAt }: StopwatchStartEvent) => {
       await trackEvent({
-        eventName: event.eventName,
-        metadata: event.metadata,
-        uniqueKey: event.uniqueKey,
-        occurredAt: event.occurredAt,
+        eventName: "timer_started",
+        occurredAt: startedAt,
+        metadata: {
+          source: "home_demo",
+          controlId: "timer-toggle",
+          runId,
+          state: "running",
+          timestamp: startedAt,
+        },
       });
 
       await onEventTracked();
@@ -169,64 +195,36 @@ function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
     [onEventTracked, trackEvent],
   );
 
-  const onTimerPress = async () => {
-    if (busy) return;
+  const handleStop = React.useCallback(
+    async (event: StopwatchStopEvent) => {
+      await trackEvent({
+        eventName: "timer_stopped",
+        occurredAt: event.stoppedAt,
+        metadata: {
+          source: "home_demo",
+          controlId: "timer-toggle",
+          runId: event.runId,
+          state: "stopped",
+          durationMs: event.durationMs,
+          durationSeconds: event.durationSeconds,
+          timestamp: event.stoppedAt,
+        },
+      });
 
-    setBusy(true);
-    try {
-      if (!timerRunning) {
-        const nextRunId = `timer-${Date.now()}`;
-        runId.current = nextRunId;
-        startedAt.current = Date.now();
-        setElapsedMs(0);
-        setTimerRunning(true);
-        await trackTimerEvent(makeTimerStartedEvent(nextRunId));
-        return;
-      }
-
-      const durationMs = startedAt.current ? Date.now() - startedAt.current : 0;
-      const currentRunId = runId.current ?? `timer-${Date.now()}`;
-      startedAt.current = null;
-      runId.current = null;
-      setTimerRunning(false);
-      setElapsedMs(durationMs);
-      await trackTimerEvent(makeTimerStoppedEvent(currentRunId, durationMs));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="flex justify-center">
-      <div className="w-full h-fit max-w-64 rounded-lg border border-(--ui-border) bg-(--ui-subtle-bg) p-3 shadow-inner">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div className="text-xs font-medium text-(--ui-muted-fg)">Stopwatch</div>
-          <div className="rounded-md border border-(--ui-border) bg-(--ui-bg) px-2 py-1 text-xs text-(--ui-muted-fg)">
-            {timerRunning ? "Running" : "Idle"}
-          </div>
-        </div>
-        <div className="rounded-md border border-(--ui-border) bg-(--ui-bg) px-3 py-3 text-center font-mono text-3xl font-semibold tabular-nums text-(--ui-fg)">
-          {formatStopwatch(elapsedMs)}
-        </div>
-        <button
-          type="button"
-          onClick={onTimerPress}
-          disabled={busy}
-          className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-md border border-(--ui-border) bg-(--ui-bg) text-sm font-medium text-(--ui-fg) disabled:opacity-60"
-        >
-          {timerRunning ? <Square size={15} /> : <Play size={15} />}
-          {busy ? "Saving..." : timerRunning ? "Stop" : "Start"}
-        </button>
-      </div>
-    </div>
+      await onEventTracked();
+    },
+    [onEventTracked, trackEvent],
   );
+
+  return <Stopwatch onStart={handleStart} onStop={handleStop} />;
 }
 
 export default function AppHome() {
   const { resolvedTheme } = useTheme();
   const { listRecentEvents, trackEvent } = useActivity();
   const [events, setEvents] = React.useState<ActivityEvent[]>([]);
-  const [selectedEvent, setSelectedEvent] = React.useState<ActivityEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] =
+    React.useState<ActivityEvent | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
   const codeBlockTheme = resolvedTheme === "dark" ? "dark" : "light";
 
@@ -275,8 +273,14 @@ export default function AppHome() {
         <div className="space-y-6 grid lg:flex flex-col grid-cols-2 gap-6 lg:gap-0">
           <ActivityStopwatch onEventTracked={refreshEvents} />
 
+          <Tip>
+            The stopwatch is shared <Code>@repo/ui</Code>. The app-specific part
+            is calling <Code>trackEvent</Code> through
+            <Code>ActivityProvider</Code>.
+          </Tip>
+
           <Card padding="none" elevation="sm" variant="subtle">
-            <CardHeader divider={false}>
+            <CardHeader>
               <div className="flex items-center justify-between gap-3">
                 <div className="text-xs font-mono">Recent events</div>
                 <Button
@@ -318,7 +322,7 @@ export default function AppHome() {
                           </td>
                           <td className="px-3 py-2 text-right">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               aria-label={`View metadata for ${event.event_name}`}
                               onPress={() => setSelectedEvent(event)}
@@ -338,9 +342,40 @@ export default function AppHome() {
 
         <div className="lg:col-span-2">
           <CodeBlock
-            code={activityStopwatchExample}
-            filename="ActivityStopwatch.web.tsx"
-            language="tsx"
+            snippets={[
+              {
+                id: "track-event",
+                label: "ActivityStopwatch.web.tsx",
+                group: "web",
+                filename: "ActivityStopwatch.web.tsx",
+                language: "tsx",
+                code: activityStopwatchWebExample,
+              },
+              {
+                id: "web-layout",
+                label: "layout.tsx",
+                group: "web",
+                filename: "apps/web/app/layout.tsx",
+                language: "tsx",
+                code: webLayoutExample,
+              },
+              {
+                id: "track-event-native",
+                label: "ActivityStopwatch.native.tsx",
+                group: "native",
+                filename: "ActivityStopwatch.native.tsx",
+                language: "tsx",
+                code: activityStopwatchNativeExample,
+              },
+              {
+                id: "native-layout",
+                label: "_layout.tsx",
+                group: "native",
+                filename: "apps/native/app/_layout.tsx",
+                language: "tsx",
+                code: nativeLayoutExample,
+              },
+            ]}
             showLineNumbers={false}
             theme={codeBlockTheme}
           />

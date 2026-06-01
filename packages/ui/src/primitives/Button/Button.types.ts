@@ -1,6 +1,6 @@
 import type * as React from "react";
 
-export type ButtonVariant = "primary" | "ghost";
+export type ButtonVariant = "primary" | "outline" | "ghost";
 export type ButtonSize = "md" | "sm" | "lg";
 
 export type ButtonProps = {

@@ -2,6 +2,7 @@ import * as React from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   Modal,
+  Platform,
   Pressable,
   Text as RNText,
   TextInput,
@@ -12,6 +13,10 @@ import {
 import type { SelectProps, SelectOption } from "./Select.types";
 import { inputTokens, useThemeTokens } from "../../theme";
 
+type SelectListEntry =
+  | { kind: "group"; id: string; label: string }
+  | { kind: "option"; option: SelectOption };
+
 export function Select({
   value,
   onChange,
@@ -20,6 +25,7 @@ export function Select({
   disabled,
   search = false,
   size = "md",
+  variant = "default",
   style,
 }: SelectProps) {
   const tokens = useThemeTokens();
@@ -34,11 +40,32 @@ export function Select({
     return options.filter((opt) => {
       const label = opt.label.toLowerCase();
       const optionValue = opt.value.toLowerCase();
-      return label.includes(normalizedQuery) || optionValue.includes(normalizedQuery);
+      return (
+        label.includes(normalizedQuery) || optionValue.includes(normalizedQuery)
+      );
     });
   }, [normalizedQuery, options, search]);
+  const listEntries = React.useMemo<SelectListEntry[]>(() => {
+    const entries: SelectListEntry[] = [];
+    let lastGroup: string | undefined;
+
+    filteredOptions.forEach((option, index) => {
+      if (option.group && option.group !== lastGroup) {
+        entries.push({
+          kind: "group",
+          id: `group:${option.group}:${index}`,
+          label: option.group,
+        });
+        lastGroup = option.group;
+      }
+      entries.push({ kind: "option", option });
+    });
+
+    return entries;
+  }, [filteredOptions]);
   const t = inputTokens.base;
   const triggerHeight = size === "sm" ? t.height.sm : t.height.md;
+  const isGhost = variant === "ghost";
 
   const close = () => {
     setOpen(false);
@@ -64,9 +91,10 @@ export function Select({
         style={[
           styles.trigger,
           {
-            backgroundColor: tokens.color.bg,
-            borderColor: tokens.color.border,
+            backgroundColor: isGhost ? "transparent" : tokens.color.bg,
+            borderColor: isGhost ? "transparent" : tokens.color.border,
             borderRadius: t.radius,
+            borderWidth: isGhost ? 0 : 1,
             height: triggerHeight,
             paddingHorizontal: t.paddingX,
             opacity: disabled ? tokens.opacity.disabled : 1,
@@ -81,20 +109,33 @@ export function Select({
             style={{
               color: current ? tokens.color.fg : tokens.color.mutedFg,
               fontSize: t.fontSize,
+              fontFamily: Platform.select({
+                ios: isGhost ? "Menlo" : undefined,
+                android: isGhost ? "monospace" : undefined,
+              }),
               flex: 1,
             }}
           >
             {current?.label ?? placeholder}
           </RNText>
           <RNText
-            style={{ color: tokens.color.mutedFg, fontSize: t.fontSize + 2, marginLeft: 8 }}
+            style={{
+              color: tokens.color.mutedFg,
+              fontSize: t.fontSize + 2,
+              marginLeft: 8,
+            }}
           >
             ▾
           </RNText>
         </View>
       </Pressable>
 
-      <Modal visible={open} animationType="fade" transparent onRequestClose={close}>
+      <Modal
+        visible={open}
+        animationType="fade"
+        transparent
+        onRequestClose={close}
+      >
         <Pressable style={styles.backdrop} onPress={close}>
           <View
             style={[
@@ -106,7 +147,14 @@ export function Select({
               },
             ]}
           >
-            <RNText style={{ color: tokens.color.fg, fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
+            <RNText
+              style={{
+                color: tokens.color.fg,
+                fontSize: 14,
+                fontWeight: "600",
+                marginBottom: 8,
+              }}
+            >
               {placeholder}
             </RNText>
 
@@ -161,31 +209,69 @@ export function Select({
             ) : null}
 
             <FlatList
-              data={filteredOptions}
-              keyExtractor={(i) => i.value}
+              data={listEntries}
+              keyExtractor={(item) =>
+                item.kind === "group" ? item.id : item.option.value
+              }
               showsVerticalScrollIndicator={false}
               style={styles.list}
               ItemSeparatorComponent={() => (
-                <View style={{ height: 1, backgroundColor: tokens.color.border, opacity: 0.6 }} />
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: tokens.color.border,
+                    opacity: 0.6,
+                  }}
+                />
               )}
               ListEmptyComponent={() => (
                 <View style={styles.empty}>
-                  <RNText style={{ color: tokens.color.mutedFg, fontSize: t.fontSize }}>
+                  <RNText
+                    style={{
+                      color: tokens.color.mutedFg,
+                      fontSize: t.fontSize,
+                    }}
+                  >
                     No results
                   </RNText>
                 </View>
               )}
               renderItem={({ item }) => {
-                const selected = item.value === value;
+                if (item.kind === "group") {
+                  return (
+                    <View style={styles.groupHeader}>
+                      <RNText
+                        style={{
+                          color: tokens.color.mutedFg,
+                          fontSize: 11,
+                          fontWeight: "600",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        {item.label}
+                      </RNText>
+                    </View>
+                  );
+                }
+
+                const option = item.option;
+                const selected = option.value === value;
                 return (
                   <Pressable
-                    onPress={() => pick(item)}
-                    onLongPress={() => setRevealedLabel(item.label)}
-                    style={[styles.item, selected && { backgroundColor: tokens.color.subtleBg }]}
+                    onPress={() => pick(option)}
+                    onLongPress={() => setRevealedLabel(option.label)}
+                    style={[
+                      styles.item,
+                      selected && { backgroundColor: tokens.color.subtleBg },
+                    ]}
                   >
                     <View style={styles.checkSlot}>
                       {selected ? (
-                        <MaterialIcons name="check" size={16} color={tokens.color.fg} />
+                        <MaterialIcons
+                          name="check"
+                          size={16}
+                          color={tokens.color.fg}
+                        />
                       ) : null}
                     </View>
                     <RNText
@@ -194,13 +280,17 @@ export function Select({
                         {
                           color: tokens.color.fg,
                           fontSize: t.fontSize,
+                          fontFamily: Platform.select({
+                            ios: isGhost ? "Menlo" : undefined,
+                            android: isGhost ? "monospace" : undefined,
+                          }),
                           fontWeight: selected ? "600" : "500",
                         },
                       ]}
                       numberOfLines={1}
                       ellipsizeMode="tail"
                     >
-                      {item.label}
+                      {option.label}
                     </RNText>
                   </Pressable>
                 );
@@ -225,7 +315,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     minWidth: 0,
   },
-  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", padding: 18, justifyContent: "center" },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    padding: 18,
+    justifyContent: "center",
+  },
   sheet: { borderWidth: 1, padding: 14, maxHeight: "70%" },
   searchInput: {
     borderWidth: 1,
@@ -248,6 +343,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  groupHeader: {
+    paddingHorizontal: 2,
+    paddingBottom: 4,
+    paddingTop: 10,
   },
   checkSlot: {
     width: 18,

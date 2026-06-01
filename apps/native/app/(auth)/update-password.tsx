@@ -10,7 +10,7 @@ export default function UpdatePasswordScreen() {
       notify={notify}
       navigate={navigate}
       routes={{
-        afterUpdate: "/login"
+        afterUpdate: "/login",
       }}
     />
   );

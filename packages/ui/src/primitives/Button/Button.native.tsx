@@ -41,24 +41,29 @@ export function Button({
   const sz = buttonTokens.size[size];
 
   // Base per-variant colors
-  const baseBg = variant === "primary" ? tokens.color.primaryBg : tokens.color.bg;
-  const baseFg = variant === "primary" ? tokens.color.primaryFg : tokens.color.fg;
-  const baseBorder = variant === "ghost" ? tokens.color.border : "transparent";
+  const baseBg =
+    variant === "primary"
+      ? tokens.color.primaryBg
+      : variant === "outline"
+        ? tokens.color.bg
+        : "transparent";
+  const baseFg =
+    variant === "primary" ? tokens.color.primaryFg : tokens.color.fg;
+  const baseBorder =
+    variant === "outline" ? tokens.color.border : "transparent";
 
-  // NEW: disabled styling — no opacity dimming
   const disabledBg =
-    // if you later add explicit disabled tokens, swap here:
-    // tokens.color.disabledBg
-    tokens.color.subtleBg;
+    variant === "ghost" ? "transparent" : tokens.color.subtleBg;
 
-  const disabledFg =
-    // if you later add explicit disabled tokens, swap here:
-    // tokens.color.disabledFg
-    tokens.color.mutedFg;
+  const disabledFg = tokens.color.mutedFg;
 
   const resolvedBg = isDisabled ? disabledBg : baseBg;
   const resolvedFg = isDisabled ? disabledFg : baseFg;
-  const resolvedBorder = isDisabled ? tokens.color.border : baseBorder;
+  const resolvedBorder = isDisabled
+    ? variant === "outline"
+      ? tokens.color.border
+      : "transparent"
+    : baseBorder;
 
   const activeOpacity = buttonTokens.variant[variant].activeOpacity;
 
@@ -85,11 +90,16 @@ export function Button({
             // IMPORTANT: keep opacity at 1 so text stays readable
             opacity: 1,
           },
-          pressed && !isDisabled && {
-            opacity: activeOpacity as any,
-            transform: [{ scale: 0.99 }],
-          },
-          style as any
+          pressed &&
+            !isDisabled && {
+              opacity: activeOpacity as any,
+              backgroundColor:
+                variant === "primary"
+                  ? resolvedBg
+                  : (tokens.color.subtleBg as any),
+              transform: [{ scale: 0.99 }],
+            },
+          style as any,
         )
       }
     >
