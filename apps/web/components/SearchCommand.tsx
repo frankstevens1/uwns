@@ -446,85 +446,103 @@ function CommandRoot({
         />
       </div>
 
-      <Command.List
-        className={[
-          "mt-2.5 max-h-75 overflow-y-auto rounded-lg",
-          "pt-1.5",
-          "[scrollbar-width:none]",
-          "[-ms-overflow-style:none]",
-          "[&::-webkit-scrollbar]:hidden",
-        ].join(" ")}
-      >
-        <Command.Empty className="px-3 py-6 text-center text-sm text-(--ui-muted-fg)">
-          No results.
-        </Command.Empty>
+      <div className="relative mt-2.5">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-4 rounded-t-lg"
+          style={{
+            background:
+              "linear-gradient(to bottom, var(--ui-fade-from), rgba(0,0,0,0))",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 h-4"
+          style={{
+            background:
+              "linear-gradient(to top, var(--ui-fade-from), rgba(0,0,0,0))",
+          }}
+        />
+        <Command.List
+          className={[
+            "max-h-75 overflow-y-auto rounded-lg",
+            "pb-4 pt-1.5",
+            "[scrollbar-width:none]",
+            "[-ms-overflow-style:none]",
+            "[&::-webkit-scrollbar]:hidden",
+          ].join(" ")}
+        >
+          <Command.Empty className="px-3 py-6 text-center text-sm text-(--ui-muted-fg)">
+            No results.
+          </Command.Empty>
 
-        {sections.map((section) => (
-          <Command.Group
-            key={section.heading}
-            heading={section.heading}
-            // ✅ Correct selector to style cmdk heading safely (no clipping)
-            className={[
-              "text-xs text-(--ui-muted-fg)",
-              "**:[[cmdk-group-heading]]:px-3",
-              "**:[[cmdk-group-heading]]:pt-2",
-              "**:[[cmdk-group-heading]]:pb-1",
-            ].join(" ")}
-          >
-            <div className="px-1">
-              {section.items.length === 0 ? (
-                section.emptyText ? (
-                  <div className="px-3 py-2 text-sm text-(--ui-muted-fg)">
-                    {section.emptyText}
-                  </div>
-                ) : null
-              ) : (
-                section.items.map((item) => (
-                  <Command.Item
-                    key={item.id}
-                    value={[
-                      item.label,
-                      item.href ?? "",
-                      ...(item.keywords ?? []),
-                    ].join(" ")}
-                    onSelect={() => {
-                      if (item.href) onGo(item.href, item.label);
-                      else onAction(item);
-                    }}
-                    className={[
-                      "flex cursor-pointer select-none items-center justify-between gap-3",
-                      "rounded-lg px-3 py-2 text-sm",
-                      "aria-selected:bg-(--ui-subtle-bg)",
-                      "transition",
-                    ].join(" ")}
-                  >
-                    <span className="flex items-center gap-2 min-w-0">
-                      <span className="shrink-0 text-(--ui-muted-fg)">
-                        {item.icon ?? <ArrowRight size={14} />}
+          {sections.map((section) => (
+            <Command.Group
+              key={section.heading}
+              heading={section.heading}
+              // ✅ Correct selector to style cmdk heading safely (no clipping)
+              className={[
+                "text-xs text-(--ui-muted-fg)",
+                "**:[[cmdk-group-heading]]:px-3",
+                "**:[[cmdk-group-heading]]:pt-2",
+                "**:[[cmdk-group-heading]]:pb-1",
+              ].join(" ")}
+            >
+              <div className="px-1">
+                {section.items.length === 0 ? (
+                  section.emptyText ? (
+                    <div className="px-3 py-2 text-sm text-(--ui-muted-fg)">
+                      {section.emptyText}
+                    </div>
+                  ) : null
+                ) : (
+                  section.items.map((item) => (
+                    <Command.Item
+                      key={item.id}
+                      value={[
+                        item.label,
+                        item.href ?? "",
+                        ...(item.keywords ?? []),
+                      ].join(" ")}
+                      onSelect={() => {
+                        if (item.href) onGo(item.href, item.label);
+                        else onAction(item);
+                      }}
+                      className={[
+                        "flex cursor-pointer select-none items-center justify-between gap-3",
+                        "rounded-lg px-3 py-2 text-sm",
+                        "aria-selected:bg-(--ui-subtle-bg)",
+                        "transition",
+                      ].join(" ")}
+                    >
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="shrink-0 text-(--ui-muted-fg)">
+                          {item.icon ?? <ArrowRight size={14} />}
+                        </span>
+                        <span className="truncate">{item.label}</span>
                       </span>
-                      <span className="truncate">{item.label}</span>
-                    </span>
 
-                    {item.href ? (
-                      <span className="text-xs text-(--ui-muted-fg) truncate">
-                        {item.href}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-(--ui-muted-fg)">
-                        Action
-                      </span>
-                    )}
-                  </Command.Item>
-                ))
-              )}
-            </div>
-          </Command.Group>
-        ))}
+                      {item.href ? (
+                        <span className="text-xs text-(--ui-muted-fg) truncate">
+                          {item.href}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-(--ui-muted-fg)">
+                          Action
+                        </span>
+                      )}
+                    </Command.Item>
+                  ))
+                )}
+              </div>
+            </Command.Group>
+          ))}
+        </Command.List>
+      </div>
 
-        <div className="mt-2 px-3 pb-2 text-xs text-(--ui-muted-fg)">
-          ↑↓ then Enter — ESC closes
-        </div>
-      </Command.List>
+      <div className="border-t border-(--ui-border) px-3 pb-0.5 pt-2 text-xs text-(--ui-muted-fg)">
+        ↑↓ then Enter — ESC closes
+      </div>
     </Command>
   );
 }

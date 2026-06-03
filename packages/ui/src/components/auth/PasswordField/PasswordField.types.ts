@@ -8,6 +8,10 @@ export type PasswordFieldProps = {
   placeholder?: string;
   disabled?: boolean;
   error?: boolean;
+  autoComplete?: "current-password" | "new-password" | "password" | "password-new";
+  autoFocus?: boolean;
+  onFocus?: () => void;
+  onBlur?: () => void;
 
   /**
    * For web: forwarded to <input>.

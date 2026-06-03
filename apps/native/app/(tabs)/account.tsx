@@ -1,7 +1,10 @@
 import * as React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useActivity, useAuth } from "@repo/providers";
+import { useAppTopBarScroll } from "../../components/AppTopBar";
+import { getTabScreenTopPadding } from "../../constants/layout";
 import {
   abbreviatedCodeSnippet,
   Button,
@@ -219,7 +222,9 @@ function SignedInIdentity() {
 export default function AccountTab() {
   const tokens = useThemeTokens();
   const insets = useSafeAreaInsets();
+  const { onScroll, setScrollOffset } = useAppTopBarScroll();
   const { trackEvent } = useActivity();
+  const scrollOffsetRef = React.useRef(0);
   const [view, setView] = React.useState<"component" | "code">("component");
   const showComponent = view === "component";
 
@@ -235,13 +240,24 @@ export default function AccountTab() {
     });
   }, [trackEvent]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      setScrollOffset(scrollOffsetRef.current);
+    }, [setScrollOffset]),
+  );
+
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={{ flex: 1, backgroundColor: tokens.color.bg }}
+      onScroll={(event) => {
+        scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+        onScroll(event);
+      }}
+      scrollEventThrottle={16}
       contentContainerStyle={[
         styles.screen,
         {
-          paddingTop: insets.top + 24,
+          paddingTop: getTabScreenTopPadding(insets.top),
           paddingBottom: insets.bottom + 24,
         },
       ]}
@@ -357,7 +373,7 @@ export default function AccountTab() {
           showLineNumbers={false}
         />
       )}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

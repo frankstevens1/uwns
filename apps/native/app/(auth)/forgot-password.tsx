@@ -1,21 +1,10 @@
-import { ForgotPasswordForm } from "@repo/ui";
-import { useNativeAuthWiring } from "@/lib/nativeAuthProps";
-import * as Linking from "expo-linking";
+import { AuthFlow } from "@/components/AuthFlow";
+import { normalizeAuthFocusParam } from "@/lib/authFocus";
+import { useLocalSearchParams } from "expo-router";
 
 export default function ForgotPasswordScreen() {
-  const { auth, notify, navigate } = useNativeAuthWiring();
-  const redirectTo = Linking.createURL("/update-password");
+  const { focus } = useLocalSearchParams<{ focus?: string | string[] }>();
+  const initialFocus = normalizeAuthFocusParam(focus);
 
-  return (
-    <ForgotPasswordForm
-      auth={auth}
-      notify={notify}
-      navigate={navigate}
-      redirectTo={redirectTo}
-      routes={{
-        afterRequest: "/check-email?type=recovery",
-        login: "/login",
-      }}
-    />
-  );
+  return <AuthFlow initialMode="forgot-password" initialFocus={initialFocus} />;
 }

@@ -13,6 +13,7 @@ security = HTTPBearer(auto_error=False)
 @dataclass(frozen=True)
 class CurrentUser:
     user_id: str
+    email: str | None = None
 
 
 def get_current_user(
@@ -39,7 +40,8 @@ def get_current_user(
             detail="Invalid bearer token",
         )
 
-    return CurrentUser(user_id=user_id)
+    email = user.get("email")
+    return CurrentUser(user_id=user_id, email=email if isinstance(email, str) else None)
 
 
 def get_supabase_user(access_token: str) -> dict:

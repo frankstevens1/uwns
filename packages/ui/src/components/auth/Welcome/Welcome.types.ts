@@ -10,7 +10,7 @@ export type WelcomeProps = {
   onOpenMailbox?: () => void;
 
   /**
-   * Optional fallback action (e.g. "Back to login")
+   * Optional fallback action (e.g. "Back to sign in").
    */
   onContinue?: () => void;
 };

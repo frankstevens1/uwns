@@ -56,6 +56,7 @@ export function UpdatePasswordForm({
           value={password}
           onChangeText={setPassword}
           disabled={isLoading}
+          autoComplete="new-password"
         />
 
         <div className="flex items-center justify-between">

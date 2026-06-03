@@ -4,6 +4,7 @@ import * as React from "react";
 import { createUwnsApiClient, type ActivityPlatform } from "@repo/lib";
 import type { AuthContextValue } from "../auth/auth.types";
 import type { ActivityContextValue, TrackEventArgs } from "./activity.types";
+import type { NotificationContextValue } from "../notifications/notifications.types";
 
 function getApiBaseUrl() {
   return (
@@ -16,12 +17,22 @@ function getApiBaseUrl() {
 export function createActivityProvider(
   useAuth: () => AuthContextValue,
   platform: ActivityPlatform,
+  useNotifications?: () => NotificationContextValue,
 ) {
   const ActivityContext = React.createContext<ActivityContextValue | null>(null);
 
   function ActivityProvider({ children }: { children: React.ReactNode }) {
     const { session, supabase } = useAuth();
+    const notifications = useNotifications?.();
+    const applyNotificationUpdateRef = React.useRef<
+      NotificationContextValue["applyActivityNotificationUpdate"] | undefined
+    >(undefined);
     const warnedRef = React.useRef(false);
+
+    React.useEffect(() => {
+      applyNotificationUpdateRef.current =
+        notifications?.applyActivityNotificationUpdate;
+    }, [notifications?.applyActivityNotificationUpdate]);
 
     const client = React.useMemo(
       () =>
@@ -48,6 +59,7 @@ export function createActivityProvider(
             uniqueKey,
             occurredAt,
           });
+          await applyNotificationUpdateRef.current?.({ eventName, platform });
         } catch (error) {
           if (warnedRef.current) return;
           warnedRef.current = true;

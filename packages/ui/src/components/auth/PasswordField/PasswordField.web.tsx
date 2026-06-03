@@ -15,6 +15,10 @@ export function PasswordField({
   error,
   id = "password",
   name = "password",
+  autoComplete = "current-password",
+  autoFocus,
+  onFocus,
+  onBlur,
   rightAccessory,
   labelAccessory,
 }: PasswordFieldProps) {
@@ -44,6 +48,10 @@ export function PasswordField({
           placeholder={placeholder}
           disabled={disabled}
           error={error}
+          autoComplete={autoComplete}
+          autoFocus={autoFocus}
+          onFocus={onFocus}
+          onBlur={onBlur}
           style={{ paddingRight: 44 }}
         />
 

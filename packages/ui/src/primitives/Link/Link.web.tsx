@@ -28,6 +28,9 @@ export function Link({
       e.preventDefault();
       return;
     }
+    if (!href) {
+      e.preventDefault();
+    }
     onPress?.();
   };
 

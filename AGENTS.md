@@ -234,6 +234,6 @@ pnpm --filter native check-types
 For UI package structure changes, also run:
 
 ```sh
-pnpm ui:check
+pnpm ui:validate
 ```
 

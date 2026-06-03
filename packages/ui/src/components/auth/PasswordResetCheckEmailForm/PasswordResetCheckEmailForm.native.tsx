@@ -109,7 +109,9 @@ export function PasswordResetCheckEmailForm({
             value={email}
             onChangeText={setEmail}
             disabled={isLoading || Boolean(initialEmail)}
+            autoComplete="username"
             autoCapitalize="none"
+            textContentType="username"
           />
         </View>
 

@@ -270,14 +270,15 @@ export default function AppHome() {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 grid lg:flex flex-col grid-cols-2 gap-6 lg:gap-0">
-          <ActivityStopwatch onEventTracked={refreshEvents} />
+        <div className="grid grid-cols-2 gap-6 lg:flex lg:flex-col">
+          <div className="space-y-6">
+            <ActivityStopwatch onEventTracked={refreshEvents} />
 
-          <Tip>
-            The stopwatch is shared <Code>@repo/ui</Code>. The app-specific part
-            is calling <Code>trackEvent</Code> through
-            <Code>ActivityProvider</Code>.
-          </Tip>
+            <Tip>
+              The stopwatch is shared <Code>@repo/ui</Code>. The app-specific part
+              is calling <Code>trackEvent</Code> through <Code>ActivityProvider</Code>.
+            </Tip>
+          </div>
 
           <Card padding="none" elevation="sm" variant="subtle">
             <CardHeader>

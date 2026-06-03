@@ -1,21 +1,21 @@
-import { LoginForm } from "@repo/ui";
-import { useNativeAuthWiring } from "@/lib/nativeAuthProps";
-import * as Linking from "expo-linking";
+import { AuthFlow } from "@/components/AuthFlow";
+import { normalizeAuthFocusParam } from "@/lib/authFocus";
+import { useLocalSearchParams } from "expo-router";
+import { normalizeAuthMethodParam } from "@repo/ui";
 
 export default function LoginScreen() {
-  const { auth, notify, navigate } = useNativeAuthWiring();
-  const emailRedirectTo = Linking.createURL("/");
+  const { focus, authMethod } = useLocalSearchParams<{
+    focus?: string | string[];
+    authMethod?: string | string[];
+  }>();
+  const initialFocus = normalizeAuthFocusParam(focus);
+  const initialMethod = normalizeAuthMethodParam(authMethod);
 
   return (
-    <LoginForm
-      auth={auth}
-      notify={notify}
-      navigate={navigate}
-      emailRedirectTo={emailRedirectTo}
-      routes={{
-        forgotPassword: "/forgot-password",
-        signUp: "/sign-up",
-      }}
+    <AuthFlow
+      initialMode="login"
+      initialFocus={initialFocus}
+      initialMethod={initialMethod}
     />
   );
 }

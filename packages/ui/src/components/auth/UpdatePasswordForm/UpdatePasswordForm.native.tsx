@@ -55,6 +55,7 @@ export function UpdatePasswordForm({
           value={password}
           onChangeText={setPassword}
           disabled={isLoading}
+          autoComplete="new-password"
         />
 
         <View style={styles.row}>

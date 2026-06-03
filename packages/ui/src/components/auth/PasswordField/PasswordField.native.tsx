@@ -1,22 +1,30 @@
 import * as React from "react";
-import { Pressable, View, StyleSheet, Text } from "react-native";
+import { Pressable, View, StyleSheet, Text, type TextInput } from "react-native";
 import { Input } from "../../../primitives/Input/Input.native";
 import { Label } from "../../../primitives/Label/Label.native";
 import type { PasswordFieldProps } from "./PasswordField.types";
 import { inputTokens, useThemeTokens } from "../../../theme";
 
-export function PasswordField({
+export const PasswordField = React.forwardRef<TextInput, PasswordFieldProps>(function PasswordField({
   label = "Password",
   value,
   onChangeText,
   placeholder = "Your password",
   disabled,
   error,
+  autoComplete = "current-password",
+  autoFocus,
+  onFocus,
+  onBlur,
   rightAccessory,
   labelAccessory,
-}: PasswordFieldProps) {
+}, ref) {
   const [show, setShow] = React.useState(false);
   const tokens = useThemeTokens();
+  const textContentType =
+    autoComplete === "new-password" || autoComplete === "password-new"
+      ? "newPassword"
+      : "password";
 
   return (
     <View style={styles.wrap}>
@@ -27,12 +35,18 @@ export function PasswordField({
 
       <View style={styles.inputWrap}>
         <Input
+          ref={ref}
           type={show ? "text" : "password"}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           disabled={disabled}
           error={error}
+          autoComplete={autoComplete}
+          textContentType={textContentType}
+          autoFocus={autoFocus}
+          onFocus={onFocus}
+          onBlur={onBlur}
           style={styles.input}
         />
 
@@ -56,7 +70,7 @@ export function PasswordField({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   wrap: { gap: 6 },

@@ -105,8 +105,11 @@ export function Stopwatch({
 
   return (
     <div className={`flex justify-center ${className}`} style={style}>
-      <div className="h-fit w-full max-w-64 rounded-lg border border-(--ui-border) bg-(--ui-subtle-bg) p-3 shadow-inner">
-        <div className="mb-3 flex items-center justify-between gap-3">
+      <div
+        style={{ padding: 12 }}
+        className="w-full max-w-64 space-y-3 rounded-lg border border-(--ui-border) bg-(--ui-subtle-bg) shadow-inner"
+      >
+        <div className="flex items-center justify-between gap-3">
           <div className="text-xs font-medium text-(--ui-muted-fg)">
             {label}
           </div>
@@ -114,12 +117,15 @@ export function Stopwatch({
             {running ? runningLabel : idleLabel}
           </div>
         </div>
-        <div className="rounded-md border border-(--ui-border) bg-(--ui-bg) px-3 py-3 text-center font-mono text-3xl font-semibold tabular-nums text-(--ui-fg)">
+        <div 
+          className="rounded-md border border-(--ui-border) bg-(--ui-bg) text-center font-mono text-3xl font-semibold tabular-nums text-(--ui-fg)"
+          style={{ padding: "12px 0" }}
+        >
           {formatDuration(elapsedMs)}
         </div>
         <Button
           variant="outline"
-          className="mt-3 w-full"
+          className="w-full"
           disabled={busy}
           onPress={() => void onToggle()}
         >

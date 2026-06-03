@@ -1,8 +1,5 @@
 import type { WelcomeProps } from "./Welcome.types";
-import { Card } from "../../../components/Card/Card.web";
-import { CardHeader } from "../../../components/Card/CardHeader.web";
-import { CardBody } from "../../../components/Card/CardBody.web";
-import { CardFooter } from "../../../components/Card/CardFooter.web";
+import { AuthCard } from "../AuthCard/AuthCard.web";
 import { Button } from "../../../primitives/Button/Button.web";
 import { Link } from "../../../primitives/Link/Link.web";
 
@@ -13,38 +10,29 @@ export function Welcome({
   onOpenMailbox,
   onContinue,
 }: WelcomeProps) {
-  return (
-    <Card padding="none" elevation="sm" style={{ maxWidth: 420 }}>
-      <CardHeader>
-        <div className="space-y-1">
-          <h1 className="font-semibold" style={{ fontSize: "var(--ui-font-lg)" }}>
-            {title}
-          </h1>
-          <p style={{ fontSize: "var(--ui-font-sm)", color: "var(--ui-muted-fg)" }}>
-            {description}
-          </p>
-        </div>
-      </CardHeader>
+  const footer = onContinue ? (
+    <div style={{ fontSize: 13 }}>
+      <Link onPress={onContinue}>
+        ← Back to <span style={{ fontWeight: "bold" }}>sign in</span>
+      </Link>
+    </div>
+  ) : undefined;
 
-      <CardBody>
+  return (
+    <AuthCard title={title} subtitle={description} footer={footer}>
+      <div className="flex flex-col gap-3">
         {email && (
-          <p style={{ fontSize: "var(--ui-font-sm)", color: "var(--ui-fg)" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ui-fg)" }}>
             Sent to <span className="font-medium">{email}</span>
           </p>
         )}
-      </CardBody>
 
-      <CardFooter>
-        <div className="flex flex-col gap-2">
-          {onOpenMailbox && (
-            <Button onPress={onOpenMailbox}>Open mailbox</Button>
-          )}
-
-          {onContinue && (
-            <Link onPress={onContinue}>Back to login</Link>
-          )}
-        </div>
-      </CardFooter>
-    </Card>
+        {onOpenMailbox && (
+          <Button type="button" variant="outline" onPress={onOpenMailbox}>
+            Open mailbox
+          </Button>
+        )}
+      </div>
+    </AuthCard>
   );
 }

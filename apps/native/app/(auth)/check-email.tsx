@@ -46,8 +46,8 @@ export default function CheckEmailScreen() {
         navigate={navigate}
         redirectTo={redirectTo}
         routes={{
-          login: "/login",
-          updatePassword: "/update-password",
+          login: "/(auth)/login",
+          updatePassword: "/(auth)/update-password",
         }}
         onOpenMailbox={() => openMailbox(emailStr)}
       />
@@ -60,7 +60,7 @@ export default function CheckEmailScreen() {
       title="Check your email"
       description="We’ve sent you a link to continue."
       onOpenMailbox={() => openMailbox(emailStr)}
-      onContinue={() => router.replace("/login")}
+      onContinue={() => router.replace("/(auth)/login")}
     />
   );
 }

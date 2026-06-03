@@ -29,6 +29,72 @@ export type ListActivityEventsInput = {
   limit?: number;
 };
 
+export type NotificationPlatform = ActivityPlatform;
+
+export type NotificationChannels = {
+  inApp?: boolean;
+  email?: boolean;
+  push?: boolean;
+};
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  group_key: string;
+  type: string;
+  title: string;
+  body: string;
+  platform: NotificationPlatform | null;
+  href: string | null;
+  in_app_visible: boolean;
+  metadata: Record<string, unknown>;
+  unique_key: string | null;
+  source_activity_event_id: string | null;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateNotificationInput = {
+  groupKey: string;
+  type?: string;
+  title: string;
+  body: string;
+  platform?: NotificationPlatform;
+  href?: string;
+  metadata?: Record<string, unknown>;
+  uniqueKey?: string;
+  sourceActivityEventId?: string;
+  channels?: NotificationChannels;
+};
+
+export type ListNotificationsInput = {
+  limit?: number;
+};
+
+export type NotificationPreference = {
+  id: string;
+  user_id: string;
+  group_key: string;
+  in_app_enabled: boolean;
+  email_enabled: boolean;
+  push_enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type NotificationPreferencePatch = Partial<
+  Pick<
+    NotificationPreference,
+    "in_app_enabled" | "email_enabled" | "push_enabled"
+  >
+>;
+
+export type RegisterPushTokenInput = {
+  token: string;
+  deviceId?: string;
+};
+
 export type UwnsApiClientConfig = {
   baseUrl: string;
   getAccessToken: () => string | null | Promise<string | null>;
@@ -84,6 +150,69 @@ export function createUwnsApiClient(config: UwnsApiClientConfig) {
       const params = new URLSearchParams();
       params.set("limit", String(input.limit ?? 5));
       return request<ActivityEvent[]>(`/v1/events?${params.toString()}`);
+    },
+    createNotification: (input: CreateNotificationInput) =>
+      request<Notification>("/v1/notifications", {
+        method: "POST",
+        body: JSON.stringify({
+          group_key: input.groupKey,
+          type: input.type ?? "info",
+          title: input.title,
+          body: input.body,
+          platform: input.platform,
+          href: input.href,
+          metadata: input.metadata ?? {},
+          unique_key: input.uniqueKey,
+          source_activity_event_id: input.sourceActivityEventId,
+          channels: input.channels
+            ? {
+                in_app: input.channels.inApp,
+                email: input.channels.email,
+                push: input.channels.push,
+              }
+            : undefined,
+        }),
+      }),
+    listNotifications: (input: ListNotificationsInput = {}) => {
+      const params = new URLSearchParams();
+      params.set("limit", String(input.limit ?? 25));
+      return request<Notification[]>(`/v1/notifications?${params.toString()}`);
+    },
+    markNotificationRead: (id: string) =>
+      request<Notification>(`/v1/notifications/${id}/read`, {
+        method: "POST",
+      }),
+    markAllNotificationsRead: () =>
+      request<Notification[]>("/v1/notifications/read-all", {
+        method: "POST",
+      }),
+    listNotificationPreferences: () =>
+      request<NotificationPreference[]>("/v1/notifications/preferences"),
+    updateNotificationPreference: (
+      groupKey: string,
+      patch: NotificationPreferencePatch,
+    ) =>
+      request<NotificationPreference>(
+        `/v1/notifications/preferences/${encodeURIComponent(groupKey)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        },
+      ),
+    registerPushToken: (input: RegisterPushTokenInput) =>
+      request<Record<string, unknown>>("/v1/notifications/push-tokens", {
+        method: "POST",
+        body: JSON.stringify({
+          token: input.token,
+          device_id: input.deviceId,
+        }),
+      }),
+    unregisterPushToken: (token: string) => {
+      const params = new URLSearchParams({ token });
+      return request<{ ok: boolean }>(
+        `/v1/notifications/push-tokens?${params.toString()}`,
+        { method: "DELETE" },
+      );
     },
   };
 }

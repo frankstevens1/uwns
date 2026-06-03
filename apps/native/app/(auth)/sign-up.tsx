@@ -1,22 +1,21 @@
-import { SignUpForm } from "@repo/ui";
-import { useNativeAuthWiring } from "@/lib/nativeAuthProps";
-import * as Linking from "expo-linking";
+import { AuthFlow } from "@/components/AuthFlow";
+import { normalizeAuthFocusParam } from "@/lib/authFocus";
+import { useLocalSearchParams } from "expo-router";
+import { normalizeAuthMethodParam } from "@repo/ui";
 
 export default function SignUpScreen() {
-  const { auth, notify, navigate } = useNativeAuthWiring("sign-up");
-  const emailRedirectTo = Linking.createURL("/");
+  const { focus, authMethod } = useLocalSearchParams<{
+    focus?: string | string[];
+    authMethod?: string | string[];
+  }>();
+  const initialFocus = normalizeAuthFocusParam(focus);
+  const initialMethod = normalizeAuthMethodParam(authMethod);
 
   return (
-    <SignUpForm
-      auth={auth}
-      notify={notify}
-      navigate={navigate}
-      emailRedirectTo={emailRedirectTo}
-      routes={{
-        afterSignUp: "/check-email",
-        afterOtpVerify: "/",
-        login: "/login",
-      }}
+    <AuthFlow
+      initialMode="sign-up"
+      initialFocus={initialFocus}
+      initialMethod={initialMethod}
     />
   );
 }

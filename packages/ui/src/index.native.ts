@@ -33,6 +33,7 @@ export { Input } from "./primitives/Input/Input.native";
 export { Label } from "./primitives/Label/Label.native";
 export { Link } from "./primitives/Link/Link.native";
 export { LoginForm } from "./components/auth/LoginForm/LoginForm.native";
+export { OtpCodeInput } from "./components/auth/OtpCodeInput/OtpCodeInput.native";
 export { PasswordField } from "./components/auth/PasswordField/PasswordField.native";
 export { PasswordRequirementsList } from "./components/auth/PasswordRequirementsList/PasswordRequirementsList.native";
 export { PasswordResetCheckEmailForm } from "./components/auth/PasswordResetCheckEmailForm/PasswordResetCheckEmailForm.native";
@@ -50,6 +51,13 @@ export { Tip } from "./components/Tip/Tip.native";
 export { UpdatePasswordForm } from "./components/auth/UpdatePasswordForm/UpdatePasswordForm.native";
 export { Welcome } from "./components/auth/Welcome/Welcome.native";
 export { abbreviatedCodeSnippet } from "./components/CodeBlock/snippets";
+export { evaluatePassword, generatePassword } from "./utils/auth/password";
+export {
+  appendAuthFocusParam,
+  appendAuthMethodParam,
+  normalizeAuthMethodParam,
+} from "./components/auth/authFocus";
+export type { AuthFocusField } from "./components/auth/authFocus";
 export type {
   StopwatchProps,
   StopwatchStartEvent,

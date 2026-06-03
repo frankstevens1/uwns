@@ -1,3 +1,7 @@
+import type { AuthFocusField } from "../authFocus";
+
+export type { AuthFocusField } from "../authFocus";
+
 export type AuthMethod = "password" | "otp";
 export type AuthMethodMode = AuthMethod | "both";
 
@@ -36,6 +40,11 @@ export type LoginFormProps = {
    * Selects the initially active method when authMethods is "both".
    */
   authMethod?: AuthMethod;
+
+  /**
+   * Focuses the matching input on mount when present.
+   */
+  initialFocus?: AuthFocusField;
 
   /**
    * Web can pass window.origin-based redirect here.

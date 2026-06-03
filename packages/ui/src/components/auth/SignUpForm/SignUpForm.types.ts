@@ -1,4 +1,4 @@
-import type { AuthMethod, AuthMethodMode } from "../LoginForm/LoginForm.types";
+import type { AuthFocusField, AuthMethod, AuthMethodMode } from "../LoginForm/LoginForm.types";
 
 type AuthResult = Promise<{ error?: { message: string } | null }>;
 
@@ -42,4 +42,9 @@ export type SignUpFormProps = {
    * Selects the initially active method when authMethods is "both".
    */
   authMethod?: AuthMethod;
+
+  /**
+   * Focuses the matching input on mount when present.
+   */
+  initialFocus?: AuthFocusField;
 };

@@ -1,4 +1,13 @@
-import { Redirect } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
+import { preserveSearchParams } from "@/lib/redirectParams";
 export default function CheckEmail() {
-  return <Redirect href="/(auth)/check-email" />;
+  const params = useLocalSearchParams();
+  return (
+    <Redirect
+      href={{
+        pathname: "/(auth)/check-email",
+        params: preserveSearchParams(params as Record<string, string | string[] | undefined>),
+      }}
+    />
+  );
 }

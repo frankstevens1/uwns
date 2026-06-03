@@ -1,3 +1,5 @@
+import type { AuthFocusField } from "../LoginForm/LoginForm.types";
+
 export type ForgotPasswordFormProps = {
   auth: {
     resetPasswordForEmail: (args: { email: string; redirectTo?: string }) => Promise<{ error?: { message: string } | null }>;
@@ -14,6 +16,11 @@ export type ForgotPasswordFormProps = {
     afterRequest?: string; // default "/auth/welcome"
     login?: string;        // default "/auth/login"
   };
+
+  /**
+   * Focuses the email field on mount when present.
+   */
+  initialFocus?: AuthFocusField;
 
   /**
    * Web: `${window.location.origin}/auth/update-password`

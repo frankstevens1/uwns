@@ -3,18 +3,52 @@ import { TextInput, StyleSheet, type TextInputProps } from "react-native";
 import type { InputProps } from "./Input.types";
 import { inputTokens, useThemeTokens } from "../../theme";
 
-type NativeProps = InputProps &
+type NativeProps = Omit<InputProps, "autoComplete"> &
   Omit<TextInputProps, "value" | "defaultValue" | "onChangeText" | "secureTextEntry">;
 
+function getDefaultKeyboardType(
+  type: InputProps["type"],
+): TextInputProps["keyboardType"] {
+  if (type === "email") return "email-address";
+  if (type === "number" || type === "date") return "numeric";
+  return undefined;
+}
+
+function getDefaultAutoComplete(
+  type: InputProps["type"],
+): TextInputProps["autoComplete"] {
+  if (type === "email") return "email";
+  if (type === "password") return "current-password";
+  return undefined;
+}
+
+function getDefaultTextContentType(
+  type: InputProps["type"],
+): TextInputProps["textContentType"] {
+  if (type === "email") return "emailAddress";
+  if (type === "password") return "password";
+  return undefined;
+}
+
 export const Input = React.forwardRef<TextInput, NativeProps>(function Input(
-  { size = "md", error, onChangeText, type = "text", ...props },
+  {
+    size = "md",
+    error,
+    onChangeText,
+    type = "text",
+    autoComplete,
+    keyboardType,
+    textContentType,
+    ...props
+  },
   ref
 ) {
   const tokens = useThemeTokens();
   const t = inputTokens.base;
-  const keyboardType =
-    props.keyboardType ??
-    (type === "number" || type === "date" ? "numeric" : undefined);
+  const resolvedKeyboardType = keyboardType ?? getDefaultKeyboardType(type);
+  const resolvedAutoComplete = autoComplete ?? getDefaultAutoComplete(type);
+  const resolvedTextContentType =
+    textContentType ?? getDefaultTextContentType(type);
 
   return (
     <TextInput
@@ -40,7 +74,9 @@ export const Input = React.forwardRef<TextInput, NativeProps>(function Input(
       placeholderTextColor={tokens.color.mutedFg}
       onChangeText={onChangeText}
       secureTextEntry={type === "password"}
-      keyboardType={keyboardType}
+      keyboardType={resolvedKeyboardType}
+      autoComplete={resolvedAutoComplete}
+      textContentType={resolvedTextContentType}
       autoCapitalize={props.autoCapitalize ?? "none"}
     />
   );

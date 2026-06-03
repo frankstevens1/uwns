@@ -1,16 +1,19 @@
 import * as React from "react";
 import {
   ActivityIndicator,
+  Animated,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useActivity } from "@repo/providers";
 import type { ActivityEvent, ActivityMetadata } from "@repo/lib";
+import { useAppTopBarScroll } from "../../components/AppTopBar";
+import { getTabScreenTopPadding } from "../../constants/layout";
 import {
   abbreviatedCodeSnippet,
   Button,
@@ -231,7 +234,9 @@ function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
 export default function HomeTab() {
   const tokens = useThemeTokens();
   const insets = useSafeAreaInsets();
+  const { onScroll, setScrollOffset } = useAppTopBarScroll();
   const { listRecentEvents, trackEvent } = useActivity();
+  const scrollOffsetRef = React.useRef(0);
   const [events, setEvents] = React.useState<ActivityEvent[]>([]);
   const [selectedEvent, setSelectedEvent] =
     React.useState<ActivityEvent | null>(null);
@@ -270,13 +275,24 @@ export default function HomeTab() {
     })();
   }, [refreshEvents, trackPageEvent]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      setScrollOffset(scrollOffsetRef.current);
+    }, [setScrollOffset]),
+  );
+
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={{ flex: 1, backgroundColor: tokens.color.bg }}
+      onScroll={(event) => {
+        scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+        onScroll(event);
+      }}
+      scrollEventThrottle={16}
       contentContainerStyle={[
         styles.screen,
         {
-          paddingTop: insets.top + 24,
+          paddingTop: getTabScreenTopPadding(insets.top),
           paddingBottom: insets.bottom + 24,
         },
       ]}
@@ -519,7 +535,7 @@ export default function HomeTab() {
           </DialogContent>
         </DialogPortal>
       </DialogRoot>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

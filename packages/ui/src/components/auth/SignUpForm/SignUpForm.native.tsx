@@ -1,4 +1,4 @@
-import { View, StyleSheet, Text, Pressable } from "react-native";
+import { View, StyleSheet, Text, Pressable, type TextInput } from "react-native";
 import { AuthCard } from "../AuthCard/AuthCard.native";
 import { Button } from "../../../primitives/Button/Button.native";
 import { Input } from "../../../primitives/Input/Input.native";
@@ -9,9 +9,10 @@ import { PasswordRequirementsList } from "../PasswordRequirementsList/PasswordRe
 import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.native";
 import { evaluatePassword, generatePassword } from "../../../utils/auth/password";
 import type { SignUpFormProps } from "./SignUpForm.types";
-import type { AuthMethod } from "../LoginForm/LoginForm.types";
+import type { AuthFocusField, AuthMethod } from "../LoginForm/LoginForm.types";
 import { buttonTokens, inputTokens, useThemeTokens } from "../../../theme";
 import { useAuthFormState } from "../useAuthFormState";
+import { appendAuthFocusParam, appendAuthMethodParam } from "../authFocus";
 import * as React from "react";
 
 const OTP_LENGTH = 6;
@@ -24,9 +25,16 @@ export function SignUpForm({
   emailRedirectTo,
   authMethods = "both",
   authMethod = "password",
+  initialFocus,
 }: SignUpFormProps) {
   const { email, setEmail, password, setPassword, isLoading, setIsLoading } =
     useAuthFormState();
+  const emailInputRef = React.useRef<TextInput | null>(null);
+  const passwordInputRef = React.useRef<TextInput | null>(null);
+  const activeFocusRef = React.useRef<AuthFocusField | null>(null);
+  const capturedFocusRef = React.useRef<AuthFocusField | null>(null);
+  const pendingMethodFocusRef = React.useRef<AuthFocusField | null>(null);
+  const restoredInitialFocusRef = React.useRef<AuthFocusField | null>(null);
   const hasOtpClient = Boolean(auth.sendEmailOtp && auth.verifyEmailOtp);
   const canUseOtp = authMethods !== "password" && hasOtpClient;
   const canUsePassword = authMethods !== "otp" || !canUseOtp;
@@ -41,14 +49,65 @@ export function SignUpForm({
   const afterOtpVerify = routes?.afterOtpVerify ?? "/";
   const login = routes?.login ?? "/auth/login";
   const isOtp = method === "otp" && canUseOtp;
+  const loginHref = method === "otp" ? appendAuthMethodParam(login, method) : login;
+
+  const focusAvailableField = (field: AuthFocusField) => {
+    if (field === "password" && !isOtp && !otpSent) {
+      passwordInputRef.current?.focus();
+      return;
+    }
+
+    if (!otpSent) {
+      emailInputRef.current?.focus();
+    }
+  };
 
   const evalRes = evaluatePassword(password);
 
   const selectMethod = (nextMethod: AuthMethod) => {
+    pendingMethodFocusRef.current ??= activeFocusRef.current;
     setMethod(nextMethod);
     setOtpSent(false);
     setToken("");
   };
+
+  const captureMethodFocusHint = () => {
+    pendingMethodFocusRef.current = activeFocusRef.current;
+  };
+
+  const onFieldFocus = (field: AuthFocusField) => {
+    activeFocusRef.current = field;
+  };
+
+  const onFieldBlur = (field: AuthFocusField) => {
+    if (activeFocusRef.current === field) {
+      activeFocusRef.current = null;
+    }
+  };
+
+  const captureFocusHint = () => {
+    capturedFocusRef.current = activeFocusRef.current;
+  };
+
+  const navigateWithFocus = (href: string) => {
+    navigate?.(appendAuthFocusParam(href, capturedFocusRef.current));
+    capturedFocusRef.current = null;
+  };
+
+  React.useLayoutEffect(() => {
+    if (!initialFocus || restoredInitialFocusRef.current === initialFocus) return;
+
+    restoredInitialFocusRef.current = initialFocus;
+    focusAvailableField(initialFocus);
+  }, [initialFocus]);
+
+  React.useLayoutEffect(() => {
+    const pendingFocus = pendingMethodFocusRef.current;
+    if (!pendingFocus) return;
+
+    pendingMethodFocusRef.current = null;
+    focusAvailableField(pendingFocus);
+  }, [method, otpSent]);
 
   const onEmailChange = (nextEmail: string) => {
     setEmail(nextEmail);
@@ -146,24 +205,38 @@ export function SignUpForm({
   };
 
   const tokens = useThemeTokens();
+  const footer = otpSent ? (
+    <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
+      <Link href={loginHref} onPress={() => navigate?.(loginHref)}>
+        ← Back to <Text style={{ fontWeight: "bold" }}>sign in</Text>
+      </Link>
+    </Text>
+  ) : (
+    <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
+      Already have an account?{" "}
+      <Link
+        href={loginHref}
+        onPressIn={captureFocusHint}
+        onPress={() => navigateWithFocus(loginHref)}
+        style={{ fontWeight: "600" }}
+      >
+        Sign in
+      </Link>
+    </Text>
+  );
+
   return (
     <AuthCard
       title="Create account"
       subtitle={isOtp ? "Sign up with an emailed magic link or code." : "Sign up with email and a strong password."}
-      footer={isOtp ? null : 
-        <Text style={{ fontSize: 13, color: tokens.color.mutedFg }}>
-          Already have an account?{" "}
-          <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: "600" }}>
-            Sign in
-          </Link>
-        </Text>
-      }
+      footer={footer}
     >
       <View style={styles.form}>
         {canChooseMethod ? (
           <View style={[styles.segment, { borderColor: tokens.color.border }]}>
             <Pressable
               accessibilityRole="button"
+              onPressIn={captureMethodFocusHint}
               onPress={() => selectMethod("password")}
               style={[
                 styles.segmentButton,
@@ -177,6 +250,7 @@ export function SignUpForm({
             </Pressable>
             <Pressable
               accessibilityRole="button"
+              onPressIn={captureMethodFocusHint}
               onPress={() => selectMethod("otp")}
               style={[
                 styles.segmentButton,
@@ -202,12 +276,17 @@ export function SignUpForm({
           <View style={styles.field}>
             <Label>Email</Label>
             <Input
+              ref={emailInputRef}
               type="email"
               placeholder="you@example.com"
               value={email}
               onChangeText={onEmailChange}
               disabled={isLoading}
+              autoComplete="username"
               autoCapitalize="none"
+              textContentType="username"
+              onFocus={() => onFieldFocus("email")}
+              onBlur={() => onFieldBlur("email")}
             />
           </View>
         )}
@@ -235,10 +314,22 @@ export function SignUpForm({
           ) : null
         ) : (
           <>
-            <PasswordField value={password} onChangeText={setPassword} disabled={isLoading} />
+            <PasswordField
+              ref={passwordInputRef}
+              value={password}
+              onChangeText={setPassword}
+              disabled={isLoading}
+              autoComplete="new-password"
+              onFocus={() => onFieldFocus("password")}
+              onBlur={() => onFieldBlur("password")}
+            />
 
             <View style={styles.row}>
-              <Text style={{ fontSize: 12, color: tokens.color.mutedFg }}>Password requirements</Text>
+              <PasswordRequirementsList
+                password={password}
+                showFirstUnmetOnly
+                inline
+              />
               <Link
                 onPress={() => setPassword(generatePassword())}
                 disabled={isLoading}
@@ -248,8 +339,6 @@ export function SignUpForm({
                 Generate
               </Link>
             </View>
-
-            <PasswordRequirementsList password={password} />
           </>
         )}
 

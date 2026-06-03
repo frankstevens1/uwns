@@ -15,6 +15,7 @@ import { px } from "../../../utils/platform.web";
 import type { SignUpFormProps } from "./SignUpForm.types";
 import type { AuthMethod } from "../LoginForm/LoginForm.types";
 import { useAuthFormState } from "../useAuthFormState";
+import { appendAuthMethodParam } from "../authFocus";
 
 const OTP_LENGTH = 6;
 
@@ -43,6 +44,7 @@ export function SignUpForm({
   const afterOtpVerify = routes?.afterOtpVerify ?? "/";
   const login = routes?.login ?? "/auth/login";
   const isOtp = method === "otp" && canUseOtp;
+  const loginHref = method === "otp" ? appendAuthMethodParam(login, method) : login;
   const methodSelectorStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -183,18 +185,26 @@ export function SignUpForm({
     }
   };
 
+  const footer = otpSent ? (
+    <div style={{ fontSize: 13 }}>
+      <Link href={loginHref} onPress={() => navigate?.(loginHref)}>
+        ← Back to <span style={{ fontWeight: "bold" }}>sign in</span>
+      </Link>
+    </div>
+  ) : (
+    <div style={{ fontSize: 13 }}>
+      Already have an account?{" "}
+      <Link href={loginHref} onPress={() => navigate?.(loginHref)} style={{ fontWeight: 600 }}>
+        Sign in
+      </Link>
+    </div>
+  );
+
   return (
     <AuthCard
       title="Create account"
       subtitle={isOtp ? "Sign up with an emailed magic link or code." : "Sign up with email and a strong password."}
-      footer={
-        <div style={{ fontSize: 13 }}>
-          Already have an account?{" "}
-          <Link href={login} onPress={() => navigate?.(login)} style={{ fontWeight: 600 }}>
-            Sign in
-          </Link>
-        </div>
-      }
+      footer={footer}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {canChooseMethod ? (
@@ -261,7 +271,12 @@ export function SignUpForm({
           ) : null
         ) : (
           <>
-            <PasswordField value={password} onChangeText={setPassword} disabled={isLoading} />
+            <PasswordField
+              value={password}
+              onChangeText={setPassword}
+              disabled={isLoading}
+              autoComplete="new-password"
+            />
 
             <div className="flex items-center justify-between">
               <div className="text-xs" style={{ color: "var(--ui-muted-fg)" }}>Password requirements</div>

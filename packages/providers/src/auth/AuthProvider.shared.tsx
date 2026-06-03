@@ -74,7 +74,7 @@ function normalizeAuthError(error: unknown) {
     message === "Network request failed" ||
     message === "Failed to fetch"
   ) {
-    return "Could not reach Supabase Auth. Check that Supabase is running and the app Supabase URL matches supabase/config.toml.";
+    return "Could not reach Supabase Auth. Check that Supabase is running and the app Supabase URL is reachable. In Expo Go on a physical device, use your computer's LAN IP instead of 127.0.0.1 or localhost.";
   }
   return message;
 }

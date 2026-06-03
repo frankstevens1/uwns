@@ -12,6 +12,7 @@ import { buttonTokens, inputTokens } from "../../../theme";
 import { px } from "../../../utils/platform.web";
 import type { AuthMethod, LoginFormProps } from "./LoginForm.types";
 import { useAuthFormState } from "../useAuthFormState";
+import { appendAuthMethodParam } from "../authFocus";
 
 const OTP_LENGTH = 6;
 
@@ -39,6 +40,7 @@ export function LoginForm({
   const forgotPassword = routes?.forgotPassword ?? "/auth/forgot-password";
   const signUp = routes?.signUp ?? "/auth/sign-up";
   const isOtp = method === "otp" && canUseOtp;
+  const signUpHref = method === "otp" ? appendAuthMethodParam(signUp, method) : signUp;
   const methodSelectorStyle: React.CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
@@ -79,6 +81,12 @@ export function LoginForm({
     setMethod(nextMethod);
     setOtpSent(false);
     setToken("");
+  };
+
+  const resetOtpToSignIn = () => {
+    setOtpSent(false);
+    setToken("");
+    setVerifyingToken(null);
   };
 
   const onEmailChange = (nextEmail: string) => {
@@ -184,18 +192,26 @@ export function LoginForm({
     }
   };
 
+  const footer = otpSent ? (
+    <div style={{ fontSize: 13 }}>
+      <Link onPress={resetOtpToSignIn}>
+        ← Back to <span style={{ fontWeight: "bold" }}>sign in</span>
+      </Link>
+    </div>
+  ) : (
+    <div style={{ fontSize: 13 }}>
+      Don&apos;t have an account?{" "}
+      <Link href={signUpHref} onPress={() => navigate?.(signUpHref)} style={{ fontWeight: 600 }}>
+        Sign up
+      </Link>
+    </div>
+  );
+
   return (
     <AuthCard
       title="Sign in"
       subtitle={isOtp ? "Use an emailed magic link or code to continue." : "Use your email + password to continue."}
-      footer={
-        isOtp ? null : <div style={{ fontSize: 13 }}>
-          Don&apos;t have an account?{" "}
-          <Link href={signUp} onPress={() => navigate?.(signUp)} style={{ fontWeight: 600 }}>
-            Sign up
-          </Link>
-        </div>
-      }
+      footer={footer}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {canChooseMethod ? (
