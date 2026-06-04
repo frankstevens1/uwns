@@ -116,6 +116,28 @@ class FakeNotificationsRepository:
             return None
         return self.mark_notification_read(user_id, notification.id)
 
+    def mark_notifications_read_by_auto_read_event(
+        self,
+        user_id: str,
+        event_name: str,
+    ) -> list[Notification]:
+        updated = []
+        for notification in list(self.notifications.values()):
+            if (
+                notification.user_id == user_id
+                and not notification.read_at
+                and notification.metadata.get("autoReadEventName") == event_name
+            ):
+                next_notification = notification.model_copy(
+                    update={
+                        "read_at": datetime.now(UTC),
+                        "updated_at": datetime.now(UTC),
+                    }
+                )
+                self.notifications[notification.id] = next_notification
+                updated.append(next_notification)
+        return updated
+
     def mark_all_notifications_read(self, user_id: str) -> list[Notification]:
         updated = []
         for notification in list(self.notifications.values()):
@@ -207,6 +229,25 @@ def make_service(repository: FakeNotificationsRepository) -> NotificationsServic
         repository=repository,  # type: ignore[arg-type]
         email_delivery=FakeEmailDelivery(),  # type: ignore[arg-type]
         push_delivery=FakePushDelivery(),  # type: ignore[arg-type]
+    )
+
+
+def make_activity_event(
+    user_id: str,
+    event_name: str,
+    platform: str = "web",
+) -> ActivityEvent:
+    return ActivityEvent.model_validate(
+        {
+            "id": f"event-{event_name}",
+            "user_id": user_id,
+            "event_name": event_name,
+            "platform": platform,
+            "metadata": {},
+            "unique_key": f"{platform}:{event_name}",
+            "occurred_at": datetime.now(UTC),
+            "created_at": datetime.now(UTC),
+        }
     )
 
 
@@ -340,6 +381,64 @@ def test_account_viewed_before_listing_creates_and_reads_view_account_notificati
     )
     assert view_account is not None
     assert view_account.read_at is not None
+
+
+def test_activity_event_marks_matching_auto_read_notification_read() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+    notification = service.create_notification(
+        "user-1",
+        CreateNotificationRequest(
+            group_key="account",
+            type="demo_activity",
+            title="Visit account",
+            body="Open account to complete this notification.",
+            metadata={
+                "autoReadOnly": True,
+                "autoReadEventName": "account_visited",
+            },
+            unique_key="demo:generated:activity",
+        ),
+    )
+
+    assert notification.read_at is None
+
+    service.consume_activity_event(make_activity_event("user-1", "account_visited"))
+
+    updated = repository.find_notification_by_unique_key(
+        "user-1",
+        "demo:generated:activity",
+    )
+    assert updated is not None
+    assert updated.read_at is not None
+
+
+def test_activity_event_does_not_mark_non_matching_auto_read_notification() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+    service.create_notification(
+        "user-1",
+        CreateNotificationRequest(
+            group_key="account",
+            type="demo_activity",
+            title="Visit account",
+            body="Open account to complete this notification.",
+            metadata={
+                "autoReadOnly": True,
+                "autoReadEventName": "account_visited",
+            },
+            unique_key="demo:generated:activity",
+        ),
+    )
+
+    service.consume_activity_event(make_activity_event("user-1", "profile_viewed"))
+
+    updated = repository.find_notification_by_unique_key(
+        "user-1",
+        "demo:generated:activity",
+    )
+    assert updated is not None
+    assert updated.read_at is None
 
 
 def test_login_activity_creates_prompt_for_other_platform_only() -> None:

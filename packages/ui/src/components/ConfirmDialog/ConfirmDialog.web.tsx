@@ -44,11 +44,12 @@ export function ConfirmDialog({
         <DialogContent
           aria-describedby={description ? descriptionId : undefined}
           position="center"
-          className="rounded-2xl border border-(--ui-border) bg-(--ui-panel) p-4 shadow-xl"
         >
           <DialogTitle>{toLabel(title)}</DialogTitle>
           {description ? (
-            <DialogDescription id={descriptionId}>{description}</DialogDescription>
+            <DialogDescription id={descriptionId}>
+              {description}
+            </DialogDescription>
           ) : null}
           <DialogFooter>
             <DialogClose asChild>

@@ -167,6 +167,23 @@ class NotificationsRepository:
             return None
         return Notification.model_validate(rows[0])
 
+    def mark_notifications_read_by_auto_read_event(
+        self,
+        user_id: str,
+        event_name: str,
+    ) -> list[Notification]:
+        now = datetime.now(UTC).isoformat()
+        rows = self.db.patch(
+            "notifications",
+            {
+                "user_id": f"eq.{user_id}",
+                "read_at": "is.null",
+                "metadata->>autoReadEventName": f"eq.{event_name}",
+            },
+            {"read_at": now, "updated_at": now},
+        )
+        return [Notification.model_validate(row) for row in rows]
+
     def mark_all_notifications_read(self, user_id: str) -> list[Notification]:
         rows = self.db.patch(
             "notifications",

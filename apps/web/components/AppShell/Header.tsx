@@ -1,73 +1,29 @@
 "use client";
 
 import * as React from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Menu, X, LogOut, Home, User } from "lucide-react";
+import { Bell, Home, LogOut, Menu, Settings, User, X } from "lucide-react";
 import { Button } from "@repo/ui";
 import { useActivity, useAuth, useNotifications } from "@repo/providers";
-import type { Notification } from "@repo/lib";
-import { LogoUwns } from "./LogoSvg";
+import { LogoUwns } from "../LogoSvg";
 import ThemeSwitcher from "@/components/ThemeSwitch";
 import { SearchCommand } from "./SearchCommand";
+import NotificationTrayItem from "./NotificationTrayItem";
+import { SettingsSectionHeader } from "./SettingsSectionHeader";
 
-const HEADER_H = 56;
-const BOTTOM_FADE_H = 18;
 const appRoutes = [
   { href: "/app", label: "Home", icon: Home },
   { href: "/app/account", label: "Account", icon: User },
+  { href: "/app/settings/notifications", label: "Settings", icon: Settings },
 ] as const;
 
-export function AppShell({
-  title = "df",
-  children,
-}: {
-  title?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-h-dvh bg-(--ui-bg) text-(--ui-fg)">
-      <AppHeader title={title} />
+export const APP_HEADER_HEIGHT = 56;
+export const SETTINGS_SECTION_HEADER_HEIGHT = 52;
 
-      <div
-        className="no-scrollbar relative overflow-y-auto"
-        style={{
-          paddingTop: HEADER_H,
-          height: "100dvh",
-        }}
-      >
-        {/* Top fade */}
-        <div
-          aria-hidden
-          className="pointer-events-none fixed left-0 right-0 z-10"
-          style={{
-            top: HEADER_H,
-            height: 18,
-            background:
-              "linear-gradient(to bottom, var(--ui-fade-from), rgba(0,0,0,0))",
-          }}
-        />
-
-        {/* Bottom fade */}
-        <div
-          aria-hidden
-          className="pointer-events-none fixed left-0 right-0 z-10"
-          style={{
-            bottom: 0,
-            height: BOTTOM_FADE_H,
-            background:
-              "linear-gradient(to top, var(--ui-fade-from), rgba(0,0,0,0))",
-          }}
-        />
-
-        <main className="mx-auto max-w-5xl px-4 py-10">{children}</main>
-      </div>
-    </div>
-  );
-}
-
-function AppHeader({ title }: { title: string }) {
+export default function AppHeader({ title, headerHeight }: { title: string, headerHeight?: number }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
@@ -141,9 +97,24 @@ function AppHeader({ title }: { title: string }) {
 
   const avatarSeed = encodeURIComponent(user?.id ?? "user");
   const avatarUrl = `https://api.dicebear.com/10.x/glyphs/svg?seed=${avatarSeed}`;
-  const visibleRoutes = appRoutes.filter((route) => route.href !== pathname);
+  const visibleRoutes = appRoutes.filter(
+    (route) =>
+      pathname !== route.href &&
+      !(
+        route.href.startsWith("/app/settings") &&
+        pathname?.startsWith("/app/settings")
+      ),
+  );
   const unreadNotifications = notifications.filter((notification) => !notification.read_at);
   const notificationPreview = unreadNotifications.slice(0, 5);
+  const showSettingsHeader = pathname?.startsWith("/app/settings");
+  const settingsHeaderHeight = showSettingsHeader
+    ? Math.max(
+        0,
+        (headerHeight ?? APP_HEADER_HEIGHT + SETTINGS_SECTION_HEADER_HEIGHT) -
+          APP_HEADER_HEIGHT,
+      )
+    : 0;
 
   return (
     <header
@@ -153,9 +124,12 @@ function AppHeader({ title }: { title: string }) {
         "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
         "transition-colors",
       ].join(" ")}
-      style={{ height: HEADER_H }}
+      style={{ height: headerHeight ?? APP_HEADER_HEIGHT }}
     >
-      <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
+      <div
+        className="mx-auto flex max-w-5xl items-center justify-between px-4"
+        style={{ height: APP_HEADER_HEIGHT }}
+      >
         <Link href="/" className="flex items-center gap-2">
           <LogoUwns className="h-6 w-auto text-foreground" version={"1"} />
         </Link>
@@ -206,7 +180,7 @@ function AppHeader({ title }: { title: string }) {
             {menuOpen && (
               <div
                 className={[
-                  "absolute right-0 top-full mt-2 flex max-h-[min(34rem,calc(100dvh-5rem))] w-80 flex-col overflow-hidden rounded-lg",
+                  "absolute right-0 top-full mt-2 flex max-h-[min(34rem,calc(100dvh-5rem))] w-80.75 flex-col overflow-hidden rounded-lg",
                   "bg-(--ui-panel) shadow-lg",
                   "ring-1 ring-(--ui-border)",
                 ].join(" ")}
@@ -218,25 +192,6 @@ function AppHeader({ title }: { title: string }) {
 
                 <div className="h-px bg-(--ui-border)" />
 
-                <div className="py-1">
-                  {visibleRoutes.map((route) => {
-                    const Icon = route.icon;
-                    return (
-                      <button
-                        key={route.href}
-                        type="button"
-                        onClick={() => go(route.href)}
-                        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm transition hover:bg-(--ui-subtle-bg)"
-                      >
-                        <Icon size={16} />
-                        {route.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="h-px bg-(--ui-border)" />
-
                 <section className="flex min-h-0 flex-col py-2">
                   <div className="flex items-center justify-between px-3 pb-1">
                     <div className="text-xs font-medium text-(--ui-muted-fg)">
@@ -244,7 +199,7 @@ function AppHeader({ title }: { title: string }) {
                       {unreadCount > 0 ? ` (${unreadCount})` : ""}
                     </div>
                     <Link
-                      href="/app/account/notifications"
+                      href="/app/settings/notifications"
                       onClick={() => setMenuOpen(false)}
                       className="cursor-pointer text-xs font-medium text-(--ui-muted-fg) transition hover:text-(--ui-fg)"
                     >
@@ -283,53 +238,36 @@ function AppHeader({ title }: { title: string }) {
                         </div>
                       ) : (
                         notificationPreview.map((notification) => (
-                        <button
-                          key={notification.id}
-                          type="button"
-                          disabled={!notification.href}
-                          onClick={() => {
-                            if (!notification.href) return;
-                            if (canManuallyMarkRead(notification)) {
-                              void markAsRead(notification.id);
-                            }
-                            setMenuOpen(false);
-                            go(notification.href);
-                          }}
-                          className={[
-                            "w-full rounded-md px-2 py-2 text-left transition",
-                            notification.href
-                              ? "cursor-pointer hover:bg-(--ui-subtle-bg)"
-                              : "cursor-default",
-                          ].join(" ")}
-                        >
-                          <div className="flex items-start gap-2">
-                            <span
-                              aria-hidden="true"
-                              className={[
-                                "mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full",
-                                !notification.read_at
-                                  ? "bg-(--ui-fg)"
-                                  : "bg-(--ui-border)",
-                              ].join(" ")}
-                            />
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-medium">
-                                {notification.title}
-                              </div>
-                              <div className="line-clamp-2 text-xs leading-5 text-(--ui-muted-fg)">
-                                {notification.body}
-                              </div>
-                              <div className="mt-0.5 text-[11px] text-(--ui-muted-fg)">
-                                {formatNotificationTime(notification.created_at)}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
+                          <NotificationTrayItem
+                            key={notification.id}
+                            notification={notification}
+                            onOpen={() => setMenuOpen(false)}
+                            onMarkAsRead={() => void markAsRead(notification.id)}
+                          />
                         ))
                       )}
                     </div>
                   </div>
                 </section>
+
+                <div className="h-px bg-(--ui-border)" />
+
+                <div className="py-1">
+                  {visibleRoutes.map((route) => {
+                    const Icon = route.icon;
+                    return (
+                      <button
+                        key={route.href}
+                        type="button"
+                        onClick={() => go(route.href)}
+                        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-sm transition hover:bg-(--ui-subtle-bg)"
+                      >
+                        <Icon size={16} />
+                        {route.label}
+                      </button>
+                    );
+                  })}
+                </div>
 
                 <div className="h-px bg-(--ui-border)" />
 
@@ -360,6 +298,12 @@ function AppHeader({ title }: { title: string }) {
         </div>
       </div>
 
+      {showSettingsHeader ? (
+        <div style={{ height: settingsHeaderHeight }}>
+          <SettingsSectionHeader />
+        </div>
+      ) : null}
+
       {mobileOpen && (
         <div className="bg-(--ui-panel)/95 supports-backdrop-filter:backdrop-blur">
           <div className="mx-auto max-w-5xl px-4 pb-3 pt-2">
@@ -374,11 +318,18 @@ function AppHeader({ title }: { title: string }) {
 
               <Button
                 variant="ghost"
-                onPress={() => go("/app/account/notifications")}
+                onPress={() => go("/app/settings/notifications")}
               >
                 <span className="inline-flex items-center gap-2">
                   <Bell size={16} />
                   Notifications{unreadCount > 0 ? ` (${unreadCount})` : ""}
+                </span>
+              </Button>
+
+              <Button variant="ghost" onPress={() => go("/app/settings/activities")}>
+                <span className="inline-flex items-center gap-2">
+                  <Settings size={16} />
+                  Settings
                 </span>
               </Button>
 
@@ -395,22 +346,5 @@ function AppHeader({ title }: { title: string }) {
         </div>
       )}
     </header>
-  );
-}
-
-function formatNotificationTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function canManuallyMarkRead(notification: Notification) {
-  return (
-    !notification.read_at &&
-    notification.metadata.autoReadOnly !== true &&
-    notification.type !== "login_platform_prompt"
   );
 }

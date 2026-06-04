@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import * as Dialog from "@radix-ui/react-dialog";
 import { Command } from "cmdk";
 import {
   Search,
@@ -13,8 +12,18 @@ import {
   BookOpen,
   Sparkles,
   User,
+  Settings,
+  Bell,
+  Activity,
 } from "lucide-react";
-import { Button } from "@repo/ui";
+import {
+  Button,
+  DialogContent,
+  DialogOverlay,
+  DialogPortal,
+  DialogRoot,
+  DialogTitle,
+} from "@repo/ui";
 import { useActivity, useAuth } from "@repo/providers";
 
 type FeatureFlags = {
@@ -250,6 +259,30 @@ export function SearchCommand({
         when: "authed",
       },
       {
+        id: "settings",
+        label: "Settings",
+        href: "/app/settings/notifications",
+        icon: <Settings size={14} />,
+        keywords: ["preferences", "settings"],
+        when: "authed",
+      },
+      {
+        id: "notification-settings",
+        label: "Notification settings",
+        href: "/app/settings/notifications",
+        icon: <Bell size={14} />,
+        keywords: ["notifications", "push", "email", "preferences"],
+        when: "authed",
+      },
+      {
+        id: "activity-settings",
+        label: "Activity settings",
+        href: "/app/settings/activities",
+        icon: <Activity size={14} />,
+        keywords: ["activity", "events", "tracked", "audit"],
+        when: "authed",
+      },
+      {
         id: "playground",
         label: "Playground",
         href: "/app/playground",
@@ -381,22 +414,20 @@ export function SearchCommand({
         ) : null}
       </Button>
 
-      <Dialog.Root open={open} onOpenChange={setOpen}>
-        <Dialog.Portal>
-          {/* Overlay darkness stays consistent because only one instance hotkeys */}
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/35" />
-          <Dialog.Content
+      <DialogRoot open={open} onOpenChange={setOpen}>
+        <DialogPortal>
+          <DialogOverlay />
+          <DialogContent
             aria-describedby={undefined}
             className={[
-              "fixed left-1/2 top-[16%] z-50 w-[min(92vw,520px)] -translate-x-1/2",
-              "rounded-xl bg-(--ui-panel) shadow-2xl ring-1 ring-(--ui-border)",
-              "focus:outline-none",
+              "w-[min(92vw,520px)] max-w-[520px] overflow-hidden",
+              "rounded-xl shadow-2xl",
             ].join(" ")}
             onKeyDownCapture={closeOnEscCapture}
             onKeyUpCapture={closeOnEscCapture}
             onPointerDownOutside={() => close()}
           >
-            <Dialog.Title className="sr-only">Search</Dialog.Title>
+            <DialogTitle className="sr-only">Search</DialogTitle>
 
             <div className="p-2.5">
               <CommandRoot
@@ -407,9 +438,9 @@ export function SearchCommand({
                 onEscCapture={closeOnEscCapture}
               />
             </div>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </DialogContent>
+        </DialogPortal>
+      </DialogRoot>
     </>
   );
 }

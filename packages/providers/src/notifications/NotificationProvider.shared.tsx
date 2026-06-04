@@ -50,6 +50,11 @@ function upsertPreference(
   ].sort((a, b) => a.group_key.localeCompare(b.group_key));
 }
 
+function getAutoReadEventName(notification: Notification) {
+  const value = notification.metadata.autoReadEventName;
+  return typeof value === "string" ? value : null;
+}
+
 export function createNotificationsProvider(
   useAuth: () => AuthContextValue,
   pushRegistration?: PushRegistration,
@@ -237,16 +242,16 @@ export function createNotificationsProvider(
               ? `demo:login:${platform}`
               : null;
 
-        if (uniqueKey) {
-          const now = new Date().toISOString();
-          setNotifications((items) =>
-            items.map((item) =>
-              item.unique_key === uniqueKey && !item.read_at
-                ? { ...item, read_at: now, updated_at: now }
-                : item,
-            ),
-          );
-        }
+        const now = new Date().toISOString();
+        setNotifications((items) =>
+          items.map((item) =>
+            !item.read_at &&
+            ((uniqueKey !== null && item.unique_key === uniqueKey) ||
+              getAutoReadEventName(item) === eventName)
+              ? { ...item, read_at: now, updated_at: now }
+              : item,
+          ),
+        );
 
         if (eventName === "logged_in" || eventName === "signed_up") {
           await refreshNotifications({ silent: true, allowMissingUser: true });

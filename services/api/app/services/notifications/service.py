@@ -85,7 +85,17 @@ class NotificationsService:
     def unregister_push_token(self, user_id: str, token: str) -> None:
         self.repository.unregister_push_token(user_id, token)
 
-    def consume_activity_event(self, event: ActivityEvent, *, email: str | None = None) -> None:
+    def consume_activity_event(
+        self,
+        event: ActivityEvent,
+        *,
+        email: str | None = None,
+    ) -> None:
+        self.repository.mark_notifications_read_by_auto_read_event(
+            event.user_id,
+            event.event_name,
+        )
+
         if event.event_name in ("logged_in", "signed_up"):
             self._handle_platform_authenticated(event, email=email)
             return

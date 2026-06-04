@@ -3,6 +3,12 @@
 // primitives
 // layout components
 // auth components
+export {
+  AccordionContent,
+  AccordionItem,
+  AccordionRoot,
+  AccordionTrigger,
+} from "./primitives/Accordion/Accordion.native";
 export { AuthCard } from "./components/auth/AuthCard/AuthCard.native";
 export { Button } from "./primitives/Button/Button.native";
 export { Card } from "./components/Card/Card.native";
@@ -51,6 +57,8 @@ export { Tip } from "./components/Tip/Tip.native";
 export { UpdatePasswordForm } from "./components/auth/UpdatePasswordForm/UpdatePasswordForm.native";
 export { Welcome } from "./components/auth/Welcome/Welcome.native";
 export { abbreviatedCodeSnippet } from "./components/CodeBlock/snippets";
+export { getKeyedBadgeColors } from "./utils/colors";
+export type { BadgeColorStyle } from "./utils/colors";
 export { evaluatePassword, generatePassword } from "./utils/auth/password";
 export {
   appendAuthFocusParam,

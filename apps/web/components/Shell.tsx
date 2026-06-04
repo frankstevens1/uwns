@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { MarketingShell } from "./MarketingShell";
-import { AppShell } from "./AppShell";
+import { MarketingShell } from "./MarketingShell/MarketingShell";
+import { AppShell } from "./AppShell/AppShell";
 
 export function Shell({
   title = "df",

@@ -3,29 +3,18 @@ import { Animated, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNotifications } from "@repo/providers";
-import {
-  Checkbox,
-  Card,
-  CardBody,
-  CardHeader,
-  SettingsRow,
-  Tip,
-  useThemeTokens,
-} from "@repo/ui";
-import type { NotificationPreference } from "@repo/lib";
+import { Tip, useThemeTokens } from "@repo/ui";
 import { useAppTopBarScroll } from "../../components/AppTopBar";
+import { NotificationGroups } from "../../components/Notifications/NotificationGroups";
+import { ActivitiesSection } from "../../components/Settings/ActivitiesSection";
 import { getTabScreenTopPadding } from "../../constants/layout";
-
-const groupLabels: Record<string, string> = {
-  auth: "Authentication",
-  account: "Account",
-};
 
 export default function SettingsTab() {
   const tokens = useThemeTokens();
   const insets = useSafeAreaInsets();
   const { onScroll, setScrollOffset } = useAppTopBarScroll();
-  const { preferences, loading, error, updatePreference } = useNotifications();
+  const { notifications, preferences, loading, error, updatePreference } =
+    useNotifications();
   const scrollOffsetRef = React.useRef(0);
 
   useFocusEffect(
@@ -53,96 +42,25 @@ export default function SettingsTab() {
       <View style={styles.header}>
         <Text style={[styles.title, { color: tokens.color.fg }]}>Settings</Text>
         <Text style={[styles.subtitle, { color: tokens.color.mutedFg }]}>
-          Manage notification delivery preferences for the demo app.
+          Manage notification delivery preferences and activity context.
         </Text>
       </View>
 
       <Tip>
-        Push delivery uses Expo native push tokens. Email delivery is recorded by
-        the backend dev-log adapter until a production sender is configured.
+        Push delivery uses Expo native push tokens. Email delivery is recorded
+        by the backend dev-log adapter until a production sender is configured.
       </Tip>
 
-      <Card padding="none" elevation="sm">
-        <CardHeader>
-          <Text style={[styles.cardTitle, { color: tokens.color.fg }]}>
-            Notifications
-          </Text>
-        </CardHeader>
-        <CardBody>
-          <View style={styles.preferenceList}>
-            {loading ? (
-              <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
-                Loading preferences...
-              </Text>
-            ) : error ? (
-              <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
-                Notification preferences are unavailable.
-              </Text>
-            ) : preferences.length === 0 ? (
-              <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
-                No notification groups are available yet.
-              </Text>
-            ) : (
-              preferences.map((preference) => (
-                <PreferenceRow
-                  key={preference.group_key}
-                  preference={preference}
-                  onChange={updatePreference}
-                />
-              ))
-            )}
-          </View>
-        </CardBody>
-      </Card>
-    </Animated.ScrollView>
-  );
-}
+      <NotificationGroups
+        notifications={notifications}
+        preferences={preferences}
+        loading={loading}
+        error={error}
+        onChange={updatePreference}
+      />
 
-function PreferenceRow({
-  preference,
-  onChange,
-}: {
-  preference: NotificationPreference;
-  onChange: (
-    groupKey: string,
-    patch: Partial<
-      Pick<
-        NotificationPreference,
-        "in_app_enabled" | "email_enabled" | "push_enabled"
-      >
-    >,
-  ) => Promise<NotificationPreference | null>;
-}) {
-  return (
-    <SettingsRow
-      label={groupLabels[preference.group_key] ?? preference.group_key}
-      description="Controls in-app, email, and native push delivery."
-      actions={
-        <>
-          <Checkbox
-            label="In-app"
-            checked={preference.in_app_enabled}
-            onChange={(checked) =>
-              void onChange(preference.group_key, { in_app_enabled: checked })
-            }
-          />
-          <Checkbox
-            label="Email"
-            checked={preference.email_enabled}
-            onChange={(checked) =>
-              void onChange(preference.group_key, { email_enabled: checked })
-            }
-          />
-          <Checkbox
-            label="Push"
-            checked={preference.push_enabled}
-            onChange={(checked) =>
-              void onChange(preference.group_key, { push_enabled: checked })
-            }
-          />
-        </>
-      }
-    />
+      <ActivitiesSection />
+    </Animated.ScrollView>
   );
 }
 
@@ -161,16 +79,5 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     lineHeight: 22,
-  },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  preferenceList: {
-    rowGap: 12,
-  },
-  stateText: {
-    fontSize: 14,
-    lineHeight: 20,
   },
 });

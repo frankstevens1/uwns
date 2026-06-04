@@ -12,12 +12,16 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import { Link, router, usePathname } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useActivity, useAuth, useNotifications } from "@repo/providers";
-import type { Notification } from "@repo/lib";
 import { useThemeTokens } from "@repo/ui";
 import { AppBottomTray, AppModal } from "./AppModal";
+import {
+  NotificationListItem,
+  canManuallyMarkRead,
+  getNativeNotificationHref,
+} from "./Notifications/NotificationListItem";
 import { APP_TOP_BAR_HEIGHT } from "../constants/layout";
 
 type CommandItem = {
@@ -170,7 +174,14 @@ export function AppTopBar() {
         label: "Settings",
         href: "/settings",
         icon: "settings-outline",
-        keywords: ["preferences", "notifications", "push", "email"],
+        keywords: [
+          "preferences",
+          "notifications",
+          "push",
+          "email",
+          "activity",
+          "events",
+        ],
         meta: "Tab",
       },
     ];
@@ -519,24 +530,25 @@ export function AppTopBar() {
             </Text>
           </View>
           <View style={styles.trayActions}>
-            <Link href="/notifications" asChild>
-              <Pressable
-                onPress={() => setNotificationsOpen(false)}
-                accessibilityRole="button"
-                accessibilityLabel="View all notifications"
-                style={({ pressed }) => [
-                  styles.markAllButton,
-                  {
-                    borderColor: tokens.color.border,
-                    opacity: pressed ? 0.75 : 1,
-                  },
-                ]}
-              >
-                <Text style={[styles.markAllText, { color: tokens.color.fg }]}>
-                  View all
-                </Text>
-              </Pressable>
-            </Link>
+            <Pressable
+              onPress={() => {
+                setNotificationsOpen(false);
+                router.navigate("/notifications");
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="View all notifications"
+              style={({ pressed }) => [
+                styles.markAllButton,
+                {
+                  borderColor: tokens.color.border,
+                  opacity: pressed ? 0.75 : 1,
+                },
+              ]}
+            >
+              <Text style={[styles.markAllText, { color: tokens.color.fg }]}>
+                View all
+              </Text>
+            </Pressable>
             {hasManualUnread ? (
               <Pressable
                 onPress={() => void markAllAsRead()}
@@ -573,8 +585,9 @@ export function AppTopBar() {
             </Text>
           ) : (
             unreadNotifications.slice(0, 8).map((item) => (
-              <Pressable
+              <NotificationListItem
                 key={item.id}
+                notification={item}
                 onPress={() => {
                   if (canManuallyMarkRead(item)) {
                     void markAsRead(item.id);
@@ -585,81 +598,14 @@ export function AppTopBar() {
                     router.navigate(href as any);
                   }
                 }}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.notificationItem,
-                  {
-                    backgroundColor: tokens.color.subtleBg,
-                    borderColor: tokens.color.border,
-                    borderRadius: tokens.radius.md,
-                    opacity: pressed ? 0.75 : 1,
-                  },
-                ]}
-              >
-                <View style={styles.notificationTitleRow}>
-                  <View
-                    style={[
-                      styles.notificationDot,
-                      {
-                        backgroundColor: tokens.color.fg,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[styles.notificationTitle, { color: tokens.color.fg }]}
-                  >
-                    {item.title}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.notificationBody,
-                    { color: tokens.color.mutedFg },
-                  ]}
-                >
-                  {item.body}
-                </Text>
-                <Text
-                  style={[
-                    styles.notificationTime,
-                    { color: tokens.color.mutedFg },
-                  ]}
-                >
-                  {item.metadata.autoReadOnly === true
-                    ? "Auto-read on login"
-                    : formatNotificationTime(item.created_at)}
-                </Text>
-              </Pressable>
+                onMarkAsRead={() => void markAsRead(item.id)}
+              />
             ))
           )}
         </View>
       </AppBottomTray>
     </>
   );
-}
-
-function formatNotificationTime(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function canManuallyMarkRead(notification: Notification) {
-  return (
-    !notification.read_at &&
-    notification.metadata.autoReadOnly !== true &&
-    notification.type !== "login_platform_prompt"
-  );
-}
-
-function getNativeNotificationHref(notification: Notification) {
-  const nativeHref = notification.metadata.nativeHref;
-  if (typeof nativeHref === "string") return nativeHref;
-  if (notification.href === "/app/account") return "/account";
-  return notification.href;
 }
 
 function TopBarIconButton({
@@ -843,6 +789,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "flex-end",
+    alignItems: "center",
     gap: 8,
   },
   markAllButton: {
@@ -866,33 +813,5 @@ const styles = StyleSheet.create({
   notificationList: {
     paddingTop: 18,
     gap: 10,
-  },
-  notificationItem: {
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 12,
-  },
-  notificationTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  notificationDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  notificationTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    flexShrink: 1,
-  },
-  notificationBody: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  notificationTime: {
-    marginTop: 6,
-    fontSize: 11,
   },
 });

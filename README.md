@@ -62,9 +62,9 @@ pnpm check-types
 
 `supabase/` contains source-controlled app schema:
 
-- one boilerplate baseline migration
-- one activity events migration for the FastAPI service demo
+- one bootstrap migration for the current demo schema
 - no-op seed file
+- future optional features can add their own migrations later
 
 Commands:
 

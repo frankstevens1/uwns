@@ -25,7 +25,7 @@ def track_event(
 
 @router.get("", response_model=list[ActivityEvent])
 def list_recent_events(
-    limit: int = Query(default=5, ge=1, le=25),
+    limit: int = Query(default=5, ge=1, le=100),
     current_user: CurrentUser = Depends(get_current_user),
     service: ActivityService = Depends(get_activity_service),
 ) -> list[ActivityEvent]:

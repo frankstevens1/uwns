@@ -23,6 +23,7 @@ export default function RootLayout() {
               {/* App routes */}
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="notifications" />
+              <Stack.Screen name="activities" />
 
               {/* Modal (protected inside the screen itself) */}
               <Stack.Screen name="modal" options={{ presentation: "modal" }} />

@@ -16,14 +16,11 @@ const portalBaseClass = "fixed inset-0 z-50 pointer-events-none";
 
 const overlayBaseClass = "absolute inset-0 z-0 pointer-events-auto bg-black/35";
 
-const contentBaseClass =
-  "fixed z-10 pointer-events-auto bg-(--ui-panel) text-(--ui-fg) focus:outline-none";
+const contentBaseClass = "fixed z-10 pointer-events-auto focus:outline-none";
 
 const contentPositionClass: Record<DialogPosition, string> = {
-  center:
-    "top-1/2 w-[92vw] max-w-md -translate-y-1/2 rounded-lg p-4 shadow-lg",
-  right:
-    "inset-y-0 right-0 h-full w-[96vw] max-w-3xl border-l border-(--ui-border) p-0 shadow-xl",
+  center: "",
+  right: "inset-y-0 right-0 h-full w-[96vw] max-w-3xl p-0",
 };
 
 const portalBaseStyle: React.CSSProperties = {
@@ -46,23 +43,54 @@ const contentBaseStyle: React.CSSProperties = {
   zIndex: 10,
   pointerEvents: "auto",
   backgroundColor: "var(--ui-panel)",
+  borderColor: "var(--ui-border)",
+  borderStyle: "solid",
+  borderWidth: 1,
+  boxShadow:
+    "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
   color: "var(--ui-fg)",
 };
 
 const contentPositionStyle: Record<DialogPosition, React.CSSProperties> = {
   center: {
-    left: 0,
-    marginLeft: "auto",
-    marginRight: "auto",
-    right: 0,
+    boxSizing: "border-box",
+    borderRadius: 8,
+    left: "50%",
+    maxHeight: "calc(100dvh - 2rem)",
+    maxWidth: "28rem",
+    overflowY: "auto",
+    padding: 16,
     top: "50%",
-    transform: "translateY(-50%)",
+    transform: "translate(-50%, -50%)",
+    width: "calc(100vw - 2rem)",
   },
   right: {
+    borderBottomWidth: 0,
+    borderLeftWidth: 1,
+    borderRightWidth: 0,
+    borderTopWidth: 0,
     bottom: 0,
+    boxShadow:
+      "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
+    height: "100%",
+    maxWidth: "48rem",
+    padding: 0,
     right: 0,
     top: 0,
+    width: "96vw",
   },
+};
+
+const maxWidthByClassName: Record<string, string> = {
+  "max-w-xs": "20rem",
+  "max-w-sm": "24rem",
+  "max-w-md": "28rem",
+  "max-w-lg": "32rem",
+  "max-w-xl": "36rem",
+  "max-w-2xl": "42rem",
+  "max-w-3xl": "48rem",
+  "max-w-4xl": "56rem",
+  "max-w-5xl": "64rem",
 };
 
 export function DialogPortal({
@@ -104,6 +132,13 @@ export function DialogContent({
   ...props
 }: React.ComponentPropsWithoutRef<typeof RadixDialog.Content> &
   DialogContentProps) {
+  const contentStyle = {
+    ...contentBaseStyle,
+    ...contentPositionStyle[position],
+    ...getDialogContentSizeStyle(position, className),
+    ...style,
+  };
+
   return (
     <RadixDialog.Content
       {...props}
@@ -112,15 +147,31 @@ export function DialogContent({
         contentPositionClass[position],
         className,
       )}
-      style={{
-        ...contentBaseStyle,
-        ...contentPositionStyle[position],
-        ...style,
-      }}
+      style={contentStyle}
     >
       {children}
     </RadixDialog.Content>
   );
+}
+
+function getDialogContentSizeStyle(
+  position: DialogPosition,
+  className: string | undefined,
+): React.CSSProperties {
+  if (position !== "center" || !className) {
+    return {};
+  }
+
+  const maxWidthClass = Object.keys(maxWidthByClassName).find((candidate) =>
+    className.split(/\s+/).includes(candidate),
+  );
+  const arbitraryMaxWidth = className.match(/(?:^|\s)max-w-\[([^\]]+)\]/);
+
+  return {
+    maxWidth:
+      arbitraryMaxWidth?.[1] ??
+      (maxWidthClass ? maxWidthByClassName[maxWidthClass] : undefined),
+  };
 }
 
 export function DialogTitle({
@@ -142,10 +193,7 @@ export function DialogDescription({
   return (
     <RadixDialog.Description
       {...props}
-      className={cx(
-        "mt-1 text-xs text-(--ui-muted-fg)",
-        className,
-      )}
+      className={cx("mt-1 text-xs text-(--ui-muted-fg)", className)}
     />
   );
 }
@@ -156,10 +204,7 @@ export function DialogFooter({
   ...props
 }: React.ComponentPropsWithoutRef<"div"> & DialogFooterProps) {
   return (
-    <div
-      {...props}
-      className={cx("mt-4 flex justify-end gap-2", className)}
-    >
+    <div {...props} className={cx("mt-4 flex justify-end gap-2", className)}>
       {children}
     </div>
   );

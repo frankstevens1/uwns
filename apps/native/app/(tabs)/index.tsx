@@ -248,6 +248,8 @@ export default function HomeTab() {
     setRefreshing(true);
     try {
       setEvents(await listRecentEvents(10));
+    } catch {
+      setEvents([]);
     } finally {
       setRefreshing(false);
     }

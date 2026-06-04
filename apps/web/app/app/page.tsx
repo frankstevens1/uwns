@@ -232,6 +232,8 @@ export default function AppHome() {
     setRefreshing(true);
     try {
       setEvents(await listRecentEvents(10));
+    } catch {
+      setEvents([]);
     } finally {
       setRefreshing(false);
     }
@@ -275,8 +277,9 @@ export default function AppHome() {
             <ActivityStopwatch onEventTracked={refreshEvents} />
 
             <Tip>
-              The stopwatch is shared <Code>@repo/ui</Code>. The app-specific part
-              is calling <Code>trackEvent</Code> through <Code>ActivityProvider</Code>.
+              The stopwatch is shared <Code>@repo/ui</Code>. The app-specific
+              part is calling <Code>trackEvent</Code> through{" "}
+              <Code>ActivityProvider</Code>.
             </Tip>
           </div>
 
@@ -392,10 +395,7 @@ export default function AppHome() {
         <DialogPortal>
           <DialogOverlay />
 
-          <DialogContent
-            position="center"
-            className="max-h-[min(80vh,32rem)] w-[92vw] max-w-2xl overflow-y-auto rounded-lg border border-(--ui-border) bg-(--ui-panel) p-4 shadow-xl"
-          >
+          <DialogContent position="center" className="max-w-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <DialogTitle>Event metadata</DialogTitle>

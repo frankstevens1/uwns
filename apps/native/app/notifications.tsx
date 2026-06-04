@@ -1,11 +1,18 @@
 import * as React from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, type Href } from "expo-router";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth, useNotifications } from "@repo/providers";
-import type { Notification } from "@repo/lib";
 import { useThemeTokens } from "@repo/ui";
+import {
+  NotificationListItem,
+  canManuallyMarkRead,
+  getNativeNotificationHref,
+} from "../components/Notifications/NotificationListItem";
+import { BottomHeaderFade } from "../components/BottomHeaderFade";
+
+const BOTTOM_HEADER_HEIGHT = 72;
 
 export default function NotificationsScreen() {
   const tokens = useThemeTokens();
@@ -14,121 +21,107 @@ export default function NotificationsScreen() {
   const { notifications, loading, error, markAsRead } = useNotifications();
 
   React.useEffect(() => {
-    if (!authLoading && !user) router.replace("/login");
+    if (!authLoading && !user) {
+      router.replace("/login");
+    }
   }, [authLoading, user]);
 
-  if (authLoading || !user) return null;
+  if (authLoading || !user) {
+    return null;
+  }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: tokens.color.bg }}
-      contentContainerStyle={[
-        styles.screen,
-        {
-          paddingTop: insets.top + 12,
-          paddingBottom: insets.bottom + 24,
-        },
-      ]}
-    >
-      <View style={styles.header}>
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-          style={({ pressed }) => [
-            styles.iconButton,
-            { opacity: pressed ? 0.75 : 1 },
-          ]}
-        >
-          <Ionicons name="chevron-back" color={tokens.color.fg} size={22} />
-        </Pressable>
-        <Text style={[styles.title, { color: tokens.color.fg }]}>
-          Notifications
-        </Text>
-      </View>
-
-      {loading ? (
-        <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
-          Loading notifications...
-        </Text>
-      ) : error ? (
-        <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
-          Notifications are unavailable.
-        </Text>
-      ) : notifications.length === 0 ? (
-        <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
-          No notifications yet.
-        </Text>
-      ) : (
-        <View style={styles.list}>
-          {notifications.map((notification) => (
-            <Pressable
-              key={notification.id}
-              onPress={() => {
-                if (canManuallyMarkRead(notification)) {
-                  void markAsRead(notification.id);
-                }
-                const href = getNativeNotificationHref(notification);
-                if (href) router.navigate(href as any);
-              }}
-              accessibilityRole="button"
-              style={({ pressed }) => [
-                styles.item,
-                {
-                  backgroundColor: tokens.color.subtleBg,
-                  borderColor: tokens.color.border,
-                  borderRadius: tokens.radius.md,
-                  opacity: pressed ? 0.75 : 1,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.dot,
-                  {
-                    backgroundColor: notification.read_at
-                      ? tokens.color.border
-                      : tokens.color.fg,
-                  },
-                ]}
+    <View style={{ flex: 1, backgroundColor: tokens.color.bg }}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ flex: 1, backgroundColor: tokens.color.bg }}
+        contentContainerStyle={[
+          styles.screen,
+          {
+            paddingTop: insets.bottom,
+            paddingBottom: insets.bottom,
+          },
+        ]}
+      >
+        {loading ? (
+          <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
+            Loading notifications...
+          </Text>
+        ) : error ? (
+          <Text style={[styles.stateText, { color: tokens.color.dangerFg }]}>
+            {error}
+          </Text>
+        ) : notifications.length === 0 ? (
+          <Text style={[styles.stateText, { color: tokens.color.mutedFg }]}>
+            {"You're all caught up."}
+          </Text>
+        ) : (
+          <View style={styles.list}>
+            {notifications.map((notification) => (
+              <NotificationListItem
+                key={notification.id}
+                notification={notification}
+                onPress={() => {
+                  if (canManuallyMarkRead(notification)) {
+                    void markAsRead(notification.id);
+                  }
+                  const href = getNativeNotificationHref(notification);
+                  if (href) {
+                    router.navigate(href as Href);
+                  }
+                }}
+                onMarkAsRead={() => void markAsRead(notification.id)}
               />
-              <View style={styles.itemText}>
-                <Text style={[styles.itemTitle, { color: tokens.color.fg }]}>
-                  {notification.title}
-                </Text>
-                <Text
-                  style={[styles.itemBody, { color: tokens.color.mutedFg }]}
-                >
-                  {notification.body}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
+            ))}
+          </View>
+        )}
+      </ScrollView>
+
+      <BottomHeaderFade
+        backgroundColor={tokens.color.bg}
+        bottomOffset={BOTTOM_HEADER_HEIGHT}
+      />
+
+      <View
+        style={[
+          styles.headerShell,
+          {
+            backgroundColor: tokens.color.bg,
+          },
+        ]}
+      >
+        <View
+          style={[styles.header, { paddingHorizontal: 20, paddingBottom: 0 }]}
+        >
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            style={({ pressed }) => [
+              styles.iconButton,
+              { opacity: pressed ? 0.65 : 1 },
+            ]}
+          >
+            <Ionicons name="chevron-back" color={tokens.color.fg} size={22} />
+          </Pressable>
+          <Text style={[styles.title, { color: tokens.color.fg }]}>
+            Notifications
+          </Text>
         </View>
-      )}
-    </ScrollView>
+      </View>
+    </View>
   );
-}
-
-function canManuallyMarkRead(notification: Notification) {
-  return (
-    !notification.read_at &&
-    notification.metadata.autoReadOnly !== true &&
-    notification.type !== "login_platform_prompt"
-  );
-}
-
-function getNativeNotificationHref(notification: Notification) {
-  const nativeHref = notification.metadata.nativeHref;
-  if (typeof nativeHref === "string") return nativeHref;
-  if (notification.href === "/app/account") return "/account";
-  return notification.href;
 }
 
 const styles = StyleSheet.create({
   screen: {
     paddingHorizontal: 16,
     rowGap: 18,
+  },
+  headerShell: {
+    height: BOTTOM_HEADER_HEIGHT,
+    justifyContent: "flex-start",
+    zIndex: 2,
   },
   header: {
     minHeight: 44,
@@ -152,30 +145,5 @@ const styles = StyleSheet.create({
   },
   list: {
     rowGap: 10,
-  },
-  item: {
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 12,
-    flexDirection: "row",
-    gap: 10,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    marginTop: 6,
-  },
-  itemText: {
-    flex: 1,
-    minWidth: 0,
-  },
-  itemTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  itemBody: {
-    marginTop: 4,
-    fontSize: 13,
-    lineHeight: 18,
   },
 });

@@ -27,7 +27,8 @@ export function createActivityProvider(
     const applyNotificationUpdateRef = React.useRef<
       NotificationContextValue["applyActivityNotificationUpdate"] | undefined
     >(undefined);
-    const warnedRef = React.useRef(false);
+    const trackWarnedRef = React.useRef(false);
+    const listWarnedRef = React.useRef(false);
 
     React.useEffect(() => {
       applyNotificationUpdateRef.current =
@@ -61,8 +62,8 @@ export function createActivityProvider(
           });
           await applyNotificationUpdateRef.current?.({ eventName, platform });
         } catch (error) {
-          if (warnedRef.current) return;
-          warnedRef.current = true;
+          if (trackWarnedRef.current) return;
+          trackWarnedRef.current = true;
           const message = error instanceof Error ? error.message : String(error);
           console.info("[ActivityProvider] trackEvent skipped:", message);
         }
@@ -75,12 +76,12 @@ export function createActivityProvider(
         try {
           return await client.listActivityEvents({ limit });
         } catch (error) {
-          if (!warnedRef.current) {
-            warnedRef.current = true;
+          if (!listWarnedRef.current) {
+            listWarnedRef.current = true;
             const message = error instanceof Error ? error.message : String(error);
-            console.info("[ActivityProvider] listRecentEvents skipped:", message);
+            console.info("[ActivityProvider] listRecentEvents failed:", message);
           }
-          return [];
+          throw error;
         }
       },
       [client],
