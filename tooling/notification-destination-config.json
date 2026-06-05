@@ -1,0 +1,34 @@
+{
+  "ignoreRoutes": [
+    "apps/web/app/app/settings/page.tsx",
+    "apps/native/app/notifications.tsx"
+  ],
+  "destinations": [
+    {
+      "id": "account",
+      "label": "Account",
+      "webRoute": "apps/web/app/app/account/page.tsx",
+      "nativeRoute": "apps/native/app/(tabs)/account.tsx"
+    },
+    {
+      "id": "actions",
+      "label": "Actions",
+      "webRoute": "apps/web/app/app/settings/[setting]/page.tsx",
+      "webPath": "/app/settings/actions",
+      "nativeRoute": "apps/native/app/actions.tsx"
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "webRoute": "apps/web/app/app/page.tsx",
+      "nativeRoute": "apps/native/app/(tabs)/index.tsx"
+    },
+    {
+      "id": "notifications",
+      "label": "Notifications",
+      "webRoute": "apps/web/app/app/settings/[setting]/page.tsx",
+      "webPath": "/app/settings/notifications",
+      "nativeRoute": "apps/native/app/(tabs)/settings.tsx"
+    }
+  ]
+}

@@ -50,8 +50,8 @@ function upsertPreference(
   ].sort((a, b) => a.group_key.localeCompare(b.group_key));
 }
 
-function getAutoReadEventName(notification: Notification) {
-  const value = notification.metadata.autoReadEventName;
+function getAutoReadActionName(notification: Notification) {
+  const value = notification.metadata.autoReadActionName;
   return typeof value === "string" ? value : null;
 }
 
@@ -164,12 +164,16 @@ export function createNotificationsProvider(
             );
           },
         )
-        .subscribe();
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            void refreshNotifications({ silent: true });
+          }
+        });
 
       return () => {
         void supabase.removeChannel(channel);
       };
-    }, [supabase, user]);
+    }, [refreshNotifications, supabase, user]);
 
     React.useEffect(() => {
       if (!user || !pushRegistration) return;
@@ -227,18 +231,18 @@ export function createNotificationsProvider(
       }
     }, [client]);
 
-    const applyActivityNotificationUpdate = React.useCallback(
+    const applyActionNotificationUpdate = React.useCallback(
       async ({
-        eventName,
+        actionName,
         platform,
       }: {
-        eventName: string;
+        actionName: string;
         platform: "web" | "native";
       }) => {
         const uniqueKey =
-          eventName === "account_viewed"
+          actionName === "account_viewed"
             ? "demo:view_account"
-            : eventName === "logged_in"
+            : actionName === "logged_in"
               ? `demo:login:${platform}`
               : null;
 
@@ -247,13 +251,13 @@ export function createNotificationsProvider(
           items.map((item) =>
             !item.read_at &&
             ((uniqueKey !== null && item.unique_key === uniqueKey) ||
-              getAutoReadEventName(item) === eventName)
+              getAutoReadActionName(item) === actionName)
               ? { ...item, read_at: now, updated_at: now }
               : item,
           ),
         );
 
-        if (eventName === "logged_in" || eventName === "signed_up") {
+        if (actionName === "logged_in" || actionName === "signed_up") {
           await refreshNotifications({ silent: true, allowMissingUser: true });
         }
       },
@@ -283,14 +287,14 @@ export function createNotificationsProvider(
         loading,
         error,
         refreshNotifications,
-        applyActivityNotificationUpdate,
+        applyActionNotificationUpdate,
         createNotification,
         markAsRead,
         markAllAsRead,
         updatePreference,
       }),
       [
-        applyActivityNotificationUpdate,
+        applyActionNotificationUpdate,
         createNotification,
         error,
         loading,

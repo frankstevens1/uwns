@@ -15,7 +15,10 @@
     "ui:gen": "pnpm --filter @repo/ui gen",
     "ui:validate": "pnpm --filter @repo/ui validate",
     "ui:typecheck": "pnpm --filter @repo/ui typecheck",
-    "gen:form": "tsx packages/forms/scripts/gen-form.ts"
+    "gen:form": "tsx packages/forms/scripts/gen-form.ts",
+    "notifications:generate": "node tooling/generate-notification-destinations.js",
+    "notifications:verify": "node tooling/generate-notification-destinations.js --check",
+    "notifications:test": "node --test tooling/generate-notification-destinations.test.js"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
 import type { Notification } from "@repo/lib";
+import { resolveNotificationTarget } from "@repo/lib";
+import { useActions } from "@repo/providers";
 import {
   canManuallyMarkRead,
   getUnreadNotificationLabel,
@@ -15,11 +17,40 @@ export default function NotificationTrayItem({
 }: {
   notification: Notification;
   onOpen: () => void;
-  onMarkAsRead: () => void;
+  onMarkAsRead: () => void | Promise<Notification | null>;
 }) {
+  const { trackAction } = useActions();
   const unreadLabel = getUnreadNotificationLabel(notification);
   const detailText = unreadLabel;
   const canMarkRead = canManuallyMarkRead(notification);
+  const resolvedTarget = resolveNotificationTarget(notification.target, "web");
+
+  const handleOpen = () => {
+    void trackAction({
+      actionName: "notification_opened",
+      metadata: {
+        source: "header_tray",
+        groupKey: notification.group_key,
+        notificationType: notification.type,
+        hasTarget: Boolean(resolvedTarget),
+      },
+    });
+    onOpen();
+  };
+
+  const handleMarkAsRead = async () => {
+    const updated = await onMarkAsRead();
+    if (!updated) return;
+
+    void trackAction({
+      actionName: "notification_marked_read",
+      metadata: {
+        source: "header_tray",
+        groupKey: notification.group_key,
+        notificationType: notification.type,
+      },
+    });
+  };
 
   return (
     <article className="px-2 py-1.5">
@@ -36,14 +67,24 @@ export default function NotificationTrayItem({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                {notification.href ? (
-                  <Link
-                    href={notification.href}
-                    onClick={onOpen}
-                    className="block cursor-pointer truncate text-xs font-medium leading-4 text-(--ui-fg) transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ui-border)"
-                  >
-                    {notification.title}
-                  </Link>
+                {resolvedTarget ? (
+                  resolvedTarget.type === "external_url" ? (
+                    <a
+                      href={resolvedTarget.href}
+                      onClick={handleOpen}
+                      className="block cursor-pointer truncate text-xs font-medium leading-4 text-(--ui-fg) transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ui-border)"
+                    >
+                      {notification.title}
+                    </a>
+                  ) : (
+                    <Link
+                      href={resolvedTarget.href}
+                      onClick={handleOpen}
+                      className="block cursor-pointer truncate text-xs font-medium leading-4 text-(--ui-fg) transition hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--ui-border)"
+                    >
+                      {notification.title}
+                    </Link>
+                  )
                 ) : (
                   <div className="truncate text-xs font-medium leading-4 text-(--ui-fg)">
                     {notification.title}
@@ -60,7 +101,9 @@ export default function NotificationTrayItem({
                 <button
                   type="button"
                   aria-label={`Mark ${notification.title} read`}
-                  onClick={onMarkAsRead}
+                  onClick={() => {
+                    void handleMarkAsRead();
+                  }}
                   className={[
                     "inline-flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full",
                     "text-(--ui-muted-fg) transition",

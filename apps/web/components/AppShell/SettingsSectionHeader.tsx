@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Activity, Bell, type LucideIcon } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@repo/ui";
 import {
   settingsSections,
   type SettingsSection,
@@ -10,14 +10,21 @@ import {
 
 const settingsSectionIcons = {
   notifications: Bell,
-  activities: Activity,
+  actions: Activity,
 } satisfies Record<SettingsSection, LucideIcon>;
 
 export function SettingsSectionHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const activeSection =
     settingsSections.find((section) => pathname === section.href) ??
     settingsSections[0];
+
+  const selectSection = (nextSection: SettingsSection) => {
+    const section = settingsSections.find((entry) => entry.setting === nextSection);
+    if (!section) return;
+    router.push(section.href);
+  };
 
   return (
     <div className="mx-auto flex h-full max-w-5xl items-center justify-between gap-2 px-4">
@@ -30,32 +37,24 @@ export function SettingsSectionHeader() {
         </h2>
       </div>
 
-      <nav
-        aria-label="Settings sections"
-        className="flex shrink-0 flex-wrap items-center gap-0.5 rounded-md border border-(--ui-border) bg-(--ui-subtle-bg) p-0.5"
+      <ToggleGroup
+        value={activeSection.setting}
+        onValueChange={(nextSection) =>
+          selectSection(nextSection as SettingsSection)
+        }
+        ariaLabel="Settings sections"
       >
         {settingsSections.map((section) => {
           const Icon = settingsSectionIcons[section.setting];
-          const active = pathname === section.href;
 
           return (
-            <Link
-              key={section.href}
-              href={section.href}
-              aria-current={active ? "page" : undefined}
-              className={[
-                "inline-flex h-6 items-center gap-1 rounded px-2 text-xs font-medium transition",
-                active
-                  ? "bg-(--ui-bg) text-(--ui-fg)"
-                  : "text-(--ui-muted-fg) hover:text-(--ui-fg)",
-              ].join(" ")}
-            >
+            <ToggleGroupItem key={section.href} value={section.setting}>
               <Icon className="shrink-0" size={12} />
               <span>{section.label}</span>
-            </Link>
+            </ToggleGroupItem>
           );
         })}
-      </nav>
+      </ToggleGroup>
     </div>
   );
 }

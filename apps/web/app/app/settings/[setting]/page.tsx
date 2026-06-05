@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ActivitiesSettingsSection } from "@/components/Settings/ActivitiesSettingsSection";
+import { ActionsSettingsSection } from "@/components/Settings/ActionsSettingsSection";
 import { NotificationSettingsSection } from "@/components/Settings/NotificationSettingsSection";
 import {
   isSettingsSection,
@@ -21,8 +21,8 @@ export default async function SettingsSectionPage({
     notFound();
   }
 
-  if (setting === "activities") {
-    return <ActivitiesSettingsSection />;
+  if (setting === "actions") {
+    return <ActionsSettingsSection />;
   }
 
   return <NotificationSettingsSection />;

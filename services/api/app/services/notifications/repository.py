@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.db import SupabaseRestClient
+from app.services.notifications.registry import get_notification_group_keys
 from app.services.notifications.models import (
     CreateNotificationRequest,
     DeliveryAttempt,
@@ -12,7 +13,7 @@ from app.services.notifications.models import (
 )
 
 
-DEFAULT_NOTIFICATION_GROUPS = ("auth", "account")
+DEFAULT_NOTIFICATION_GROUPS = get_notification_group_keys()
 
 
 class NotificationsRepository:
@@ -35,11 +36,11 @@ class NotificationsRepository:
             "title": request.title,
             "body": request.body,
             "platform": request.platform,
-            "href": request.href,
+            "target": request.target.model_dump(mode="json") if request.target else None,
             "in_app_visible": in_app_visible,
             "metadata": request.metadata,
             "unique_key": request.unique_key,
-            "source_activity_event_id": request.source_activity_event_id,
+            "source_action_id": request.source_action_id,
             "updated_at": now,
         }
         if reset_read:
@@ -112,18 +113,18 @@ class NotificationsRepository:
             return None
         return Notification.model_validate(rows[0])
 
-    def has_activity_event(
+    def has_action(
         self,
         user_id: str,
-        event_name: str,
+        action_name: str,
         platform: str,
     ) -> bool:
         rows = self.db.select(
-            "activity_events",
+            "actions",
             {
                 "select": "id",
                 "user_id": f"eq.{user_id}",
-                "event_name": f"eq.{event_name}",
+                "action_name": f"eq.{action_name}",
                 "platform": f"eq.{platform}",
                 "limit": "1",
             },
@@ -167,10 +168,10 @@ class NotificationsRepository:
             return None
         return Notification.model_validate(rows[0])
 
-    def mark_notifications_read_by_auto_read_event(
+    def mark_notifications_read_by_auto_read_action(
         self,
         user_id: str,
-        event_name: str,
+        action_name: str,
     ) -> list[Notification]:
         now = datetime.now(UTC).isoformat()
         rows = self.db.patch(
@@ -178,7 +179,7 @@ class NotificationsRepository:
             {
                 "user_id": f"eq.{user_id}",
                 "read_at": "is.null",
-                "metadata->>autoReadEventName": f"eq.{event_name}",
+                "metadata->>autoReadActionName": f"eq.{action_name}",
             },
             {"read_at": now, "updated_at": now},
         )

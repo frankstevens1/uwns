@@ -1,26 +1,57 @@
 from datetime import datetime
-from typing import Any, Literal
+from typing import Any, Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+from app.services.notifications.registry import has_notification_destination
 
 NotificationPlatform = Literal["web", "native"]
 NotificationChannel = Literal["email", "push"]
 
 
 class NotificationChannels(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     in_app: bool = True
     email: bool = False
     push: bool = False
 
 
+class AppDestinationTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["app_destination"]
+    target: str = Field(
+        min_length=1,
+        max_length=120,
+        pattern=r"^[a-z][a-z0-9_.:-]*$",
+    )
+
+
+class ExternalUrlTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    type: Literal["external_url"]
+    target: HttpUrl
+
+
+NotificationTargetPayload = AppDestinationTarget | ExternalUrlTarget
+
+NotificationTarget = Annotated[
+    NotificationTargetPayload,
+    Field(discriminator="type"),
+]
+
+
 class CreateNotificationRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     group_key: str = Field(min_length=2, max_length=80, pattern=r"^[a-z][a-z0-9_.:-]*$")
     type: str = Field(default="info", min_length=2, max_length=80, pattern=r"^[a-z][a-z0-9_.:-]*$")
     title: str = Field(min_length=1, max_length=160)
     body: str = Field(min_length=1, max_length=500)
     platform: NotificationPlatform | None = None
-    href: str | None = Field(default=None, max_length=500)
+    target: NotificationTarget | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
     unique_key: str | None = Field(
         default=None,
@@ -28,8 +59,17 @@ class CreateNotificationRequest(BaseModel):
         max_length=160,
         pattern=r"^[a-z][a-z0-9_.:-]*$",
     )
-    source_activity_event_id: str | None = None
+    source_action_id: str | None = None
     channels: NotificationChannels = Field(default_factory=NotificationChannels)
+
+    @model_validator(mode="after")
+    def validate_target(self) -> "CreateNotificationRequest":
+        if self.target and self.target.type == "app_destination":
+            if not has_notification_destination(self.target.target):
+                raise ValueError(
+                    f"Unknown app destination target: {self.target.target}"
+                )
+        return self
 
 
 class Notification(BaseModel):
@@ -40,11 +80,11 @@ class Notification(BaseModel):
     title: str
     body: str
     platform: NotificationPlatform | None = None
-    href: str | None = None
+    target: NotificationTarget | None = None
     in_app_visible: bool = True
     metadata: dict[str, Any]
     unique_key: str | None = None
-    source_activity_event_id: str | None = None
+    source_action_id: str | None = None
     read_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

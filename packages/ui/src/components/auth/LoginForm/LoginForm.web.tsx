@@ -8,8 +8,12 @@ import { Label } from "../../../primitives/Label/Label.web";
 import { Link } from "../../../primitives/Link/Link.web";
 import { PasswordField } from "../PasswordField/PasswordField.web";
 import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.web";
-import { buttonTokens, inputTokens } from "../../../theme";
+import { inputTokens } from "../../../theme";
 import { px } from "../../../utils/platform.web";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../../../primitives/ToggleGroup/ToggleGroup.web";
 import type { AuthMethod, LoginFormProps } from "./LoginForm.types";
 import { useAuthFormState } from "../useAuthFormState";
 import { appendAuthMethodParam } from "../authFocus";
@@ -41,27 +45,6 @@ export function LoginForm({
   const signUp = routes?.signUp ?? "/auth/sign-up";
   const isOtp = method === "otp" && canUseOtp;
   const signUpHref = method === "otp" ? appendAuthMethodParam(signUp, method) : signUp;
-  const methodSelectorStyle: React.CSSProperties = {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: px(2),
-    borderRadius: px(buttonTokens.base.radius),
-    borderWidth: px(buttonTokens.base.borderWidth),
-    borderStyle: "solid",
-    borderColor: "var(--ui-border)",
-    padding: px(2),
-  };
-  const methodButtonStyle = (selected: boolean): React.CSSProperties => ({
-    height: px(buttonTokens.size.sm.height),
-    borderStyle: "solid",
-    borderColor: selected ? "var(--ui-border)" : "transparent",
-    borderRadius: px(buttonTokens.base.radius),
-    borderWidth: 1,
-    background: selected ? "var(--ui-subtle-bg)" : "transparent",
-    color: "var(--ui-fg)",
-    fontSize: px(buttonTokens.size.sm.fontSize),
-    fontWeight: buttonTokens.base.fontWeight as any,
-  });
   const lockedEmailStyle: React.CSSProperties = {
     minHeight: px(inputTokens.base.height.md),
     borderRadius: px(inputTokens.base.radius),
@@ -215,22 +198,19 @@ export function LoginForm({
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
         {canChooseMethod ? (
-          <div style={methodSelectorStyle}>
-            <button
-              type="button"
-              onClick={() => selectMethod("password")}
-              style={methodButtonStyle(method === "password")}
-            >
-              Password
-            </button>
-            <button
-              type="button"
-              onClick={() => selectMethod("otp")}
-              style={methodButtonStyle(method === "otp")}
-            >
-              Magic link
-            </button>
-          </div>
+          <ToggleGroup
+            value={method}
+            onValueChange={(next) => selectMethod(next as AuthMethod)}
+            ariaLabel="Authentication method"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+              width: "100%",
+            }}
+          >
+            <ToggleGroupItem value="password">Password</ToggleGroupItem>
+            <ToggleGroupItem value="otp">Magic link</ToggleGroupItem>
+          </ToggleGroup>
         ) : null}
 
         {otpSent ? (

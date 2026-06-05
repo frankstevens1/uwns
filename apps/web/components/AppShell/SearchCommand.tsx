@@ -24,7 +24,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@repo/ui";
-import { useActivity, useAuth } from "@repo/providers";
+import { useActions, useAuth } from "@repo/providers";
 
 type FeatureFlags = {
   docs?: boolean;
@@ -133,7 +133,7 @@ export function SearchCommand({
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
 
   const ff = useFeatureFlags(flags);
   const isAuthed = !!user && !loading;
@@ -224,11 +224,19 @@ export function SearchCommand({
         when: "always",
       },
       {
-        id: "legal",
-        label: "Legal",
-        href: "/legal",
+        id: "privacy",
+        label: "Privacy Policy",
+        href: "/legal?document=privacy",
         icon: <FileText size={14} />,
-        keywords: ["privacy", "terms"],
+        keywords: ["privacy", "policy", "legal"],
+        when: "always",
+      },
+      {
+        id: "terms",
+        label: "Terms of Service",
+        href: "/legal?document=terms",
+        icon: <FileText size={14} />,
+        keywords: ["terms", "legal"],
         when: "always",
       },
       {
@@ -275,11 +283,11 @@ export function SearchCommand({
         when: "authed",
       },
       {
-        id: "activity-settings",
-        label: "Activity settings",
-        href: "/app/settings/activities",
+        id: "action-settings",
+        label: "Action settings",
+        href: "/app/settings/actions",
         icon: <Activity size={14} />,
-        keywords: ["activity", "events", "tracked", "audit"],
+        keywords: ["actions", "tracked", "audit"],
         when: "authed",
       },
       {
@@ -298,8 +306,8 @@ export function SearchCommand({
         keywords: ["logout", "sign out"],
         when: "authed",
         action: async () => {
-          await trackEvent({
-            eventName: "signed_out",
+          await trackAction({
+            actionName: "signed_out",
             metadata: { trigger: "search_command" },
           });
           await signOut();
@@ -379,7 +387,7 @@ export function SearchCommand({
     return [...base, ...injected].filter(
       (s) => s.items.length > 0 || !!s.emptyText,
     );
-  }, [recents, isAuthed, ff, extraSections, signOut, router, trackEvent]);
+  }, [recents, isAuthed, ff, extraSections, signOut, router, trackAction]);
 
   const closeOnEscCapture = (e: React.KeyboardEvent) => {
     if (e.key !== "Escape") return;
@@ -423,21 +431,20 @@ export function SearchCommand({
               "w-[min(92vw,520px)] max-w-[520px] overflow-hidden",
               "rounded-xl shadow-2xl",
             ].join(" ")}
+            style={{ padding: 12 }}
             onKeyDownCapture={closeOnEscCapture}
             onKeyUpCapture={closeOnEscCapture}
             onPointerDownOutside={() => close()}
           >
             <DialogTitle className="sr-only">Search</DialogTitle>
 
-            <div className="p-2.5">
-              <CommandRoot
-                inputRef={inputRef}
-                sections={sections}
-                onGo={(href, label) => go(href, label)}
-                onAction={runAction}
-                onEscCapture={closeOnEscCapture}
-              />
-            </div>
+            <CommandRoot
+              inputRef={inputRef}
+              sections={sections}
+              onGo={(href, label) => go(href, label)}
+              onAction={runAction}
+              onEscCapture={closeOnEscCapture}
+            />
           </DialogContent>
         </DialogPortal>
       </DialogRoot>
@@ -464,20 +471,20 @@ function CommandRoot({
       onKeyDownCapture={onEscCapture}
       onKeyUpCapture={onEscCapture}
     >
-      <div className="flex items-center gap-2 rounded-lg bg-(--ui-subtle-bg) px-3 py-2">
+      <div className="flex items-center gap-1.5 rounded-lg bg-(--ui-subtle-bg) px-2.5 py-1.5">
         <Search size={14} className="text-(--ui-muted-fg)" />
         <Command.Input
           ref={(el) => {
             inputRef.current = el;
           }}
           placeholder="Search…"
-          className="h-7 w-full bg-transparent text-sm outline-none placeholder:text-(--ui-muted-fg)"
+          className="h-6 w-full bg-transparent text-sm outline-none placeholder:text-(--ui-muted-fg)"
           onKeyDownCapture={onEscCapture}
           onKeyUpCapture={onEscCapture}
         />
       </div>
 
-      <div className="relative mt-2.5">
+      <div className="relative mt-2">
         <div
           aria-hidden
           className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-4 rounded-t-lg"
@@ -497,13 +504,13 @@ function CommandRoot({
         <Command.List
           className={[
             "max-h-75 overflow-y-auto rounded-lg",
-            "pb-4 pt-1.5",
+            "pb-3 pt-1",
             "[scrollbar-width:none]",
             "[-ms-overflow-style:none]",
             "[&::-webkit-scrollbar]:hidden",
           ].join(" ")}
         >
-          <Command.Empty className="px-3 py-6 text-center text-sm text-(--ui-muted-fg)">
+          <Command.Empty className="px-2.5 py-4 text-center text-sm text-(--ui-muted-fg)">
             No results.
           </Command.Empty>
 
@@ -514,15 +521,15 @@ function CommandRoot({
               // ✅ Correct selector to style cmdk heading safely (no clipping)
               className={[
                 "text-xs text-(--ui-muted-fg)",
-                "**:[[cmdk-group-heading]]:px-3",
-                "**:[[cmdk-group-heading]]:pt-2",
-                "**:[[cmdk-group-heading]]:pb-1",
+                "**:[[cmdk-group-heading]]:px-2.5",
+                "**:[[cmdk-group-heading]]:pt-1.5",
+                "**:[[cmdk-group-heading]]:pb-0.5",
               ].join(" ")}
             >
               <div className="px-1">
                 {section.items.length === 0 ? (
                   section.emptyText ? (
-                    <div className="px-3 py-2 text-sm text-(--ui-muted-fg)">
+                    <div className="px-2.5 py-2 text-sm text-(--ui-muted-fg)">
                       {section.emptyText}
                     </div>
                   ) : null
@@ -541,7 +548,7 @@ function CommandRoot({
                       }}
                       className={[
                         "flex cursor-pointer select-none items-center justify-between gap-3",
-                        "rounded-lg px-3 py-2 text-sm",
+                        "rounded-lg px-2.5 py-1.5 text-sm",
                         "aria-selected:bg-(--ui-subtle-bg)",
                         "transition",
                       ].join(" ")}
@@ -571,7 +578,7 @@ function CommandRoot({
         </Command.List>
       </div>
 
-      <div className="border-t border-(--ui-border) px-3 pb-0.5 pt-2 text-xs text-(--ui-muted-fg)">
+      <div className="border-t border-(--ui-border) px-2.5 pb-0.5 pt-1.5 text-xs text-(--ui-muted-fg)">
         ↑↓ then Enter — ESC closes
       </div>
     </Command>

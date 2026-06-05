@@ -10,12 +10,8 @@ const FOOTER_H = 64;
 export default function MarketingFooter({ footerHeight }: { footerHeight?: number }) {
   const year = new Date().getFullYear();
 
-  const MAILTO = process.env.NEXT_PUBLIC_MAILTO || process.env.MAILTO || "frank@datafluent.one";
-  const GITHUB_USERNAME =
-    process.env.NEXT_PUBLIC_GITHUB_USERNAME || process.env.GITHUB_USERNAME || "frankstevens1";
-
-  const PRIVACY_URL = process.env.NEXT_PUBLIC_PRIVACY_URL || "/legal#privacy";
-  const TERMS_URL = process.env.NEXT_PUBLIC_TERMS_URL || "/legal#terms";
+  const MAILTO = process.env.NEXT_PUBLIC_MAILTO || "frank@datafluent.one";
+  const GITHUB_USERNAME = process.env.NEXT_PUBLIC_GITHUB_USERNAME || "frankstevens1";
 
   return (
     <footer
@@ -23,6 +19,7 @@ export default function MarketingFooter({ footerHeight }: { footerHeight?: numbe
         "fixed bottom-0 left-0 right-0 z-30",
         "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
         "transition-colors",
+        "print:hidden",
       ].join(" ")}
       style={{ height: footerHeight || FOOTER_H }}
     >
@@ -33,10 +30,10 @@ export default function MarketingFooter({ footerHeight }: { footerHeight?: numbe
           </span>
 
           <div className="hidden items-center gap-4 sm:flex">
-            <Link href={PRIVACY_URL} className="hover:text-(--ui-fg) transition-colors">
+            <Link href="/legal?document=privacy" className="hover:text-(--ui-fg) transition-colors">
               Privacy
             </Link>
-            <Link href={TERMS_URL} className="hover:text-(--ui-fg) transition-colors">
+            <Link href="/legal?document=terms" className="hover:text-(--ui-fg) transition-colors">
               Terms
             </Link>
           </div>

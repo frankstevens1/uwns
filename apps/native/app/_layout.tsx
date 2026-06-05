@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import {
-  ActivityProvider,
+  ActionProvider,
   AuthProvider,
   NotificationsProvider,
 } from "@repo/providers";
@@ -14,7 +14,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <NotificationsProvider>
-        <ActivityProvider>
+        <ActionProvider>
           <ThemeProvider tokens={tokens}>
             <Stack screenOptions={{ headerShown: false }}>
               {/* Auth routes */}
@@ -23,13 +23,13 @@ export default function RootLayout() {
               {/* App routes */}
               <Stack.Screen name="(tabs)" />
               <Stack.Screen name="notifications" />
-              <Stack.Screen name="activities" />
+              <Stack.Screen name="actions" />
 
               {/* Modal (protected inside the screen itself) */}
               <Stack.Screen name="modal" options={{ presentation: "modal" }} />
             </Stack>
           </ThemeProvider>
-        </ActivityProvider>
+        </ActionProvider>
       </NotificationsProvider>
     </AuthProvider>
   );

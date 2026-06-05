@@ -22,11 +22,11 @@ export function AppShell({
     : APP_HEADER_HEIGHT;
 
   return (
-    <div className="min-h-dvh bg-(--ui-bg) text-(--ui-fg)">
+    <div className="min-h-dvh bg-(--ui-bg) text-(--ui-fg) print:bg-white">
       <AppHeader title={title} headerHeight={headerHeight} />
 
       <div
-        className="no-scrollbar relative overflow-y-auto"
+        className="no-scrollbar relative overflow-y-auto print:!h-auto print:!overflow-visible print:!pt-0"
         style={{
           paddingTop: headerHeight,
           height: "100dvh",
@@ -35,7 +35,7 @@ export function AppShell({
         {/* Top fade */}
         <div
           aria-hidden
-          className="pointer-events-none fixed left-0 right-0 z-10"
+          className="pointer-events-none fixed left-0 right-0 z-10 print:hidden"
           style={{
             top: headerHeight,
             height: 18,
@@ -47,7 +47,7 @@ export function AppShell({
         {/* Bottom fade */}
         <div
           aria-hidden
-          className="pointer-events-none fixed left-0 right-0 z-10"
+          className="pointer-events-none fixed left-0 right-0 z-10 print:hidden"
           style={{
             bottom: 0,
             height: BOTTOM_FADE_H,

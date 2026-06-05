@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {
-  ActivityProvider,
+  ActionProvider,
   AuthProvider,
   NotificationsProvider,
 } from "@repo/providers";
@@ -20,10 +20,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <AuthProvider>
         <NotificationsProvider>
-          <ActivityProvider>
+          <ActionProvider>
             {children}
             <Toaster position="bottom-center" />
-          </ActivityProvider>
+          </ActionProvider>
         </NotificationsProvider>
       </AuthProvider>
     </NextThemesProvider>

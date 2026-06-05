@@ -6,7 +6,7 @@ import {
   notificationGroupConfigs,
 } from "./constants";
 import type {
-  NotificationChannelActivityCountsByChannel,
+  NotificationChannelStatusCountsByChannel,
   NotificationGroupConfig,
   NotificationPreferenceChannel,
   NotificationPreferenceChannels,
@@ -64,17 +64,17 @@ export function getGlobalChannelValues(
   };
 }
 
-export function getGlobalChannelActivityCounts(
+export function getGlobalChannelStatusCounts(
   preferences: NotificationPreference[],
-): NotificationChannelActivityCountsByChannel {
+): NotificationChannelStatusCountsByChannel {
   return {
-    in_app_enabled: getChannelActivityCounts(preferences, "in_app_enabled"),
-    email_enabled: getChannelActivityCounts(preferences, "email_enabled"),
-    push_enabled: getChannelActivityCounts(preferences, "push_enabled"),
+    in_app_enabled: getChannelStatusCounts(preferences, "in_app_enabled"),
+    email_enabled: getChannelStatusCounts(preferences, "email_enabled"),
+    push_enabled: getChannelStatusCounts(preferences, "push_enabled"),
   };
 }
 
-function getChannelActivityCounts(
+function getChannelStatusCounts(
   preferences: NotificationPreference[],
   channel: NotificationPreferenceChannel,
 ) {

@@ -53,7 +53,7 @@ export function ConfirmDialog({
           ) : null}
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="ghost" size="sm" disabled={confirming}>
+              <Button variant="outline" size="sm" disabled={confirming}>
                 {cancelLabel}
               </Button>
             </DialogClose>

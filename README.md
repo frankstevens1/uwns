@@ -77,7 +77,7 @@ These commands should initialize/reset the local app schema.
 
 ## Python Data Services
 
-`services/api` demonstrates the repo pattern for Python-backed product services. The Activity service accepts authenticated app events from web/native and stores them in Supabase.
+`services/api` demonstrates the repo pattern for Python-backed product services. The actions service accepts authenticated app actions from web/native and stores them in Supabase.
 
 Configure:
 

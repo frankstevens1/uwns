@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
-from app.services.activity.router import router as activity_router
+from app.services.actions.router import router as actions_router
 from app.services.notifications.router import router as notifications_router
 
 
@@ -23,7 +23,7 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.include_router(activity_router, prefix="/v1/events", tags=["events"])
+app.include_router(actions_router, prefix="/v1/actions", tags=["actions"])
 app.include_router(
     notifications_router,
     prefix="/v1/notifications",

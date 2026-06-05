@@ -12,8 +12,8 @@ export type NotificationContextValue = {
   loading: boolean;
   error: string | null;
   refreshNotifications: () => Promise<void>;
-  applyActivityNotificationUpdate: (args: {
-    eventName: string;
+  applyActionNotificationUpdate: (args: {
+    actionName: string;
     platform: "web" | "native";
   }) => Promise<void>;
   createNotification: (input: CreateNotificationInput) => Promise<Notification | null>;

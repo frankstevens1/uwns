@@ -2,8 +2,10 @@
 
 import type * as React from "react";
 import { Bell, CheckCheck } from "lucide-react";
+import { useActions } from "@repo/providers";
 import { Button } from "@repo/ui";
-import type { Notification } from "@repo/lib";
+import type { Notification, ResolvedNotificationTarget } from "@repo/lib";
+import { resolveNotificationTarget } from "@repo/lib";
 import {
   canManuallyMarkRead,
   formatNotificationTime,
@@ -25,10 +27,11 @@ export function NotificationHistory({
   error: string | null;
   loading: boolean;
   notifications: Notification[];
-  onGoTo: (href: string) => void;
+  onGoTo: (target: ResolvedNotificationTarget) => void;
   onMarkAllAsRead: () => Promise<void>;
   onMarkAsRead: (id: string) => Promise<Notification | null>;
 }) {
+  const { trackAction } = useActions();
   const unreadNotifications = notifications.filter(
     (notification) => !notification.read_at,
   );
@@ -51,7 +54,22 @@ export function NotificationHistory({
           </p>
         </div>
         {hasManualUnread ? (
-          <Button variant="outline" size="sm" onPress={onMarkAllAsRead}>
+          <Button
+            variant="outline"
+            size="sm"
+            onPress={() => {
+              void trackAction({
+                actionName: "notifications_mark_all_read_clicked",
+                metadata: {
+                  source: "settings",
+                  screen: "notifications",
+                  trigger: "button",
+                  unreadCount: unreadNotifications.length,
+                },
+              });
+              void onMarkAllAsRead();
+            }}
+          >
             <span className="inline-flex items-center gap-2">
               <CheckCheck size={14} />
               Mark all read
@@ -77,16 +95,50 @@ export function NotificationHistory({
             title="Unread"
           >
             {unreadNotifications.map((notification) => {
-              const href = notification.href;
+              const resolvedTarget = resolveNotificationTarget(
+                notification.target,
+                "web",
+              );
 
               return (
                 <NotificationRow
                   key={notification.id}
                   notification={notification}
-                  onGoTo={href ? () => onGoTo(href) : undefined}
+                  onGoTo={
+                    resolvedTarget
+                      ? () => {
+                          void trackAction({
+                            actionName: "notification_opened",
+                            metadata: {
+                              source: "settings",
+                              screen: "notifications",
+                              trigger: "button",
+                              groupKey: notification.group_key,
+                              notificationType: notification.type,
+                              hasTarget: true,
+                            },
+                          });
+                          onGoTo(resolvedTarget);
+                        }
+                      : undefined
+                  }
                   onMarkAsRead={
                     canManuallyMarkRead(notification)
-                      ? () => void onMarkAsRead(notification.id)
+                      ? async () => {
+                          const updated = await onMarkAsRead(notification.id);
+                          if (!updated) return;
+
+                          void trackAction({
+                            actionName: "notification_marked_read",
+                            metadata: {
+                              source: "settings",
+                              screen: "notifications",
+                              trigger: "button",
+                              groupKey: notification.group_key,
+                              notificationType: notification.type,
+                            },
+                          });
+                        }
                       : undefined
                   }
                 />
@@ -101,13 +153,33 @@ export function NotificationHistory({
             title="Read"
           >
             {readNotifications.map((notification) => {
-              const href = notification.href;
+              const resolvedTarget = resolveNotificationTarget(
+                notification.target,
+                "web",
+              );
 
               return (
                 <NotificationRow
                   key={notification.id}
                   notification={notification}
-                  onGoTo={href ? () => onGoTo(href) : undefined}
+                  onGoTo={
+                    resolvedTarget
+                      ? () => {
+                          void trackAction({
+                            actionName: "notification_opened",
+                            metadata: {
+                              source: "settings",
+                              screen: "notifications",
+                              trigger: "button",
+                              groupKey: notification.group_key,
+                              notificationType: notification.type,
+                              hasTarget: true,
+                            },
+                          });
+                          onGoTo(resolvedTarget);
+                        }
+                      : undefined
+                  }
                 />
               );
             })}

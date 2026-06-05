@@ -45,6 +45,10 @@ export { PasswordRequirementsList } from "./components/auth/PasswordRequirements
 export { PasswordResetCheckEmailForm } from "./components/auth/PasswordResetCheckEmailForm/PasswordResetCheckEmailForm.native";
 export { ReadOnlyInput } from "./primitives/ReadOnlyInput/ReadOnlyInput.native";
 export { Select } from "./primitives/Select/Select.native";
+export {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "./primitives/ToggleGroup/ToggleGroup.native";
 export { SettingsRow } from "./components/SettingsRow/SettingsRow.native";
 export { SignUpForm } from "./components/auth/SignUpForm/SignUpForm.native";
 export { Spinner } from "./primitives/Spinner/Spinner.native";

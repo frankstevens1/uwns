@@ -24,18 +24,18 @@ import {
   type StopwatchStopEvent,
   Tip,
 } from "@repo/ui";
-import { useActivity } from "@repo/providers";
-import type { ActivityEvent, ActivityMetadata } from "@repo/lib";
+import { useActions } from "@repo/providers";
+import type { Action, ActionMetadata } from "@repo/lib";
 
-type PendingActivityEvent = {
-  eventName: string;
-  metadata: ActivityMetadata;
+type PendingAction = {
+  actionName: string;
+  metadata: ActionMetadata;
   uniqueKey?: string;
   occurredAt: string;
 };
 
-type ActivityStopwatchProps = {
-  onEventTracked: () => void | Promise<void>;
+type ActionStopwatchProps = {
+  onActionTracked: () => void | Promise<void>;
 };
 
 let homeVisitTracked = false;
@@ -44,10 +44,10 @@ function timestamp() {
   return new Date().toISOString();
 }
 
-function makeHomeViewedEvent(): PendingActivityEvent {
+function makeHomeViewedAction(): PendingAction {
   const occurredAt = timestamp();
   return {
-    eventName: "home_viewed",
+    actionName: "home_viewed",
     uniqueKey: "web:home_viewed",
     occurredAt,
     metadata: {
@@ -59,7 +59,7 @@ function makeHomeViewedEvent(): PendingActivityEvent {
   };
 }
 
-const activityStopwatchWebExample = abbreviatedCodeSnippet([
+const actionStopwatchWebExample = abbreviatedCodeSnippet([
   `"use client";
 
 import {
@@ -67,22 +67,22 @@ import {
   type StopwatchStartEvent,
   type StopwatchStopEvent,
 } from "@repo/ui";
-import { useActivity } from "@repo/providers";`,
-  `export function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
-  const { trackEvent } = useActivity();
+import { useActions } from "@repo/providers";`,
+  `export function ActionStopwatch({ onActionTracked }: ActionStopwatchProps) {
+  const { trackAction } = useActions();
 
   async function handleStart({ runId, startedAt }: StopwatchStartEvent) {
-    await trackEvent({
-      eventName: "timer_started",
+    await trackAction({
+      actionName: "timer_started",
       occurredAt: startedAt,
       metadata: { source: "home_demo", runId, state: "running" },
     });
-    await onEventTracked();
+    await onActionTracked();
   }
 
   async function handleStop(event: StopwatchStopEvent) {
-    await trackEvent({
-      eventName: "timer_stopped",
+    await trackAction({
+      actionName: "timer_stopped",
       occurredAt: event.stoppedAt,
       metadata: {
         source: "home_demo",
@@ -91,35 +91,35 @@ import { useActivity } from "@repo/providers";`,
         durationSeconds: event.durationSeconds,
       },
     });
-    await onEventTracked();
+    await onActionTracked();
   }
 
   return <Stopwatch onStart={handleStart} onStop={handleStop} />;
 }`,
 ]);
 
-const activityStopwatchNativeExample = abbreviatedCodeSnippet([
+const actionStopwatchNativeExample = abbreviatedCodeSnippet([
   `import {
   Stopwatch,
   type StopwatchStartEvent,
   type StopwatchStopEvent,
 } from "@repo/ui";
-import { useActivity } from "@repo/providers";`,
-  `export function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
-  const { trackEvent } = useActivity();
+import { useActions } from "@repo/providers";`,
+  `export function ActionStopwatch({ onActionTracked }: ActionStopwatchProps) {
+  const { trackAction } = useActions();
 
   async function handleStart({ runId, startedAt }: StopwatchStartEvent) {
-    await trackEvent({
-      eventName: "timer_started",
+    await trackAction({
+      actionName: "timer_started",
       occurredAt: startedAt,
       metadata: { source: "home_demo", runId, state: "running" },
     });
-    await onEventTracked();
+    await onActionTracked();
   }
 
   async function handleStop(event: StopwatchStopEvent) {
-    await trackEvent({
-      eventName: "timer_stopped",
+    await trackAction({
+      actionName: "timer_stopped",
       occurredAt: event.stoppedAt,
       metadata: {
         source: "home_demo",
@@ -128,7 +128,7 @@ import { useActivity } from "@repo/providers";`,
         durationSeconds: event.durationSeconds,
       },
     });
-    await onEventTracked();
+    await onActionTracked();
   }
 
   return <Stopwatch onStart={handleStart} onStop={handleStop} />;
@@ -136,16 +136,16 @@ import { useActivity } from "@repo/providers";`,
 ]);
 
 const webLayoutExample = abbreviatedCodeSnippet([
-  `import { ActivityProvider, AuthProvider } from "@repo/providers";
+  `import { ActionProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Shell } from "@/components/Shell";`,
   `export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
-        <ActivityProvider>
+        <ActionProvider>
           <Shell>{children}</Shell>
-        </ActivityProvider>
+        </ActionProvider>
       </AuthProvider>
     </NextThemesProvider>
   );
@@ -154,7 +154,7 @@ import { Shell } from "@/components/Shell";`,
 
 const nativeLayoutExample = abbreviatedCodeSnippet([
   `import { Stack } from "expo-router";
-import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ActionProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider, darkTokens, lightTokens } from "@repo/ui";
 import { useColorScheme } from "react-native";`,
   `export default function RootLayout() {
@@ -163,23 +163,23 @@ import { useColorScheme } from "react-native";`,
 
   return (
     <AuthProvider>
-      <ActivityProvider>
+      <ActionProvider>
         <ThemeProvider tokens={tokens}>
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeProvider>
-      </ActivityProvider>
+      </ActionProvider>
     </AuthProvider>
   );
 }`,
 ]);
 
-function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
-  const { trackEvent } = useActivity();
+function ActionStopwatch({ onActionTracked }: ActionStopwatchProps) {
+  const { trackAction } = useActions();
 
   const handleStart = React.useCallback(
     async ({ runId, startedAt }: StopwatchStartEvent) => {
-      await trackEvent({
-        eventName: "timer_started",
+      await trackAction({
+        actionName: "timer_started",
         occurredAt: startedAt,
         metadata: {
           source: "home_demo",
@@ -190,15 +190,15 @@ function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
         },
       });
 
-      await onEventTracked();
+      await onActionTracked();
     },
-    [onEventTracked, trackEvent],
+    [onActionTracked, trackAction],
   );
 
   const handleStop = React.useCallback(
     async (event: StopwatchStopEvent) => {
-      await trackEvent({
-        eventName: "timer_stopped",
+      await trackAction({
+        actionName: "timer_stopped",
         occurredAt: event.stoppedAt,
         metadata: {
           source: "home_demo",
@@ -211,9 +211,9 @@ function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
         },
       });
 
-      await onEventTracked();
+      await onActionTracked();
     },
-    [onEventTracked, trackEvent],
+    [onActionTracked, trackAction],
   );
 
   return <Stopwatch onStart={handleStart} onStop={handleStop} />;
@@ -221,45 +221,45 @@ function ActivityStopwatch({ onEventTracked }: ActivityStopwatchProps) {
 
 export default function AppHome() {
   const { resolvedTheme } = useTheme();
-  const { listRecentEvents, trackEvent } = useActivity();
-  const [events, setEvents] = React.useState<ActivityEvent[]>([]);
-  const [selectedEvent, setSelectedEvent] =
-    React.useState<ActivityEvent | null>(null);
+  const { listRecentActions, trackAction } = useActions();
+  const [actions, setActions] = React.useState<Action[]>([]);
+  const [selectedAction, setSelectedAction] =
+    React.useState<Action | null>(null);
   const [refreshing, setRefreshing] = React.useState(false);
   const codeBlockTheme = resolvedTheme === "dark" ? "dark" : "light";
 
-  const refreshEvents = React.useCallback(async () => {
+  const refreshActions = React.useCallback(async () => {
     setRefreshing(true);
     try {
-      setEvents(await listRecentEvents(10));
+      setActions(await listRecentActions(10));
     } catch {
-      setEvents([]);
+      setActions([]);
     } finally {
       setRefreshing(false);
     }
-  }, [listRecentEvents]);
+  }, [listRecentActions]);
 
-  const trackPageEvent = React.useCallback(
-    async (event: PendingActivityEvent) => {
-      await trackEvent({
-        eventName: event.eventName,
-        metadata: event.metadata,
-        uniqueKey: event.uniqueKey,
-        occurredAt: event.occurredAt,
+  const trackPageAction = React.useCallback(
+    async (action: PendingAction) => {
+      await trackAction({
+        actionName: action.actionName,
+        metadata: action.metadata,
+        uniqueKey: action.uniqueKey,
+        occurredAt: action.occurredAt,
       });
     },
-    [trackEvent],
+    [trackAction],
   );
 
   React.useEffect(() => {
     void (async () => {
       if (!homeVisitTracked) {
         homeVisitTracked = true;
-        await trackPageEvent(makeHomeViewedEvent());
+        await trackPageAction(makeHomeViewedAction());
       }
-      await refreshEvents();
+      await refreshActions();
     })();
-  }, [refreshEvents, trackPageEvent]);
+  }, [refreshActions, trackPageAction]);
 
   return (
     <section className="space-y-6">
@@ -274,25 +274,25 @@ export default function AppHome() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="grid grid-cols-2 gap-6 lg:flex lg:flex-col">
           <div className="space-y-6">
-            <ActivityStopwatch onEventTracked={refreshEvents} />
+            <ActionStopwatch onActionTracked={refreshActions} />
 
             <Tip>
               The stopwatch is shared <Code>@repo/ui</Code>. The app-specific
-              part is calling <Code>trackEvent</Code> through{" "}
-              <Code>ActivityProvider</Code>.
+              part is calling <Code>trackAction</Code> through{" "}
+              <Code>ActionProvider</Code>.
             </Tip>
           </div>
 
           <Card padding="none" elevation="sm" variant="subtle">
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
-                <div className="text-xs font-mono">Recent events</div>
+                <div className="text-xs font-mono">Recent actions</div>
                 <Button
                   variant="primary"
                   size="sm"
-                  aria-label="Refresh events"
+                  aria-label="Refresh actions"
                   disabled={refreshing}
-                  onPress={() => void refreshEvents()}
+                  onPress={() => void refreshActions()}
                 >
                   <RefreshCw
                     size={12}
@@ -303,33 +303,33 @@ export default function AppHome() {
               </div>
             </CardHeader>
             <CardBody padding="none">
-              {events.length === 0 ? (
+              {actions.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-(--ui-muted-fg)">
-                  Start and stop the timer to create events.
+                  Start and stop the timer to create actions.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse text-sm">
                     <tbody>
-                      {events.map((event, index) => (
+                      {actions.map((action, index) => (
                         <tr
-                          key={`${event.id}-${index}`}
+                          key={`${action.id}-${index}`}
                           className="border-b border-(--ui-border) last:border-b-0"
                         >
                           <td className="px-3 py-2">
                             <div className="font-mono text-xs text-(--ui-muted-fg)">
-                              {event.event_name}
+                              {action.action_name}
                             </div>
                           </td>
                           <td className="px-3 py-2 font-mono text-xs text-(--ui-muted-fg)">
-                            {event.platform}
+                            {action.platform}
                           </td>
                           <td className="px-3 py-2 text-right">
                             <Button
                               variant="outline"
                               size="sm"
-                              aria-label={`View metadata for ${event.event_name}`}
-                              onPress={() => setSelectedEvent(event)}
+                              aria-label={`View metadata for ${action.action_name}`}
+                              onPress={() => setSelectedAction(action)}
                             >
                               <Braces size={12} />
                             </Button>
@@ -348,12 +348,12 @@ export default function AppHome() {
           <CodeBlock
             snippets={[
               {
-                id: "track-event",
-                label: "ActivityStopwatch.web.tsx",
+                id: "track-action",
+                label: "ActionStopwatch.web.tsx",
                 group: "web",
-                filename: "ActivityStopwatch.web.tsx",
+                filename: "ActionStopwatch.web.tsx",
                 language: "tsx",
-                code: activityStopwatchWebExample,
+                code: actionStopwatchWebExample,
               },
               {
                 id: "web-layout",
@@ -364,12 +364,12 @@ export default function AppHome() {
                 code: webLayoutExample,
               },
               {
-                id: "track-event-native",
-                label: "ActivityStopwatch.native.tsx",
+                id: "track-action-native",
+                label: "ActionStopwatch.native.tsx",
                 group: "native",
-                filename: "ActivityStopwatch.native.tsx",
+                filename: "ActionStopwatch.native.tsx",
                 language: "tsx",
-                code: activityStopwatchNativeExample,
+                code: actionStopwatchNativeExample,
               },
               {
                 id: "native-layout",
@@ -387,9 +387,9 @@ export default function AppHome() {
       </div>
 
       <DialogRoot
-        open={selectedEvent !== null}
+        open={selectedAction !== null}
         onOpenChange={(open) => {
-          if (!open) setSelectedEvent(null);
+          if (!open) setSelectedAction(null);
         }}
       >
         <DialogPortal>
@@ -398,19 +398,19 @@ export default function AppHome() {
           <DialogContent position="center" className="max-w-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <DialogTitle>Event metadata</DialogTitle>
+                <DialogTitle>Action metadata</DialogTitle>
 
                 <DialogDescription>
-                  {selectedEvent
-                    ? selectedEvent.event_name
-                    : "No event selected"}
+                  {selectedAction
+                    ? selectedAction.action_name
+                    : "No action selected"}
                 </DialogDescription>
               </div>
             </div>
 
-            {selectedEvent ? (
+            {selectedAction ? (
               <CodeBlock
-                code={JSON.stringify(selectedEvent.metadata, null, 2)}
+                code={JSON.stringify(selectedAction.metadata, null, 2)}
                 filename="metadata.json"
                 language="json"
                 showLineNumbers={false}
@@ -421,7 +421,7 @@ export default function AppHome() {
 
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="ghost">Close</Button>
+                <Button variant="outline">Close</Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>

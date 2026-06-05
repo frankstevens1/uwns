@@ -1,0 +1,34 @@
+[
+  {
+    "id": "account",
+    "label": "Account",
+    "paths": {
+      "web": "/app/account",
+      "native": "/account"
+    }
+  },
+  {
+    "id": "actions",
+    "label": "Actions",
+    "paths": {
+      "web": "/app/settings/actions",
+      "native": "/actions"
+    }
+  },
+  {
+    "id": "home",
+    "label": "Home",
+    "paths": {
+      "web": "/app",
+      "native": "/"
+    }
+  },
+  {
+    "id": "notifications",
+    "label": "Notifications",
+    "paths": {
+      "web": "/app/settings/notifications",
+      "native": "/settings"
+    }
+  }
+]

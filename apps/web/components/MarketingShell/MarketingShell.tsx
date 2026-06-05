@@ -15,11 +15,11 @@ export function MarketingShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh bg-(--ui-bg) text-(--ui-fg)">
+    <div className="min-h-dvh bg-(--ui-bg) text-(--ui-fg) print:bg-white">
       <MarketingHeader title={title} headerHeight={HEADER_H} />
 
       <div
-        className="no-scrollbar relative overflow-y-auto"
+        className="no-scrollbar relative overflow-y-auto print:!h-auto print:!overflow-visible print:!pt-0 print:!pb-0"
         style={{
           paddingTop: HEADER_H,
           paddingBottom: FOOTER_H,
@@ -29,7 +29,7 @@ export function MarketingShell({
         {/* Top fade */}
         <div
           aria-hidden
-          className="pointer-events-none fixed left-0 right-0 z-10"
+          className="pointer-events-none fixed left-0 right-0 z-10 print:hidden"
           style={{
             top: HEADER_H,
             height: 18,
@@ -41,7 +41,7 @@ export function MarketingShell({
         {/* Bottom fade */}
         <div
           aria-hidden
-          className="pointer-events-none fixed left-0 right-0 z-10"
+          className="pointer-events-none fixed left-0 right-0 z-10 print:hidden"
           style={{
             bottom: FOOTER_H,
             height: 18,

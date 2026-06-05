@@ -1,5 +1,10 @@
-from app.services.activity.models import ActivityEvent
+from app.services.actions.models import Action
 from app.services.notifications.delivery import EmailDelivery, ExpoPushDelivery
+from app.services.notifications.builders import (
+    app_destination_target,
+    build_notification_request,
+    notification_channels,
+)
 from app.services.notifications.models import (
     CreateNotificationRequest,
     Notification,
@@ -85,82 +90,81 @@ class NotificationsService:
     def unregister_push_token(self, user_id: str, token: str) -> None:
         self.repository.unregister_push_token(user_id, token)
 
-    def consume_activity_event(
+    def consume_action(
         self,
-        event: ActivityEvent,
+        action: Action,
         *,
         email: str | None = None,
     ) -> None:
-        self.repository.mark_notifications_read_by_auto_read_event(
-            event.user_id,
-            event.event_name,
+        self.repository.mark_notifications_read_by_auto_read_action(
+            action.user_id,
+            action.action_name,
         )
 
-        if event.event_name in ("logged_in", "signed_up"):
-            self._handle_platform_authenticated(event, email=email)
+        if action.action_name in ("logged_in", "signed_up"):
+            self._handle_platform_authenticated(action, email=email)
             return
 
-        if event.event_name == "account_viewed":
-            self._handle_account_viewed(event)
+        if action.action_name == "account_viewed":
+            self._handle_account_viewed(action)
 
     def _handle_platform_authenticated(
         self,
-        event: ActivityEvent,
+        action: Action,
         *,
         email: str | None,
     ) -> None:
-        if event.event_name == "logged_in":
+        if action.action_name == "logged_in":
             self.repository.mark_notification_read_by_unique_key(
-                event.user_id,
-                f"demo:login:{event.platform}",
+                action.user_id,
+                f"demo:login:{action.platform}",
             )
 
-        other_platform = "native" if event.platform == "web" else "web"
-        other_platform_seen = self.repository.has_activity_event(
-            event.user_id,
+        other_platform = "native" if action.platform == "web" else "web"
+        other_platform_seen = self.repository.has_action(
+            action.user_id,
             "logged_in",
             other_platform,
-        ) or self.repository.has_activity_event(
-            event.user_id,
+        ) or self.repository.has_action(
+            action.user_id,
             "signed_up",
             other_platform,
         )
         if not other_platform_seen:
             platform_label = "web" if other_platform == "web" else "native"
             self.create_notification(
-                event.user_id,
-                CreateNotificationRequest(
+                action.user_id,
+                build_notification_request(
                     group_key="auth",
                     type="login_platform_prompt",
                     title=f"Log in on {platform_label}",
                     body=f"Complete the demo by signing in on {platform_label}.",
                     platform=other_platform,
-                    href=None,
                     metadata={
-                        "activityEventName": event.event_name,
+                        "actionName": action.action_name,
                         "autoReadOnly": True,
                         "targetPlatform": other_platform,
                     },
                     unique_key=f"demo:login:{other_platform}",
-                    source_activity_event_id=event.id,
-                    channels={"in_app": True, "email": True, "push": True},
+                    source_action_id=action.id,
+                    channels=notification_channels(email=True, push=True),
                 ),
                 email=email,
             )
         self._ensure_view_account_notification(
-            event.user_id,
-            source_activity_event_id=event.id,
-            activity_event_name=event.event_name,
+            action.user_id,
+            source_action_id=action.id,
+            action_name=action.action_name,
         )
 
-    def _handle_account_viewed(self, event: ActivityEvent) -> None:
+    def _handle_account_viewed(self, action: Action) -> None:
         self._ensure_view_account_notification(
-            event.user_id,
-            source_activity_event_id=event.id,
-            activity_event_name=event.event_name,
+            action.user_id,
+            source_action_id=action.id,
+            action_name=action.action_name,
         )
         self.repository.mark_notification_read_by_unique_key(
-            event.user_id,
+            action.user_id,
             "demo:view_account",
         )
 
@@ -168,8 +172,8 @@ class NotificationsService:
         self,
         user_id: str,
         *,
-        source_activity_event_id: str | None = None,
-        activity_event_name: str | None = None,
+        source_action_id: str | None = None,
+        action_name: str | None = None,
     ) -> Notification:
         existing = self.repository.find_notification_by_unique_key(
             user_id,
@@ -177,30 +181,28 @@ class NotificationsService:
         )
         if (
             existing
-            and existing.href == "/app/account"
-            and existing.metadata.get("nativeHref") == "/account"
-            and existing.metadata.get("webHref") == "/app/account"
+            and existing.target is not None
+            and existing.target.type == "app_destination"
+            and existing.target.target == "account"
         ):
             return existing
 
         preference = self.repository.get_or_create_preference(user_id, "account")
         return self.repository.create_or_update_notification(
             user_id,
-            CreateNotificationRequest(
+            build_notification_request(
                 group_key="account",
                 type="view_account",
                 title="View Account",
-                body="Open your account screen to confirm the account activity flow.",
+                body="Open your account screen to confirm the account action flow.",
                 platform=None,
-                href="/app/account",
+                target=app_destination_target("account"),
                 metadata={
-                    "activityEventName": activity_event_name,
-                    "nativeHref": "/account",
-                    "webHref": "/app/account",
+                    "actionName": action_name,
                 },
                 unique_key="demo:view_account",
-                source_activity_event_id=source_activity_event_id,
-                channels={"in_app": True, "email": False, "push": False},
+                source_action_id=source_action_id,
+                channels=notification_channels(),
             ),
             in_app_visible=preference.in_app_enabled,
             reset_read=False,

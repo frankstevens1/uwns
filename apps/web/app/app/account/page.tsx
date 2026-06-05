@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { abbreviatedCodeSnippet, Code, CodeBlock, Tip } from "@repo/ui";
-import { useActivity } from "@repo/providers";
+import { useActions } from "@repo/providers";
 import { useTheme } from "next-themes";
 import { SignedInIdentity } from "./SignedInIdentity";
 
@@ -17,14 +17,14 @@ import {
   CardHeader,
   ReadOnlyInput,
 } from "@repo/ui";
-import { useActivity, useAuth } from "@repo/providers";`,
+import { useActions, useAuth } from "@repo/providers";`,
   `export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
 
   async function handleSignOut() {
-    await trackEvent({
-      eventName: "signed_out",
+    await trackAction({
+      actionName: "signed_out",
       metadata: { trigger: "account_card" },
     });
     await signOut();
@@ -60,15 +60,15 @@ import {
   ReadOnlyInput,
   useThemeTokens,
 } from "@repo/ui";
-import { useActivity, useAuth } from "@repo/providers";`,
+import { useActions, useAuth } from "@repo/providers";`,
   `export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const tokens = useThemeTokens();
 
   async function handleSignOut() {
-    await trackEvent({
-      eventName: "signed_out",
+    await trackAction({
+      actionName: "signed_out",
       metadata: { trigger: "account_card" },
     });
     await signOut();
@@ -96,16 +96,16 @@ import { useActivity, useAuth } from "@repo/providers";`,
 ]);
 
 const webLayoutExample = abbreviatedCodeSnippet([
-  `import { ActivityProvider, AuthProvider } from "@repo/providers";
+  `import { ActionProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Shell } from "@/components/Shell";`,
   `export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
-        <ActivityProvider>
+        <ActionProvider>
           <Shell>{children}</Shell>
-        </ActivityProvider>
+        </ActionProvider>
       </AuthProvider>
     </NextThemesProvider>
   );
@@ -114,7 +114,7 @@ import { Shell } from "@/components/Shell";`,
 
 const nativeLayoutExample = abbreviatedCodeSnippet([
   `import { Stack } from "expo-router";
-import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ActionProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider, darkTokens, lightTokens } from "@repo/ui";
 import { useColorScheme } from "react-native";`,
   `export default function RootLayout() {
@@ -123,11 +123,11 @@ import { useColorScheme } from "react-native";`,
 
   return (
     <AuthProvider>
-      <ActivityProvider>
+      <ActionProvider>
         <ThemeProvider tokens={tokens}>
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeProvider>
-      </ActivityProvider>
+      </ActionProvider>
     </AuthProvider>
   );
 }`,
@@ -135,11 +135,11 @@ import { useColorScheme } from "react-native";`,
 
 export default function AccountPage() {
   const { resolvedTheme } = useTheme();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
 
   React.useEffect(() => {
-    void trackEvent({
-      eventName: "account_viewed",
+    void trackAction({
+      actionName: "account_viewed",
       uniqueKey: "web:account_viewed",
       metadata: {
         source: "account",
@@ -147,7 +147,7 @@ export default function AccountPage() {
         trigger: "first_page_visit",
       },
     });
-  }, [trackEvent]);
+  }, [trackAction]);
 
   return (
     <section className="space-y-6 pb-14">

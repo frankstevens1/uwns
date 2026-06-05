@@ -9,11 +9,11 @@ import {
   CardHeader,
   ReadOnlyInput,
 } from "@repo/ui";
-import { useActivity, useAuth } from "@repo/providers";
+import { useActions, useAuth } from "@repo/providers";
 
 export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const [busy, setBusy] = React.useState(false);
 
   const handleSignOut = async () => {
@@ -21,8 +21,8 @@ export function SignedInIdentity() {
 
     setBusy(true);
     try {
-      await trackEvent({
-        eventName: "signed_out",
+      await trackAction({
+        actionName: "signed_out",
         metadata: { trigger: "account_card" },
       });
       await signOut();

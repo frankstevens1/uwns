@@ -34,8 +34,12 @@ class ExpoPushDelivery:
                 "body": notification.body,
                 "data": {
                     "notificationId": notification.id,
-                    "href": notification.href,
                     "groupKey": notification.group_key,
+                    "target": (
+                        notification.target.model_dump(mode="json")
+                        if notification.target
+                        else None
+                    ),
                 },
             },
             timeout=10,

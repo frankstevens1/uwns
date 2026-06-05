@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useActivity, useNotifications } from "@repo/providers";
+import type { ResolvedNotificationTarget } from "@repo/lib";
+import { useActions, useNotifications } from "@repo/providers";
 import {
   getNotificationsForGroup,
   NotificationDemo,
@@ -11,7 +12,7 @@ import {
 } from "@/components/Settings/Notifications";
 
 export function NotificationSettingsSection() {
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const router = useRouter();
   const {
     notifications,
@@ -31,8 +32,8 @@ export function NotificationSettingsSection() {
   );
 
   React.useEffect(() => {
-    void trackEvent({
-      eventName: "notifications_viewed",
+    void trackAction({
+      actionName: "notifications_viewed",
       uniqueKey: "web:settings:notifications_viewed",
       metadata: {
         source: "settings",
@@ -40,12 +41,14 @@ export function NotificationSettingsSection() {
         trigger: "first_page_visit",
       },
     });
-  }, [trackEvent]);
+  }, [trackAction]);
 
   return (
     <section className="space-y-6">
-
-      <NotificationDemo onCreate={createNotification} />
+      <NotificationDemo
+        preferences={preferences}
+        onCreate={createNotification}
+      />
 
       <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
         <NotificationGroups
@@ -59,7 +62,14 @@ export function NotificationSettingsSection() {
           error={error}
           loading={loading}
           notifications={historyNotifications}
-          onGoTo={(href) => router.push(href)}
+          onGoTo={(target: ResolvedNotificationTarget) => {
+            if (target.type === "external_url") {
+              window.location.assign(target.href);
+              return;
+            }
+
+            router.push(target.href);
+          }}
           onMarkAllAsRead={markAllAsRead}
           onMarkAsRead={markAsRead}
         />

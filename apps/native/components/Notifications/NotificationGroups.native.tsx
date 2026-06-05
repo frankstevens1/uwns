@@ -1,7 +1,16 @@
 import * as React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import type { Notification, NotificationPreference } from "@repo/lib";
+import type {
+  Notification,
+  NotificationGroupConfig,
+  NotificationPreference,
+  NotificationPreferenceChannels,
+} from "@repo/lib";
+import {
+  getNotificationGroupConfig,
+} from "@repo/lib";
+import { useActions } from "@repo/providers";
 import {
   AccordionContent,
   AccordionItem,
@@ -29,47 +38,6 @@ const notificationChannels = [
   label: string;
 }[];
 
-const notificationGroupConfigs: Record<string, NotificationGroupConfig> = {
-  auth: {
-    label: "Authentication",
-    description:
-      "Security and sign-in activity, including login prompts and authentication checks.",
-    defaults: {
-      in_app_enabled: true,
-      email_enabled: true,
-      push_enabled: true,
-    },
-  },
-  account: {
-    label: "Account",
-    description:
-      "Account activity such as profile, membership, and workspace updates.",
-    defaults: {
-      in_app_enabled: true,
-      email_enabled: true,
-      push_enabled: true,
-    },
-  },
-  system: {
-    label: "System",
-    description: "Platform updates, maintenance notices, and service messages.",
-    defaults: {
-      in_app_enabled: true,
-      email_enabled: false,
-      push_enabled: false,
-    },
-  },
-};
-
-const fallbackNotificationGroupConfig = {
-  description: "Controls delivery for notifications in this group.",
-  defaults: {
-    in_app_enabled: true,
-    email_enabled: false,
-    push_enabled: false,
-  },
-} satisfies Omit<NotificationGroupConfig, "label">;
-
 type NotificationGroupsProps = {
   notifications: Notification[];
   preferences: NotificationPreference[];
@@ -78,18 +46,7 @@ type NotificationGroupsProps = {
   onChange: PreferenceChangeHandler;
 };
 
-type NotificationPreferenceChannels = Pick<
-  NotificationPreference,
-  "in_app_enabled" | "email_enabled" | "push_enabled"
->;
-
 type NotificationPreferenceChannel = keyof NotificationPreferenceChannels;
-
-type NotificationGroupConfig = {
-  label: string;
-  description: string;
-  defaults: NotificationPreferenceChannels;
-};
 
 type PreferencePatch = Partial<NotificationPreferenceChannels>;
 
@@ -103,14 +60,14 @@ type NotificationGroupCounts = {
   total: number;
 };
 
-type NotificationChannelActivityCounts = {
+type NotificationChannelStatusCounts = {
   active: number;
   total: number;
 };
 
-type NotificationChannelActivityCountsByChannel = Record<
+type NotificationChannelStatusCountsByChannel = Record<
   NotificationPreferenceChannel,
-  NotificationChannelActivityCounts
+  NotificationChannelStatusCounts
 >;
 
 export function NotificationGroups({
@@ -210,9 +167,10 @@ function NotificationGroupsTotalsRow({
   preferences: NotificationPreference[];
   onChange: PreferenceChangeHandler;
 }) {
+  const { trackAction } = useActions();
   const tokens = useThemeTokens();
   const channelValues = getGlobalChannelValues(preferences);
-  const channelActivityCounts = getGlobalChannelActivityCounts(preferences);
+  const channelStatusCounts = getGlobalChannelStatusCounts(preferences);
   const groupColors = getKeyedBadgeColors(totalsAccordionValue);
 
   return (
@@ -244,16 +202,30 @@ function NotificationGroupsTotalsRow({
           Apply delivery settings across all groups.
         </Text>
         <DeliveryChannelControls
-          channelActivityCounts={channelActivityCounts}
+          channelStatusCounts={channelStatusCounts}
           values={channelValues}
-          onChange={(channel, checked) =>
-            void applyChannelToAllGroups(
-              preferences,
-              channel,
-              checked,
-              onChange,
-            )
-          }
+          onChange={(channel, checked) => {
+            void (async () => {
+              await applyChannelToAllGroups(
+                preferences,
+                channel,
+                checked,
+                onChange,
+              );
+
+              void trackAction({
+                actionName: "notification_preferences_bulk_clicked",
+                metadata: {
+                  source: "settings",
+                  screen: "notifications",
+                  trigger: "apply_all",
+                  channel,
+                  enabled: checked,
+                  groupCount: preferences.length,
+                },
+              });
+            })();
+          }}
         />
       </AccordionContent>
     </AccordionItem>
@@ -275,6 +247,7 @@ function NotificationGroupRow({
   last: boolean;
   onChange: PreferenceChangeHandler;
 }) {
+  const { trackAction } = useActions();
   const tokens = useThemeTokens();
   const groupColors = getKeyedBadgeColors(preference.group_key);
 
@@ -308,23 +281,51 @@ function NotificationGroupRow({
         </Text>
         <DeliveryChannelControls
           values={getPreferenceChannelValues(preference)}
-          onChange={(channel, checked) =>
-            void updatePreferenceChannel(
-              preference.group_key,
-              channel,
-              checked,
-              onChange,
-            )
-          }
+          onChange={(channel, checked) => {
+            void (async () => {
+              const updated = await updatePreferenceChannel(
+                preference.group_key,
+                channel,
+                checked,
+                onChange,
+              );
+              if (!updated) return;
+
+              void trackAction({
+                actionName: "notification_preference_changed",
+                metadata: {
+                  source: "settings",
+                  screen: "notifications",
+                  trigger: "toggle",
+                  groupKey: preference.group_key,
+                  channel,
+                  enabled: checked,
+                },
+              });
+            })();
+          }}
         />
         <Button
           variant="outline"
           size="sm"
-          onPress={() =>
-            void onChange(preference.group_key, {
-              ...getNotificationGroupConfig(preference.group_key).defaults,
-            })
-          }
+          onPress={() => {
+            void (async () => {
+              const updated = await onChange(preference.group_key, {
+                ...getNotificationGroupConfig(preference.group_key).defaults,
+              });
+              if (!updated) return;
+
+              void trackAction({
+                actionName: "notification_preferences_reset",
+                metadata: {
+                  source: "settings",
+                  screen: "notifications",
+                  trigger: "button",
+                  groupKey: preference.group_key,
+                },
+              });
+            })();
+          }}
           style={styles.resetButton}
         >
           Reset default
@@ -335,11 +336,11 @@ function NotificationGroupRow({
 }
 
 function DeliveryChannelControls({
-  channelActivityCounts,
+  channelStatusCounts,
   values,
   onChange,
 }: {
-  channelActivityCounts?: NotificationChannelActivityCountsByChannel;
+  channelStatusCounts?: NotificationChannelStatusCountsByChannel;
   values: NotificationPreferenceChannels;
   onChange: (channel: NotificationPreferenceChannel, checked: boolean) => void;
 }) {
@@ -348,7 +349,7 @@ function DeliveryChannelControls({
       {notificationChannels.map((channel) => (
         <ChannelToggle
           key={channel.key}
-          activityCounts={channelActivityCounts?.[channel.key]}
+          statusCounts={channelStatusCounts?.[channel.key]}
           checked={values[channel.key]}
           label={channel.label}
           onChange={(checked) => onChange(channel.key, checked)}
@@ -359,12 +360,12 @@ function DeliveryChannelControls({
 }
 
 function ChannelToggle({
-  activityCounts,
+  statusCounts,
   checked,
   label,
   onChange,
 }: {
-  activityCounts?: NotificationChannelActivityCounts;
+  statusCounts?: NotificationChannelStatusCounts;
   checked: boolean;
   label: string;
   onChange: (checked: boolean) => void;
@@ -388,9 +389,9 @@ function ChannelToggle({
         onChange={onChange}
         style={styles.channelCheckbox}
       />
-      {activityCounts ? (
+      {statusCounts ? (
         <Text
-          accessibilityLabel={`${activityCounts.active} active, ${activityCounts.total} total`}
+          accessibilityLabel={`${statusCounts.active} active, ${statusCounts.total} total`}
           style={[
             styles.channelCount,
             {
@@ -401,7 +402,7 @@ function ChannelToggle({
             },
           ]}
         >
-          {activityCounts.active}/{activityCounts.total}
+          {statusCounts.active}/{statusCounts.total}
         </Text>
       ) : null}
     </View>
@@ -482,19 +483,6 @@ function StateText({ children }: { children: string }) {
   );
 }
 
-function getNotificationGroupConfig(groupKey: string): NotificationGroupConfig {
-  const config = notificationGroupConfigs[groupKey];
-
-  if (config) {
-    return config;
-  }
-
-  return {
-    label: groupKey,
-    ...fallbackNotificationGroupConfig,
-  };
-}
-
 function getPreferenceChannelValues(
   preference: NotificationPreference,
 ): NotificationPreferenceChannels {
@@ -517,20 +505,20 @@ function getGlobalChannelValues(
   };
 }
 
-function getGlobalChannelActivityCounts(
+function getGlobalChannelStatusCounts(
   preferences: NotificationPreference[],
-): NotificationChannelActivityCountsByChannel {
+): NotificationChannelStatusCountsByChannel {
   return {
-    in_app_enabled: getChannelActivityCounts(preferences, "in_app_enabled"),
-    email_enabled: getChannelActivityCounts(preferences, "email_enabled"),
-    push_enabled: getChannelActivityCounts(preferences, "push_enabled"),
+    in_app_enabled: getChannelStatusCounts(preferences, "in_app_enabled"),
+    email_enabled: getChannelStatusCounts(preferences, "email_enabled"),
+    push_enabled: getChannelStatusCounts(preferences, "push_enabled"),
   };
 }
 
-function getChannelActivityCounts(
+function getChannelStatusCounts(
   preferences: NotificationPreference[],
   channel: NotificationPreferenceChannel,
-): NotificationChannelActivityCounts {
+): NotificationChannelStatusCounts {
   const active = preferences.filter((preference) => preference[channel]).length;
 
   return {

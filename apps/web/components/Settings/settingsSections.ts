@@ -6,10 +6,10 @@ export const settingsSections = [
     description: "Delivery preferences and notification history",
   },
   {
-    setting: "activities",
-    href: "/app/settings/activities",
-    label: "Activities",
-    description: "Activity platforms and event history",
+    setting: "actions",
+    href: "/app/settings/actions",
+    label: "Actions",
+    description: "Action platforms and history",
   },
 ] as const;
 

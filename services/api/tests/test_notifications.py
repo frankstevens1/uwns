@@ -1,8 +1,14 @@
 from datetime import UTC, datetime
 from typing import Any
 
-from app.services.activity.models import ActivityEvent, TrackEventRequest
-from app.services.activity.service import ActivityService
+import pytest
+from pydantic import ValidationError
+from app.services.actions.models import Action, TrackActionRequest
+from app.services.actions.service import ActionsService
+from app.services.notifications.builders import (
+    app_destination_target,
+    external_url_target,
+)
 from app.services.notifications.models import (
     CreateNotificationRequest,
     Notification,
@@ -10,6 +16,7 @@ from app.services.notifications.models import (
     NotificationPreferencePatch,
     PushTokenRequest,
 )
+from app.services.notifications.registry import get_notification_group_keys
 from app.services.notifications.service import NotificationsService
 
 
@@ -44,11 +51,11 @@ class FakeNotificationsRepository:
                 "title": request.title,
                 "body": request.body,
                 "platform": request.platform,
-                "href": request.href,
+                "target": request.target.model_dump(mode="json") if request.target else None,
                 "in_app_visible": in_app_visible,
                 "metadata": request.metadata,
                 "unique_key": request.unique_key,
-                "source_activity_event_id": request.source_activity_event_id,
+                "source_action_id": request.source_action_id,
                 "read_at": None
                 if reset_read or not existing
                 else existing.read_at,
@@ -81,10 +88,10 @@ class FakeNotificationsRepository:
             return None
         return notification
 
-    def has_activity_event(
+    def has_action(
         self,
         user_id: str,
-        event_name: str,
+        action_name: str,
         platform: str,
     ) -> bool:
         return False
@@ -116,17 +123,17 @@ class FakeNotificationsRepository:
             return None
         return self.mark_notification_read(user_id, notification.id)
 
-    def mark_notifications_read_by_auto_read_event(
+    def mark_notifications_read_by_auto_read_action(
         self,
         user_id: str,
-        event_name: str,
+        action_name: str,
     ) -> list[Notification]:
         updated = []
         for notification in list(self.notifications.values()):
             if (
                 notification.user_id == user_id
                 and not notification.read_at
-                and notification.metadata.get("autoReadEventName") == event_name
+                and notification.metadata.get("autoReadActionName") == action_name
             ):
                 next_notification = notification.model_copy(
                     update={
@@ -171,8 +178,8 @@ class FakeNotificationsRepository:
         return self.preferences[key]
 
     def list_preferences(self, user_id: str) -> list[NotificationPreference]:
-        self.get_or_create_preference(user_id, "auth")
-        self.get_or_create_preference(user_id, "account")
+        for group_key in get_notification_group_keys():
+            self.get_or_create_preference(user_id, group_key)
         return [item for item in self.preferences.values() if item.user_id == user_id]
 
     def update_preference(
@@ -232,19 +239,19 @@ def make_service(repository: FakeNotificationsRepository) -> NotificationsServic
     )
 
 
-def make_activity_event(
+def make_action(
     user_id: str,
-    event_name: str,
+    action_name: str,
     platform: str = "web",
-) -> ActivityEvent:
-    return ActivityEvent.model_validate(
+) -> Action:
+    return Action.model_validate(
         {
-            "id": f"event-{event_name}",
+            "id": f"action-{action_name}",
             "user_id": user_id,
-            "event_name": event_name,
+            "action_name": action_name,
             "platform": platform,
             "metadata": {},
-            "unique_key": f"{platform}:{event_name}",
+            "unique_key": f"{platform}:{action_name}",
             "occurred_at": datetime.now(UTC),
             "created_at": datetime.now(UTC),
         }
@@ -296,6 +303,66 @@ def test_user_preferences_disable_delivery_channels() -> None:
     assert repository.attempts == []
 
 
+def test_create_notification_rejects_unknown_in_app_destination() -> None:
+    with pytest.raises(ValidationError, match="Unknown app destination target"):
+        CreateNotificationRequest(
+            group_key="account",
+            title="Broken",
+            body="Broken",
+            target=app_destination_target("missing"),
+        )
+
+
+def test_create_notification_rejects_relative_external_url() -> None:
+    with pytest.raises(ValidationError):
+        external_url_target("/relative")
+
+
+def test_create_notification_accepts_external_url_target() -> None:
+    notification = CreateNotificationRequest(
+        group_key="account",
+        title="Docs",
+        body="Open the docs.",
+        target=external_url_target("https://example.com/docs"),
+    )
+
+    assert notification.target is not None
+    assert notification.target.type == "external_url"
+    assert str(notification.target.target).rstrip("/") == "https://example.com/docs"
+
+
+def test_create_and_list_notification_with_external_url_target() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+
+    created = service.create_notification(
+        "user-1",
+        CreateNotificationRequest(
+            group_key="account",
+            title="Docs",
+            body="Open the docs.",
+            target=external_url_target("https://example.com/docs"),
+            unique_key="demo:external:docs",
+        ),
+    )
+
+    service.list_notifications("user-1")
+    listed_external = repository.find_notification_by_unique_key(
+        "user-1",
+        "demo:external:docs",
+    )
+
+    assert created.target is not None
+    assert created.target.type == "external_url"
+    assert str(created.target.target).rstrip("/") == "https://example.com/docs"
+    assert "href" not in created.model_dump()
+    assert listed_external is not None
+    assert listed_external.target is not None
+    assert listed_external.target.type == "external_url"
+    assert str(listed_external.target.target).rstrip("/") == "https://example.com/docs"
+    assert "href" not in listed_external.model_dump()
+
+
 def test_list_notifications_creates_default_view_account_notification() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
@@ -308,19 +375,21 @@ def test_list_notifications_creates_default_view_account_notification() -> None:
     )
     assert view_account is not None
     assert view_account.read_at is None
-    assert view_account.href == "/app/account"
-    assert view_account.metadata["nativeHref"] == "/account"
+    assert view_account.target is not None
+    assert view_account.target.type == "app_destination"
+    assert view_account.target.target == "account"
+    assert "href" not in view_account.model_dump()
     assert notifications == [view_account]
 
 
-def test_account_viewed_activity_marks_view_account_notification_read() -> None:
+def test_account_viewed_action_marks_view_account_notification_read() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
-    login_event = ActivityEvent.model_validate(
+    login_action = Action.model_validate(
         {
-            "id": "event-1",
+            "id": "action-1",
             "user_id": "user-1",
-            "event_name": "logged_in",
+            "action_name": "logged_in",
             "platform": "web",
             "metadata": {},
             "unique_key": "web:logged_in",
@@ -328,7 +397,7 @@ def test_account_viewed_activity_marks_view_account_notification_read() -> None:
             "created_at": datetime.now(UTC),
         }
     )
-    service.consume_activity_event(login_event, email="user@example.com")
+    service.consume_action(login_action, email="user@example.com")
 
     view_account = repository.find_notification_by_unique_key(
         "user-1",
@@ -338,11 +407,11 @@ def test_account_viewed_activity_marks_view_account_notification_read() -> None:
     assert view_account.platform is None
     assert view_account.read_at is None
 
-    service.consume_activity_event(
-        login_event.model_copy(
+    service.consume_action(
+        login_action.model_copy(
             update={
-                "id": "event-2",
-                "event_name": "account_viewed",
+                "id": "action-2",
+                "action_name": "account_viewed",
                 "platform": "native",
             }
         ),
@@ -360,11 +429,11 @@ def test_account_viewed_activity_marks_view_account_notification_read() -> None:
 def test_account_viewed_before_listing_creates_and_reads_view_account_notification() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
-    event = ActivityEvent.model_validate(
+    action = Action.model_validate(
         {
-            "id": "event-1",
+            "id": "action-1",
             "user_id": "user-1",
-            "event_name": "account_viewed",
+            "action_name": "account_viewed",
             "platform": "web",
             "metadata": {},
             "unique_key": "web:account_viewed",
@@ -373,7 +442,7 @@ def test_account_viewed_before_listing_creates_and_reads_view_account_notificati
         }
     )
 
-    service.consume_activity_event(event)
+    service.consume_action(action)
 
     view_account = repository.find_notification_by_unique_key(
         "user-1",
@@ -383,72 +452,72 @@ def test_account_viewed_before_listing_creates_and_reads_view_account_notificati
     assert view_account.read_at is not None
 
 
-def test_activity_event_marks_matching_auto_read_notification_read() -> None:
+def test_action_marks_matching_auto_read_notification_read() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
     notification = service.create_notification(
         "user-1",
         CreateNotificationRequest(
             group_key="account",
-            type="demo_activity",
+            type="demo_action",
             title="Visit account",
             body="Open account to complete this notification.",
             metadata={
                 "autoReadOnly": True,
-                "autoReadEventName": "account_visited",
+                "autoReadActionName": "account_visited",
             },
-            unique_key="demo:generated:activity",
+            unique_key="demo:generated:action",
         ),
     )
 
     assert notification.read_at is None
 
-    service.consume_activity_event(make_activity_event("user-1", "account_visited"))
+    service.consume_action(make_action("user-1", "account_visited"))
 
     updated = repository.find_notification_by_unique_key(
         "user-1",
-        "demo:generated:activity",
+        "demo:generated:action",
     )
     assert updated is not None
     assert updated.read_at is not None
 
 
-def test_activity_event_does_not_mark_non_matching_auto_read_notification() -> None:
+def test_action_does_not_mark_non_matching_auto_read_notification() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
     service.create_notification(
         "user-1",
         CreateNotificationRequest(
             group_key="account",
-            type="demo_activity",
+            type="demo_action",
             title="Visit account",
             body="Open account to complete this notification.",
             metadata={
                 "autoReadOnly": True,
-                "autoReadEventName": "account_visited",
+                "autoReadActionName": "account_visited",
             },
-            unique_key="demo:generated:activity",
+            unique_key="demo:generated:action",
         ),
     )
 
-    service.consume_activity_event(make_activity_event("user-1", "profile_viewed"))
+    service.consume_action(make_action("user-1", "profile_viewed"))
 
     updated = repository.find_notification_by_unique_key(
         "user-1",
-        "demo:generated:activity",
+        "demo:generated:action",
     )
     assert updated is not None
     assert updated.read_at is None
 
 
-def test_login_activity_creates_prompt_for_other_platform_only() -> None:
+def test_login_action_creates_prompt_for_other_platform_only() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
-    event = ActivityEvent.model_validate(
+    action = Action.model_validate(
         {
-            "id": "event-1",
+            "id": "action-1",
             "user_id": "user-1",
-            "event_name": "logged_in",
+            "action_name": "logged_in",
             "platform": "native",
             "metadata": {},
             "unique_key": "native:logged_in",
@@ -457,23 +526,24 @@ def test_login_activity_creates_prompt_for_other_platform_only() -> None:
         }
     )
 
-    service.consume_activity_event(event, email="user@example.com")
+    service.consume_action(action, email="user@example.com")
 
     assert repository.find_notification_by_unique_key("user-1", "demo:login:native") is None
     web_prompt = repository.find_notification_by_unique_key("user-1", "demo:login:web")
     assert web_prompt is not None
     assert web_prompt.platform == "web"
     assert web_prompt.metadata["autoReadOnly"] is True
+    assert web_prompt.target is None
 
 
-def test_signup_activity_creates_prompt_for_other_platform() -> None:
+def test_signup_action_creates_prompt_for_other_platform() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
-    event = ActivityEvent.model_validate(
+    action = Action.model_validate(
         {
-            "id": "event-1",
+            "id": "action-1",
             "user_id": "user-1",
-            "event_name": "signed_up",
+            "action_name": "signed_up",
             "platform": "native",
             "metadata": {},
             "unique_key": "native:signed_up",
@@ -482,23 +552,24 @@ def test_signup_activity_creates_prompt_for_other_platform() -> None:
         }
     )
 
-    service.consume_activity_event(event, email="user@example.com")
+    service.consume_action(action, email="user@example.com")
 
     assert repository.find_notification_by_unique_key("user-1", "demo:login:native") is None
     web_prompt = repository.find_notification_by_unique_key("user-1", "demo:login:web")
     assert web_prompt is not None
     assert web_prompt.platform == "web"
+    assert web_prompt.target is None
 
 
 def test_login_prompt_is_read_only_until_target_platform_login() -> None:
     repository = FakeNotificationsRepository()
     service = make_service(repository)
-    service.consume_activity_event(
-        ActivityEvent.model_validate(
+    service.consume_action(
+        Action.model_validate(
             {
-                "id": "event-1",
+                "id": "action-1",
                 "user_id": "user-1",
-                "event_name": "logged_in",
+                "action_name": "logged_in",
                 "platform": "native",
                 "metadata": {},
                 "unique_key": "native:logged_in",
@@ -514,12 +585,12 @@ def test_login_prompt_is_read_only_until_target_platform_login() -> None:
     service.mark_notification_read("user-1", web_prompt.id)
     assert repository.find_notification_by_unique_key("user-1", "demo:login:web").read_at is None  # type: ignore[union-attr]
 
-    service.consume_activity_event(
-        ActivityEvent.model_validate(
+    service.consume_action(
+        Action.model_validate(
             {
-                "id": "event-2",
+                "id": "action-2",
                 "user_id": "user-1",
-                "event_name": "logged_in",
+                "action_name": "logged_in",
                 "platform": "web",
                 "metadata": {},
                 "unique_key": "web:logged_in",
@@ -533,38 +604,38 @@ def test_login_prompt_is_read_only_until_target_platform_login() -> None:
     assert repository.find_notification_by_unique_key("user-1", "demo:login:web").read_at is not None  # type: ignore[union-attr]
 
 
-def test_activity_service_calls_consumers_without_notification_import() -> None:
-    class FakeActivityRepository:
-        def insert_event(self, user_id: str, event: TrackEventRequest) -> ActivityEvent:
-            return ActivityEvent.model_validate(
+def test_action_service_calls_consumers_without_notification_import() -> None:
+    class FakeActionRepository:
+        def insert_action(self, user_id: str, action: TrackActionRequest) -> Action:
+            return Action.model_validate(
                 {
-                    "id": "event-1",
+                    "id": "action-1",
                     "user_id": user_id,
-                    "event_name": event.event_name,
-                    "platform": event.platform,
-                    "metadata": event.metadata,
-                    "unique_key": event.unique_key,
+                    "action_name": action.action_name,
+                    "platform": action.platform,
+                    "metadata": action.metadata,
+                    "unique_key": action.unique_key,
                     "occurred_at": datetime.now(UTC),
                     "created_at": datetime.now(UTC),
                 }
             )
 
-        def list_recent_events(self, user_id: str, limit: int = 5) -> list[ActivityEvent]:
+        def list_recent_actions(self, user_id: str, limit: int = 5) -> list[Action]:
             return []
 
     calls = []
 
-    def consumer(event: ActivityEvent, *, email: str | None = None) -> None:
-        calls.append((event.event_name, email))
+    def consumer(action: Action, *, email: str | None = None) -> None:
+        calls.append((action.action_name, email))
 
-    service = ActivityService(
-        repository=FakeActivityRepository(),  # type: ignore[arg-type]
+    service = ActionsService(
+        repository=FakeActionRepository(),  # type: ignore[arg-type]
         consumers=[consumer],
     )
 
-    service.track_event(
+    service.track_action(
         "user-1",
-        TrackEventRequest(event_name="logged_in", platform="native"),
+        TrackActionRequest(action_name="logged_in", platform="native"),
         email="user@example.com",
     )
 

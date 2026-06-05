@@ -7,7 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, Home, LogOut, Menu, Settings, User, X } from "lucide-react";
 import { Button } from "@repo/ui";
-import { useActivity, useAuth, useNotifications } from "@repo/providers";
+import { useActions, useAuth, useNotifications } from "@repo/providers";
 import { LogoUwns } from "../LogoSvg";
 import ThemeSwitcher from "@/components/ThemeSwitch";
 import { SearchCommand } from "./SearchCommand";
@@ -27,7 +27,7 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const {
     notifications,
     unreadCount,
@@ -40,6 +40,7 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const userMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const trackedSettingsViewedRef = React.useRef(false);
 
   React.useEffect(() => {
     setMobileOpen(false);
@@ -84,8 +85,8 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
     if (busy) return;
     setBusy(true);
     try {
-      await trackEvent({
-        eventName: "signed_out",
+      await trackAction({
+        actionName: "signed_out",
         metadata: { trigger: "app_header" },
       });
       await signOut();
@@ -116,6 +117,21 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
       )
     : 0;
 
+  React.useEffect(() => {
+    if (!showSettingsHeader || trackedSettingsViewedRef.current) return;
+
+    trackedSettingsViewedRef.current = true;
+    void trackAction({
+      actionName: "settings_viewed",
+      uniqueKey: "web:settings_viewed",
+      metadata: {
+        source: "navigation",
+        screen: "settings",
+        trigger: "first_page_visit",
+      },
+    });
+  }, [showSettingsHeader, trackAction]);
+
   return (
     <header
       aria-label={`${title} app header`}
@@ -123,6 +139,7 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
         "fixed left-0 right-0 top-0 z-30",
         "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
         "transition-colors",
+        "print:hidden",
       ].join(" ")}
       style={{ height: headerHeight ?? APP_HEADER_HEIGHT }}
     >
@@ -238,13 +255,13 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
                         </div>
                       ) : (
                         notificationPreview.map((notification) => (
-                          <NotificationTrayItem
-                            key={notification.id}
-                            notification={notification}
-                            onOpen={() => setMenuOpen(false)}
-                            onMarkAsRead={() => void markAsRead(notification.id)}
-                          />
-                        ))
+                        <NotificationTrayItem
+                          key={notification.id}
+                          notification={notification}
+                          onOpen={() => setMenuOpen(false)}
+                          onMarkAsRead={() => markAsRead(notification.id)}
+                        />
+                      ))
                       )}
                     </div>
                   </div>
@@ -326,7 +343,7 @@ export default function AppHeader({ title, headerHeight }: { title: string, head
                 </span>
               </Button>
 
-              <Button variant="ghost" onPress={() => go("/app/settings/activities")}>
+              <Button variant="ghost" onPress={() => go("/app/settings/actions")}>
                 <span className="inline-flex items-center gap-2">
                   <Settings size={16} />
                   Settings

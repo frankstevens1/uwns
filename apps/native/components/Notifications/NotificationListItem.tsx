@@ -2,6 +2,11 @@ import * as React from "react";
 import { Ionicons } from "@expo/vector-icons";
 import type { Notification } from "@repo/lib";
 import {
+  getNotificationGroupConfig,
+  resolveNotificationTarget,
+} from "@repo/lib";
+import { useActions } from "@repo/providers";
+import {
   getKeyedBadgeColors,
   useThemeTokens,
   type BadgeColorStyle,
@@ -18,16 +23,11 @@ import {
 const SWIPE_ACTION_WIDTH = 96;
 const SWIPE_OPEN_THRESHOLD = 0.45;
 
-const notificationGroupLabels: Record<string, string> = {
-  auth: "Authentication",
-  account: "Account",
-  system: "System",
-};
-
 export type NotificationListItemProps = {
   notification: Notification;
   onPress: () => void;
-  onMarkAsRead: () => void | Promise<void>;
+  onMarkAsRead: () => void | Promise<Notification | null>;
+  trackingSource?: string;
 };
 
 export function canManuallyMarkRead(notification: Notification) {
@@ -38,19 +38,14 @@ export function canManuallyMarkRead(notification: Notification) {
   );
 }
 
-export function getNativeNotificationHref(notification: Notification) {
-  const nativeHref = notification.metadata.nativeHref;
-  if (typeof nativeHref === "string") return nativeHref;
-  if (notification.href === "/app/account") return "/account";
-  return notification.href;
-}
-
 export function NotificationListItem({
   notification,
   onPress,
   onMarkAsRead,
+  trackingSource = "native_notifications_screen",
 }: NotificationListItemProps) {
   const tokens = useThemeTokens();
+  const { trackAction } = useActions();
   const translateX = React.useRef(new Animated.Value(0)).current;
   const [containerWidth, setContainerWidth] = React.useState(0);
   const dragStartXRef = React.useRef(0);
@@ -59,8 +54,9 @@ export function NotificationListItem({
   const [dragging, setDragging] = React.useState(false);
 
   const canSwipe = canManuallyMarkRead(notification);
+  const resolvedTarget = resolveNotificationTarget(notification.target, "native");
   const metaLabel = getNotificationMetaLabel(notification);
-  const groupLabel = getNotificationGroupLabel(notification.group_key);
+  const groupLabel = getNotificationGroupConfig(notification.group_key).label;
   const groupColors = getKeyedBadgeColors(notification.group_key);
 
   React.useEffect(() => {
@@ -135,12 +131,34 @@ export function NotificationListItem({
       return;
     }
 
+    if (resolvedTarget) {
+      void trackAction({
+        actionName: "notification_opened",
+        metadata: {
+          source: trackingSource,
+          groupKey: notification.group_key,
+          notificationType: notification.type,
+          hasTarget: true,
+        },
+      });
+    }
+
     onPress();
   }
 
-  function handleMarkAsRead() {
+  async function handleMarkAsRead() {
     animateTo(0);
-    void onMarkAsRead();
+    const updated = await onMarkAsRead();
+    if (!updated) return;
+
+    void trackAction({
+      actionName: "notification_marked_read",
+      metadata: {
+        source: trackingSource,
+        groupKey: notification.group_key,
+        notificationType: notification.type,
+      },
+    });
   }
 
   return (
@@ -282,10 +300,6 @@ function GroupBadge({
       </Text>
     </View>
   );
-}
-
-function getNotificationGroupLabel(groupKey: string) {
-  return notificationGroupLabels[groupKey] ?? groupKey;
 }
 
 function getNotificationMetaLabel(notification: Notification) {

@@ -104,24 +104,18 @@ export function Select({
   const minListHeight = 96;
   const openAbove = menuPlacement === "top";
   const hasDom = typeof document !== "undefined";
-  const visualOptions = React.useMemo(() => {
-    if (!openAbove) return filteredOptions;
-    // For upward-opening menus, mirror order so the first options sit next to the trigger.
-    return [...filteredOptions].reverse();
-  }, [filteredOptions, openAbove]);
+  const renderInlineMenu =
+    hasDom && Boolean(containerRef.current?.closest("[data-ui-dialog-portal]"));
+  const visualOptions = filteredOptions;
   const visualEntries = React.useMemo<VisualOptionEntry[]>(() => {
     const entries: VisualOptionEntry[] = [];
     let lastGroup: string | undefined;
 
-    visualOptions.forEach((option, visualIndex) => {
-      const logicalIndex = openAbove
-        ? filteredOptions.length - 1 - visualIndex
-        : visualIndex;
-
+    visualOptions.forEach((option, logicalIndex) => {
       if (option.group && option.group !== lastGroup) {
         entries.push({
           kind: "group",
-          id: `group:${option.group}:${visualIndex}`,
+          id: `group:${option.group}:${logicalIndex}`,
           label: option.group,
         });
         lastGroup = option.group;
@@ -131,7 +125,7 @@ export function Select({
     });
 
     return entries;
-  }, [filteredOptions.length, openAbove, visualOptions]);
+  }, [visualOptions]);
 
   const computeMenuMetrics = React.useCallback(
     (lockedPlacement?: "top" | "bottom") => {
@@ -557,16 +551,36 @@ export function Select({
     open && menuFrame ? (
       <div
         ref={menuRef}
+        data-ui-floating-layer="select"
         role="listbox"
         tabIndex={-1}
         onKeyDownCapture={handleOpenKeyDown}
-        className="fixed overflow-hidden border bg-(--ui-bg) text-(--ui-fg) shadow-sm pointer-events-auto"
+        onPointerDown={(event) => {
+          event.stopPropagation();
+        }}
+        onMouseDown={(event) => {
+          event.stopPropagation();
+        }}
+        className={cx(
+          "overflow-hidden border bg-(--ui-bg) text-(--ui-fg) shadow-sm pointer-events-auto",
+          renderInlineMenu ? "absolute" : "fixed",
+        )}
         style={{
-          zIndex: 70,
-          left: menuFrame.left,
-          width: menuFrame.width,
-          top: menuPlacement === "bottom" ? menuFrame.top : undefined,
-          bottom: menuPlacement === "top" ? menuFrame.bottom : undefined,
+          zIndex: 100,
+          left: renderInlineMenu ? 0 : menuFrame.left,
+          width: renderInlineMenu ? "100%" : menuFrame.width,
+          top:
+            menuPlacement === "bottom"
+              ? renderInlineMenu
+                ? px(triggerHeight + menuGap)
+                : menuFrame.top
+              : undefined,
+          bottom:
+            menuPlacement === "top"
+              ? renderInlineMenu
+                ? px(triggerHeight + menuGap)
+                : menuFrame.bottom
+              : undefined,
           borderColor: "var(--ui-border)",
           borderRadius: px(t.radius),
           visibility: menuReady ? "visible" : "hidden",
@@ -617,7 +631,19 @@ export function Select({
                   role="option"
                   aria-selected={selected}
                   type="button"
-                  onClick={() => pick(opt)}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    pick(opt);
+                  }}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
                   onMouseEnter={() => setActiveIndex(logicalIndex)}
                   title={opt.label}
                   ref={(node) => {
@@ -794,7 +820,11 @@ export function Select({
         </span>
       </button>
 
-      {hasDom && menuNode ? createPortal(menuNode, document.body) : null}
+      {renderInlineMenu
+        ? menuNode
+        : hasDom && menuNode
+          ? createPortal(menuNode, document.body)
+          : null}
     </div>
   );
 }

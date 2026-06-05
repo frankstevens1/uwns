@@ -1,35 +1,40 @@
+import type {
+  NotificationPlatform,
+  NotificationTarget,
+} from "./notifications";
+
+export * from "./notifications";
+
 export function invariant(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-export type ActivityPlatform = "web" | "native";
+export type ActionPlatform = NotificationPlatform;
 
-export type ActivityMetadata = Record<string, unknown>;
+export type ActionMetadata = Record<string, unknown>;
 
-export type TrackEventInput = {
-  eventName: string;
-  platform: ActivityPlatform;
-  metadata?: ActivityMetadata;
+export type TrackActionInput = {
+  actionName: string;
+  platform: ActionPlatform;
+  metadata?: ActionMetadata;
   uniqueKey?: string;
   occurredAt?: string;
 };
 
-export type ActivityEvent = {
+export type Action = {
   id: string;
   user_id: string;
-  event_name: string;
-  platform: ActivityPlatform;
-  metadata: ActivityMetadata;
+  action_name: string;
+  platform: ActionPlatform;
+  metadata: ActionMetadata;
   unique_key: string | null;
   occurred_at: string;
   created_at: string;
 };
 
-export type ListActivityEventsInput = {
+export type ListActionsInput = {
   limit?: number;
 };
-
-export type NotificationPlatform = ActivityPlatform;
 
 export type NotificationChannels = {
   inApp?: boolean;
@@ -45,11 +50,11 @@ export type Notification = {
   title: string;
   body: string;
   platform: NotificationPlatform | null;
-  href: string | null;
+  target: NotificationTarget | null;
   in_app_visible: boolean;
   metadata: Record<string, unknown>;
   unique_key: string | null;
-  source_activity_event_id: string | null;
+  source_action_id: string | null;
   read_at: string | null;
   created_at: string;
   updated_at: string;
@@ -61,10 +66,10 @@ export type CreateNotificationInput = {
   title: string;
   body: string;
   platform?: NotificationPlatform;
-  href?: string;
+  target?: NotificationTarget;
   metadata?: Record<string, unknown>;
   uniqueKey?: string;
-  sourceActivityEventId?: string;
+  sourceActionId?: string;
   channels?: NotificationChannels;
 };
 
@@ -135,21 +140,21 @@ export function createUwnsApiClient(config: UwnsApiClientConfig) {
   };
 
   return {
-    trackEvent: (input: TrackEventInput) =>
-      request<ActivityEvent>("/v1/events", {
+    trackAction: (input: TrackActionInput) =>
+      request<Action>("/v1/actions", {
         method: "POST",
         body: JSON.stringify({
-          event_name: input.eventName,
+          action_name: input.actionName,
           platform: input.platform,
           metadata: input.metadata ?? {},
           unique_key: input.uniqueKey,
           occurred_at: input.occurredAt ?? new Date().toISOString(),
         }),
       }),
-    listActivityEvents: (input: ListActivityEventsInput = {}) => {
+    listActions: (input: ListActionsInput = {}) => {
       const params = new URLSearchParams();
       params.set("limit", String(input.limit ?? 5));
-      return request<ActivityEvent[]>(`/v1/events?${params.toString()}`);
+      return request<Action[]>(`/v1/actions?${params.toString()}`);
     },
     createNotification: (input: CreateNotificationInput) =>
       request<Notification>("/v1/notifications", {
@@ -160,10 +165,10 @@ export function createUwnsApiClient(config: UwnsApiClientConfig) {
           title: input.title,
           body: input.body,
           platform: input.platform,
-          href: input.href,
+          target: input.target,
           metadata: input.metadata ?? {},
           unique_key: input.uniqueKey,
-          source_activity_event_id: input.sourceActivityEventId,
+          source_action_id: input.sourceActionId,
           channels: input.channels
             ? {
                 in_app: input.channels.inApp,

@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as RadixDialog from "@radix-ui/react-dialog";
+import { Button as UiButton } from "../../primitives/Button/Button.web";
 import { cx } from "../../utils/cx";
 import type {
   DialogContentProps,
@@ -93,6 +94,29 @@ const maxWidthByClassName: Record<string, string> = {
   "max-w-5xl": "64rem",
 };
 
+function isFromUiFloatingLayer(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(target.closest("[data-ui-floating-layer]"))
+  );
+}
+
+function isFloatingLayerOutsideEvent(event: Event) {
+  const originalEvent =
+    "detail" in event &&
+    event.detail &&
+    typeof event.detail === "object" &&
+    "originalEvent" in event.detail &&
+    event.detail.originalEvent instanceof Event
+      ? event.detail.originalEvent
+      : null;
+
+  return (
+    isFromUiFloatingLayer(event.target) ||
+    isFromUiFloatingLayer(originalEvent?.target ?? null)
+  );
+}
+
 export function DialogPortal({
   className,
   children,
@@ -102,7 +126,11 @@ export function DialogPortal({
 }) {
   return (
     <RadixDialog.Portal {...props}>
-      <div className={cx(portalBaseClass, className)} style={portalBaseStyle}>
+      <div
+        data-ui-dialog-portal=""
+        className={cx(portalBaseClass, className)}
+        style={portalBaseStyle}
+      >
         {children}
       </div>
     </RadixDialog.Portal>
@@ -129,6 +157,9 @@ export function DialogContent({
   className,
   children,
   style,
+  onFocusOutside,
+  onInteractOutside,
+  onPointerDownOutside,
   ...props
 }: React.ComponentPropsWithoutRef<typeof RadixDialog.Content> &
   DialogContentProps) {
@@ -148,6 +179,24 @@ export function DialogContent({
         className,
       )}
       style={contentStyle}
+      onInteractOutside={(event) => {
+        onInteractOutside?.(event);
+        if (!event.defaultPrevented && isFloatingLayerOutsideEvent(event)) {
+          event.preventDefault();
+        }
+      }}
+      onFocusOutside={(event) => {
+        onFocusOutside?.(event);
+        if (!event.defaultPrevented && isFloatingLayerOutsideEvent(event)) {
+          event.preventDefault();
+        }
+      }}
+      onPointerDownOutside={(event) => {
+        onPointerDownOutside?.(event);
+        if (!event.defaultPrevented && isFloatingLayerOutsideEvent(event)) {
+          event.preventDefault();
+        }
+      }}
     >
       {children}
     </RadixDialog.Content>
@@ -204,8 +253,58 @@ export function DialogFooter({
   ...props
 }: React.ComponentPropsWithoutRef<"div"> & DialogFooterProps) {
   return (
-    <div {...props} className={cx("mt-4 flex justify-end gap-2", className)}>
-      {children}
+    <div {...props} className={cx("mt-4 flex justify-end gap-1.5", className)}>
+      {normalizeDialogFooterChildren(children)}
     </div>
   );
+}
+
+function normalizeDialogFooterChildren(
+  children: React.ReactNode,
+): React.ReactNode {
+  if (children == null || typeof children === "boolean") {
+    return children;
+  }
+
+  const normalized = React.Children.toArray(children).map((child) =>
+    normalizeDialogFooterNode(child),
+  );
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  return normalized.length === 1 ? normalized[0] : normalized;
+}
+
+function normalizeDialogFooterNode(child: React.ReactNode): React.ReactNode {
+  if (!React.isValidElement(child)) {
+    return child;
+  }
+
+  const element = child as React.ReactElement<{
+    children?: React.ReactNode;
+    size?: unknown;
+  }>;
+  const normalizedChildren = normalizeDialogFooterChildren(
+    element.props.children,
+  );
+  const nextProps: Partial<{
+    children: React.ReactNode;
+    size: unknown;
+  }> = {};
+
+  if (element.type === UiButton) {
+    nextProps.size = "sm";
+  }
+
+  if (normalizedChildren !== element.props.children) {
+    nextProps.children = normalizedChildren;
+  }
+
+  if (Object.keys(nextProps).length === 0) {
+    return child;
+  }
+
+  return React.cloneElement(element, nextProps);
 }

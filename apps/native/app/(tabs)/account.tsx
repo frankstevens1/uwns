@@ -1,8 +1,8 @@
 import * as React from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useActivity, useAuth } from "@repo/providers";
+import { useActions, useAuth } from "@repo/providers";
 import { useAppTopBarScroll } from "../../components/AppTopBar";
 import { getTabScreenTopPadding } from "../../constants/layout";
 import {
@@ -15,13 +15,15 @@ import {
   Code,
   CodeBlock,
   ReadOnlyInput,
+  ToggleGroup,
+  ToggleGroupItem,
   Tip,
   useThemeTokens,
 } from "@repo/ui";
 
 const signedInIdentityNativeExample = abbreviatedCodeSnippet([
   `import { Text, View } from "react-native";
-import { useActivity, useAuth } from "@repo/providers";
+import { useActions, useAuth } from "@repo/providers";
 import {
   Button,
   Card,
@@ -33,12 +35,12 @@ import {
 } from "@repo/ui";`,
   `export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const tokens = useThemeTokens();
 
   async function handleSignOut() {
-    await trackEvent({
-      eventName: "signed_out",
+    await trackAction({
+      actionName: "signed_out",
       metadata: { trigger: "account_card" },
     });
     await signOut();
@@ -82,7 +84,7 @@ import {
 const signedInIdentityWebExample = abbreviatedCodeSnippet([
   `"use client";
 
-import { useActivity, useAuth } from "@repo/providers";
+import { useActions, useAuth } from "@repo/providers";
 import {
   Button,
   Card,
@@ -93,11 +95,11 @@ import {
 } from "@repo/ui";`,
   `export function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
 
   async function handleSignOut() {
-    await trackEvent({
-      eventName: "signed_out",
+    await trackAction({
+      actionName: "signed_out",
       metadata: { trigger: "account_card" },
     });
     await signOut();
@@ -124,7 +126,7 @@ import {
 
 const nativeLayoutExample = abbreviatedCodeSnippet([
   `import { Stack } from "expo-router";
-import { ActivityProvider, AuthProvider } from "@repo/providers";
+import { ActionProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider, darkTokens, lightTokens } from "@repo/ui";
 import { useColorScheme } from "react-native";`,
   `export default function RootLayout() {
@@ -133,27 +135,27 @@ import { useColorScheme } from "react-native";`,
 
   return (
     <AuthProvider>
-      <ActivityProvider>
+      <ActionProvider>
         <ThemeProvider tokens={tokens}>
           <Stack screenOptions={{ headerShown: false }} />
         </ThemeProvider>
-      </ActivityProvider>
+      </ActionProvider>
     </AuthProvider>
   );
 }`,
 ]);
 
 const webLayoutExample = abbreviatedCodeSnippet([
-  `import { ActivityProvider, AuthProvider } from "@repo/providers";
+  `import { ActionProvider, AuthProvider } from "@repo/providers";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Shell } from "@/components/Shell";`,
   `export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
-        <ActivityProvider>
+        <ActionProvider>
           <Shell>{children}</Shell>
-        </ActivityProvider>
+        </ActionProvider>
       </AuthProvider>
     </NextThemesProvider>
   );
@@ -164,7 +166,7 @@ const SECTION_GAP = 24;
 
 function SignedInIdentity() {
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const tokens = useThemeTokens();
   const [busy, setBusy] = React.useState(false);
 
@@ -173,8 +175,8 @@ function SignedInIdentity() {
 
     setBusy(true);
     try {
-      await trackEvent({
-        eventName: "signed_out",
+      await trackAction({
+        actionName: "signed_out",
         metadata: { trigger: "account_card" },
       });
       await signOut();
@@ -223,14 +225,14 @@ export default function AccountTab() {
   const tokens = useThemeTokens();
   const insets = useSafeAreaInsets();
   const { onScroll, setScrollOffset } = useAppTopBarScroll();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const scrollOffsetRef = React.useRef(0);
   const [view, setView] = React.useState<"component" | "code">("component");
   const showComponent = view === "component";
 
   React.useEffect(() => {
-    void trackEvent({
-      eventName: "account_viewed",
+    void trackAction({
+      actionName: "account_viewed",
       uniqueKey: "native:account_viewed",
       metadata: {
         source: "account",
@@ -238,7 +240,7 @@ export default function AccountTab() {
         trigger: "first_tab_visit",
       },
     });
-  }, [trackEvent]);
+  }, [trackAction]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -276,61 +278,16 @@ export default function AccountTab() {
         components from the same building blocks.
       </Tip>
 
-      <View
-        style={[
-          styles.segmented,
-          {
-            borderColor: tokens.color.border,
-          },
-        ]}
+      <ToggleGroup
+        value={showComponent ? "component" : "code"}
+        onValueChange={(next) => {
+          setView(next === "component" ? "component" : "code");
+        }}
+        ariaLabel="Account view"
       >
-        <Pressable
-          onPress={() => setView("component")}
-          accessibilityRole="button"
-          accessibilityState={{ selected: showComponent }}
-          style={[
-            styles.segment,
-            showComponent && {
-              backgroundColor: tokens.color.subtleBg,
-              borderColor: tokens.color.border,
-              borderWidth: 1,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.segmentText,
-              { color: showComponent ? tokens.color.fg : tokens.color.mutedFg },
-            ]}
-          >
-            Component
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setView("code")}
-          accessibilityRole="button"
-          accessibilityState={{ selected: !showComponent }}
-          style={[
-            styles.segment,
-            !showComponent && {
-              backgroundColor: tokens.color.subtleBg,
-              borderColor: tokens.color.border,
-              borderWidth: 1,
-            },
-          ]}
-        >
-          <Text
-            style={[
-              styles.segmentText,
-              {
-                color: !showComponent ? tokens.color.fg : tokens.color.mutedFg,
-              },
-            ]}
-          >
-            Code
-          </Text>
-        </Pressable>
-      </View>
+        <ToggleGroupItem value="component">Component</ToggleGroupItem>
+        <ToggleGroupItem value="code">Code</ToggleGroupItem>
+      </ToggleGroup>
 
       {showComponent ? (
         <SignedInIdentity />
@@ -399,26 +356,5 @@ const styles = StyleSheet.create({
   },
   fields: {
     gap: 12,
-  },
-  segmented: {
-    backgroundColor: "transparent",
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: "row",
-    gap: 4,
-    padding: 3,
-  },
-  segment: {
-    alignItems: "center",
-    borderColor: "transparent",
-    borderRadius: 6,
-    borderWidth: 1,
-    flex: 1,
-    height: 32,
-    justifyContent: "center",
-  },
-  segmentText: {
-    fontSize: 12,
-    fontWeight: "500",
   },
 });

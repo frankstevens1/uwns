@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
+import { useActions } from "@repo/providers";
 import {
   AccordionContent,
   AccordionItem,
@@ -20,8 +21,8 @@ import {
   totalsAccordionValue,
 } from "./constants";
 import type {
-  NotificationChannelActivityCounts,
-  NotificationChannelActivityCountsByChannel,
+  NotificationChannelStatusCounts,
+  NotificationChannelStatusCountsByChannel,
   NotificationGroupConfig,
   NotificationGroupCounts,
   NotificationPreferenceChannel,
@@ -30,7 +31,7 @@ import type {
 } from "./types";
 import {
   applyChannelToAllGroups,
-  getGlobalChannelActivityCounts,
+  getGlobalChannelStatusCounts,
   getGlobalChannelValues,
   getGroupBadgeStyle,
   getGroupNotificationCounts,
@@ -146,8 +147,9 @@ function NotificationGroupsTotalsRow({
   preferences: NotificationPreference[];
   onChange: PreferenceChangeHandler;
 }) {
+  const { trackAction } = useActions();
   const channelValues = getGlobalChannelValues(preferences);
-  const channelActivityCounts = getGlobalChannelActivityCounts(preferences);
+  const channelStatusCounts = getGlobalChannelStatusCounts(preferences);
   const groupStyle = getGroupBadgeStyle(totalsAccordionValue);
 
   return (
@@ -186,16 +188,30 @@ function NotificationGroupsTotalsRow({
           Apply delivery settings across all groups.
         </p>
         <DeliveryChannelControls
-          channelActivityCounts={channelActivityCounts}
+          channelStatusCounts={channelStatusCounts}
           values={channelValues}
-          onChange={(channel, checked) =>
-            void applyChannelToAllGroups(
-              preferences,
-              channel,
-              checked,
-              onChange,
-            )
-          }
+          onChange={(channel, checked) => {
+            void (async () => {
+              await applyChannelToAllGroups(
+                preferences,
+                channel,
+                checked,
+                onChange,
+              );
+
+              void trackAction({
+                actionName: "notification_preferences_bulk_clicked",
+                metadata: {
+                  source: "settings",
+                  screen: "notifications",
+                  trigger: "apply_all",
+                  channel,
+                  enabled: checked,
+                  groupCount: preferences.length,
+                },
+              });
+            })();
+          }}
         />
       </AccordionContent>
     </AccordionItem>
@@ -215,6 +231,7 @@ function NotificationGroupRow({
   preference: NotificationPreference;
   onChange: PreferenceChangeHandler;
 }) {
+  const { trackAction } = useActions();
   const groupStyle = getGroupBadgeStyle(preference.group_key);
 
   return (
@@ -251,22 +268,53 @@ function NotificationGroupRow({
         </p>
         <DeliveryChannelControls
           values={getPreferenceChannelValues(preference)}
-          onChange={(channel, checked) =>
-            void updatePreferenceChannel(
-              preference.group_key,
-              channel,
-              checked,
-              onChange,
-            )
-          }
+          onChange={(channel, checked) => {
+            void (async () => {
+              const updated = await updatePreferenceChannel(
+                preference.group_key,
+                channel,
+                checked,
+                onChange,
+              );
+              if (!updated) return;
+
+              void trackAction({
+                actionName: "notification_preference_changed",
+                metadata: {
+                  source: "settings",
+                  screen: "notifications",
+                  trigger: "toggle",
+                  groupKey: preference.group_key,
+                  channel,
+                  enabled: checked,
+                },
+              });
+            })();
+          }}
         />
         <div className="flex justify-end">
           <Button
             variant="outline"
             size="sm"
-            onPress={() =>
-              void resetGroupToDefaults(preference.group_key, onChange)
-            }
+            onPress={() => {
+              void (async () => {
+                const updated = await resetGroupToDefaults(
+                  preference.group_key,
+                  onChange,
+                );
+                if (!updated) return;
+
+                void trackAction({
+                  actionName: "notification_preferences_reset",
+                  metadata: {
+                    source: "settings",
+                    screen: "notifications",
+                    trigger: "button",
+                    groupKey: preference.group_key,
+                  },
+                });
+              })();
+            }}
           >
             Reset default
           </Button>
@@ -289,11 +337,11 @@ function NotificationCountBadge({
 }
 
 function DeliveryChannelControls({
-  channelActivityCounts,
+  channelStatusCounts,
   values,
   onChange,
 }: {
-  channelActivityCounts?: NotificationChannelActivityCountsByChannel;
+  channelStatusCounts?: NotificationChannelStatusCountsByChannel;
   values: NotificationPreferenceChannels;
   onChange: (channel: NotificationPreferenceChannel, checked: boolean) => void;
 }) {
@@ -302,7 +350,7 @@ function DeliveryChannelControls({
       {notificationChannels.map((channel) => (
         <ChannelToggle
           key={channel.key}
-          activityCounts={channelActivityCounts?.[channel.key]}
+          statusCounts={channelStatusCounts?.[channel.key]}
           checked={values[channel.key]}
           label={channel.label}
           onChange={(checked) => onChange(channel.key, checked)}
@@ -313,12 +361,12 @@ function DeliveryChannelControls({
 }
 
 function ChannelToggle({
-  activityCounts,
+  statusCounts,
   checked,
   label,
   onChange,
 }: {
-  activityCounts?: NotificationChannelActivityCounts;
+  statusCounts?: NotificationChannelStatusCounts;
   checked: boolean;
   label: string;
   onChange: (checked: boolean) => void;
@@ -331,13 +379,13 @@ function ChannelToggle({
         label={label}
         onChange={onChange}
       />
-      {activityCounts ? (
+      {statusCounts ? (
         <span
-          aria-label={`${activityCounts.active} active, ${activityCounts.inactive} inactive`}
+          aria-label={`${statusCounts.active} active, ${statusCounts.inactive} inactive`}
           className="pointer-events-none absolute right-8 top-1/2 -translate-y-1/2 rounded-full border border-(--ui-border) bg-(--ui-subtle-bg) px-1.5 py-0.5 text-[10px] font-medium leading-none text-(--ui-muted-fg)"
         >
-          {activityCounts.active}/
-          {activityCounts.active + activityCounts.inactive}
+          {statusCounts.active}/
+          {statusCounts.active + statusCounts.inactive}
         </span>
       ) : null}
     </div>

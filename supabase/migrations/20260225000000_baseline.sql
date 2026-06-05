@@ -1,10 +1,10 @@
 -- UWNS demo bootstrap migration.
 -- This is the full first-time setup for the current demo schema.
 
-create table public.activity_events (
+create table public.actions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  event_name text not null,
+  action_name text not null,
   platform text not null check (platform in ('web', 'native')),
   metadata jsonb not null default '{}'::jsonb,
   unique_key text,
@@ -12,20 +12,21 @@ create table public.activity_events (
   created_at timestamptz not null default now()
 );
 
-create index activity_events_user_occurred_at_idx
-on public.activity_events (user_id, occurred_at desc);
+create index actions_user_occurred_at_idx
+on public.actions (user_id, occurred_at desc);
 
-create unique index activity_events_user_unique_key_idx
-on public.activity_events (user_id, unique_key)
+create unique index actions_user_unique_key_idx
+on public.actions (user_id, unique_key)
 where unique_key is not null;
 
-alter table public.activity_events enable row level security;
+alter table public.actions enable row level security;
 
-revoke all on table public.activity_events from anon, authenticated;
-grant select, insert, update, delete on table public.activity_events to service_role;
+revoke all on table public.actions from anon, authenticated;
+grant select on table public.actions to authenticated;
+grant select, insert, update, delete on table public.actions to service_role;
 
-create policy "Users can read their activity events"
-on public.activity_events
+create policy "Users can read their actions"
+on public.actions
 for select
 using ((select auth.uid()) = user_id);
 
@@ -37,14 +38,34 @@ create table public.notifications (
   title text not null,
   body text not null,
   platform text check (platform in ('web', 'native')),
-  href text,
+  target jsonb,
   in_app_visible boolean not null default true,
   metadata jsonb not null default '{}'::jsonb,
   unique_key text,
-  source_activity_event_id uuid references public.activity_events(id) on delete set null,
+  source_action_id uuid references public.actions(id) on delete set null,
   read_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint notifications_target_shape_check check (
+    target is null
+    or (
+      jsonb_typeof(target) = 'object'
+      and target ? 'type'
+      and target ? 'target'
+      and jsonb_typeof(target->'type') = 'string'
+      and jsonb_typeof(target->'target') = 'string'
+      and (
+        (
+          target->>'type' = 'app_destination'
+          and target->>'target' ~ '^[a-z][a-z0-9_.:-]*$'
+        )
+        or (
+          target->>'type' = 'external_url'
+          and target->>'target' ~ '^https?://.+$'
+        )
+      )
+    )
+  )
 );
 
 create index notifications_user_created_at_idx
@@ -54,8 +75,8 @@ create unique index notifications_user_unique_key_idx
 on public.notifications (user_id, unique_key)
 where unique_key is not null;
 
-create index notifications_source_activity_event_id_idx
-on public.notifications (source_activity_event_id);
+create index notifications_source_action_id_idx
+on public.notifications (source_action_id);
 
 alter table public.notifications enable row level security;
 
@@ -145,6 +166,7 @@ for all
 using (false)
 with check (false);
 
+alter publication supabase_realtime add table public.actions;
 alter publication supabase_realtime add table public.notifications;
 alter publication supabase_realtime add table public.notification_preferences;
 

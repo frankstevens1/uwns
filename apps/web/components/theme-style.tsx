@@ -12,7 +12,6 @@ export function ThemeStyle() {
   // IMPORTANT: this is deterministic; no client-only branching.
   return (
     <style
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{
         __html: `${light}\n\n${asBlock(".dark", dark)}\n`,
       }}

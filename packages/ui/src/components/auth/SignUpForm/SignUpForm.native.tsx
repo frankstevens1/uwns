@@ -1,16 +1,20 @@
-import { View, StyleSheet, Text, Pressable, type TextInput } from "react-native";
+import { View, StyleSheet, Text, type TextInput } from "react-native";
 import { AuthCard } from "../AuthCard/AuthCard.native";
 import { Button } from "../../../primitives/Button/Button.native";
 import { Input } from "../../../primitives/Input/Input.native";
 import { Label } from "../../../primitives/Label/Label.native";
 import { Link } from "../../../primitives/Link/Link.native";
+import {
+  ToggleGroup,
+  ToggleGroupItem,
+} from "../../../primitives/ToggleGroup/ToggleGroup.native";
 import { PasswordField } from "../PasswordField/PasswordField.native";
 import { PasswordRequirementsList } from "../PasswordRequirementsList/PasswordRequirementsList.native";
 import { OtpCodeInput } from "../OtpCodeInput/OtpCodeInput.native";
 import { evaluatePassword, generatePassword } from "../../../utils/auth/password";
 import type { SignUpFormProps } from "./SignUpForm.types";
 import type { AuthFocusField, AuthMethod } from "../LoginForm/LoginForm.types";
-import { buttonTokens, inputTokens, useThemeTokens } from "../../../theme";
+import { inputTokens, useThemeTokens } from "../../../theme";
 import { useAuthFormState } from "../useAuthFormState";
 import { appendAuthFocusParam, appendAuthMethodParam } from "../authFocus";
 import * as React from "react";
@@ -69,10 +73,6 @@ export function SignUpForm({
     setMethod(nextMethod);
     setOtpSent(false);
     setToken("");
-  };
-
-  const captureMethodFocusHint = () => {
-    pendingMethodFocusRef.current = activeFocusRef.current;
   };
 
   const onFieldFocus = (field: AuthFocusField) => {
@@ -233,36 +233,14 @@ export function SignUpForm({
     >
       <View style={styles.form}>
         {canChooseMethod ? (
-          <View style={[styles.segment, { borderColor: tokens.color.border }]}>
-            <Pressable
-              accessibilityRole="button"
-              onPressIn={captureMethodFocusHint}
-              onPress={() => selectMethod("password")}
-              style={[
-                styles.segmentButton,
-                {
-                  backgroundColor: method === "password" ? tokens.color.subtleBg : "transparent",
-                  borderColor: method === "password" ? tokens.color.border : "transparent",
-                },
-              ]}
-            >
-              <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Password</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPressIn={captureMethodFocusHint}
-              onPress={() => selectMethod("otp")}
-              style={[
-                styles.segmentButton,
-                {
-                  backgroundColor: method === "otp" ? tokens.color.subtleBg : "transparent",
-                  borderColor: method === "otp" ? tokens.color.border : "transparent",
-                },
-              ]}
-            >
-              <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Magic link</Text>
-            </Pressable>
-          </View>
+          <ToggleGroup
+            value={method}
+            onValueChange={(next) => selectMethod(next as AuthMethod)}
+            ariaLabel="Authentication method"
+          >
+            <ToggleGroupItem value="password">Password</ToggleGroupItem>
+            <ToggleGroupItem value="otp">Magic link</ToggleGroupItem>
+          </ToggleGroup>
         ) : null}
 
         {otpSent ? (
@@ -368,21 +346,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: inputTokens.base.paddingX,
     justifyContent: "center",
   },
-  segment: {
-    flexDirection: "row",
-    gap: 2,
-    borderWidth: buttonTokens.base.borderWidth,
-    borderRadius: buttonTokens.base.radius,
-    padding: 2,
-  },
-  segmentButton: {
-    flex: 1,
-    height: buttonTokens.size.sm.height,
-    borderWidth: 1,
-    borderRadius: buttonTokens.base.radius,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentText: { fontSize: buttonTokens.size.sm.fontSize, fontWeight: buttonTokens.base.fontWeight as any },
   // hint, gen, and footer colors will be injected inline using theme tokens
 });

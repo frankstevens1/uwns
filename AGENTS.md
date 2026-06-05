@@ -2,221 +2,97 @@
 
 ## Scope
 
-These instructions apply to this repository. They supplement the global engineering defaults and are focused on how frontend agents should use `packages/ui` and `packages/providers`.
+These instructions apply to the full repository. They supplement the global
+engineering defaults. A closer nested `AGENTS.md` overrides or extends this file
+for its subtree.
 
 This repo is a Turbo monorepo with:
 
-- `apps/web` for the Next.js app
+- `apps/web` for the Next.js App Router web app
 - `apps/native` for the Expo app
 - `packages/ui` for reusable cross-platform UI
-- `packages/providers` for reusable cross-platform app providers such as auth
+- `packages/providers` for reusable cross-platform app providers
+- `packages/lib` for shared API client/types and generated product metadata
+- `services/api` for the FastAPI service
+- `supabase` for local Supabase config, seed data, and migrations
+- `tooling` for repo generators and maintenance scripts
 
-Keep package boundaries explicit. App routes and screens live in apps. Shared UI and shared provider behavior live in packages only when reuse is real.
-
----
-
-## `packages/ui` Usage Pattern
-
-### Importing UI
-
-App code should import reusable UI from `@repo/ui`:
-
-```ts
-import { Button, Card, Input } from "@repo/ui";
-```
-
-Do not deep-import from `packages/ui/src/...` in app code. The package export map resolves the correct platform entry:
-
-- web -> `packages/ui/src/index.web.ts`
-- native -> `packages/ui/src/index.native.ts`
-
-### Component Structure
-
-Shared UI components follow this pattern:
-
-```txt
-packages/ui/src/primitives/Button/
-  Button.types.ts
-  Button.web.tsx
-  Button.native.tsx
-```
-
-or:
-
-```txt
-packages/ui/src/components/Card/
-  Card.types.ts
-  Card.web.tsx
-  Card.native.tsx
-```
-
-Use `primitives` for low-level controls such as buttons, inputs, links, labels, text, and icon buttons. Use `components` for composed UI such as cards, dialogs, auth forms, alerts, settings rows, and empty states.
-
-When changing a shared component, update both `.web.tsx` and `.native.tsx` unless the change is intentionally platform-specific. Keep the shared prop contract in the `.types.ts` file.
-
-### Creating UI
-
-Prefer the generator for new shared UI:
-
-```sh
-pnpm ui:gen ComponentName --component
-pnpm ui:gen PrimitiveName --primitive
-```
-
-The generator creates web/native/type files and updates both platform indexes. If adding manually, update both:
-
-- `packages/ui/src/index.web.ts`
-- `packages/ui/src/index.native.ts`
-
-### Styling Rules
-
-Use the existing token system before adding new styling values.
-
-For web UI inside `packages/ui`, prefer CSS variables exposed by the theme:
-
-- `var(--ui-bg)`
-- `var(--ui-fg)`
-- `var(--ui-border)`
-- `var(--ui-subtle-bg)`
-- `var(--ui-muted-fg)`
-- `var(--ui-primary-bg)`
-- `var(--ui-primary-fg)`
-
-For web app code using Tailwind, prefer canonical variable-backed utilities:
-
-```tsx
-className="border-(--ui-border) bg-(--ui-subtle-bg) text-(--ui-fg)"
-```
-
-Avoid fixed neutral colors in shared UI when the element must work in both light and dark mode.
-
-For native UI, use `useThemeTokens()` or token recipes from `packages/ui/src/theme`. Do not hard-code colors unless the value is truly platform-specific and not part of the shared design system.
-
-### Theme Model
-
-`packages/ui` defines the token contract and defaults. Apps provide values.
-
-- Web maps tokens to CSS variables via `tokensToCssVars`.
-- Native passes tokens through `ThemeProvider`.
-
-Do not edit UI internals to brand one app. Override app-level tokens instead.
-
-### Auth UI
-
-Auth forms in `packages/ui/src/components/auth` are UI-level components. They receive auth actions through props and should not import `@repo/providers` directly.
-
-The app adapters connect providers to UI:
-
-- `apps/web/lib/uiAuthAdapter.ts`
-- `apps/native/lib/uiAuthAdapter.ts`
-
-Keep that separation. UI owns form state, layout, validation display, and interaction details. Providers own auth state and Supabase calls.
+Keep package boundaries explicit. App routes and screens live in apps. Shared UI
+and shared provider behavior live in packages only when reuse is real.
 
 ---
 
-## `packages/providers` Usage Pattern
+## Nested Guidance
 
-### Importing Providers
+Read the nearest nested instructions before modifying a subtree:
 
-App code should import providers and hooks from `@repo/providers`:
+- `apps/web/AGENTS.md` for Next.js routes, web components, web auth adapters,
+  provider composition, Tailwind usage, and web action tracking.
+- `apps/native/AGENTS.md` for Expo routes, native screens, native auth adapters,
+  provider composition, push registration, native tokens, and native action
+  tracking.
+- `packages/ui/AGENTS.md` for shared UI primitives/components, theme tokens,
+  web/native component pairs, auth UI, and UI validation.
+- `packages/providers/AGENTS.md` for auth, actions, notifications, Supabase
+  client boundaries, provider structure, and public exports.
+- `packages/lib/AGENTS.md` for shared DTOs, API client contracts, notification
+  destination metadata, and generated JSON.
+- `services/api/AGENTS.md` for FastAPI routers, services, repositories, Pydantic
+  schemas, Supabase auth, and API tests.
+- `supabase/AGENTS.md` for migrations, RLS, grants, indexes, realtime
+  publication, seed data, and schema ownership.
+- `tooling/AGENTS.md` for generators, deterministic outputs, check modes, and
+  generated-file tests.
 
-```ts
-import { AuthProvider, useAuth } from "@repo/providers";
-```
-
-Do not deep-import provider internals into apps.
-
-The package export map resolves the correct platform entry:
-
-- web -> `packages/providers/src/index.web.ts`
-- native -> `packages/providers/src/index.native.ts`
-
-### Current Auth Pattern
-
-Auth uses this shape:
-
-```txt
-packages/providers/src/auth/
-  auth.types.ts
-  AuthProvider.shared.tsx
-  AuthProvider.web.tsx
-  AuthProvider.native.tsx
-```
-
-`AuthProvider.shared.tsx` contains the shared React context, session state, and Supabase auth methods. Platform wrappers provide platform-specific dependencies:
-
-- web uses the web Supabase client
-- native uses the native Supabase client and React Native `Linking` for auth URLs
-
-Auth exposes one provider and one hook:
-
-```tsx
-<AuthProvider>{children}</AuthProvider>
-```
-
-```ts
-const { user, session, loading, signOut } = useAuth();
-```
-
-Auth methods throw on error. UI or app code should handle errors at the call site.
-
-### Adding More Providers
-
-Use the same pattern for future shared providers:
-
-```txt
-packages/providers/src/example/
-  example.types.ts
-  ExampleProvider.shared.tsx
-  ExampleProvider.web.tsx
-  ExampleProvider.native.tsx
-```
-
-Use a shared file when behavior is genuinely shared. Put platform-specific setup in the platform wrappers or platform-specific support files.
-
-Export the provider and hook from both platform indexes:
-
-- `packages/providers/src/index.web.ts`
-- `packages/providers/src/index.native.ts`
-
-Keep apps consuming only the public provider and hook from `@repo/providers`.
-
-### Provider Responsibilities
-
-Providers should own shared application context and integrations, such as:
-
-- auth
-- feature flags
-- app configuration
-- customer/account context
-- other cross-platform state that both apps actually use
-
-Providers should not own app routing, screens, or app-specific layout. Those stay in `apps/web` and `apps/native`.
-
-### Platform Boundaries
-
-Hide platform differences inside `packages/providers`.
-
-Good examples:
-
-- storage differences
-- Supabase client construction
-- native deep-link handling
-- web-only browser behavior
-
-Avoid pushing platform checks such as `Platform.OS` or `typeof window` into app call sites when a provider can encapsulate the difference.
-
-For Next.js SSR-specific Supabase work, keep server-side logic inside `apps/web`. `@repo/providers` is for client-side shared providers.
+If a change spans multiple areas, apply every relevant nested file. Do not
+centralize folder-specific rules here unless they affect the whole repo.
 
 ---
 
-## App Composition
+## Repo-Wide Rules
 
-Web composes providers in `apps/web/components/Providers.tsx`.
+- Import shared packages through public entrypoints such as `@repo/ui`,
+  `@repo/providers`, and `@repo/lib`. Do not deep-import package internals from
+  app code.
+- Preserve the current architecture unless the design is clearly weak or leaky.
+  Prefer small, explicit changes over speculative abstractions.
+- Keep app-specific routing, layout, and screen behavior in `apps/web` or
+  `apps/native`.
+- Put reusable cross-platform UI in `packages/ui` only when both platforms need
+  it or near-term reuse is concrete.
+- Put reusable cross-platform client state and integrations in
+  `packages/providers`; do not push platform checks into app call sites when a
+  provider can encapsulate them.
+- Keep Next.js SSR-specific Supabase logic inside `apps/web`; `@repo/providers`
+  is for client-side shared providers.
+- Keep authenticated product operations in `services/api` when they require
+  service-owned writes, delivery side effects, or server-side validation.
+- Keep schema, RLS, grants, indexes, and realtime publication in source-controlled
+  Supabase migrations.
+- Treat files generated by `tooling` as derived artifacts. Update generator
+  inputs and rerun the generator instead of hand-editing generated output.
 
-Native composes providers in `apps/native/app/_layout.tsx`.
+---
 
-When adding a new shared provider, wire it into the app composition roots deliberately. Do not hide app-wide side effects inside individual screens.
+## Action Tracking
+
+Use `useActions` when a change introduces a meaningful user intent, completed
+outcome, or first entry into an authenticated product screen. Add the tracking in
+the same diff as the interaction so the event stays coupled to the behavior it
+describes.
+
+- Track high-signal actions and screen views in `apps/web` and `apps/native`.
+- Use stable `uniqueKey` values for first-view events so re-renders and route
+  revisits do not duplicate records.
+- Keep metadata structured and low-cardinality. Prefer fields like `source`,
+  `screen`, and `trigger`, plus the minimum context needed to interpret the
+  event.
+- Track client-side where the user action originates. Add API-side tracking only
+  when the server is the only meaningful source of the action.
+- Skip passive noise, scroll logging, and pre-auth page views that cannot be tied
+  to a recorded user session.
+- When adding a user-facing interaction, decide tracking at the same time instead
+  of treating it as a follow-up.
 
 ---
 
@@ -226,14 +102,14 @@ Run the narrowest relevant checks after changes:
 
 ```sh
 pnpm --filter @repo/ui typecheck
+pnpm ui:validate
 pnpm --filter @repo/providers check-types
 pnpm --filter web check-types
 pnpm --filter native check-types
+pnpm api:test
+pnpm notifications:verify
+pnpm notifications:test
 ```
 
-For UI package structure changes, also run:
-
-```sh
-pnpm ui:validate
-```
-
+Use only the checks relevant to the files changed. If you cannot run an expected
+check, state why.

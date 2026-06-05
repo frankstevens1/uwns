@@ -36,10 +36,12 @@ export default function MarketingHeader({ title, headerHeight }: { title: string
 
   return (
     <header
+      aria-label={`${title} marketing header`}
       className={[
         "fixed left-0 right-0 top-0 z-30",
         "bg-(--ui-panel)/80 supports-backdrop-filter:backdrop-blur",
         "transition-colors",
+        "print:hidden",
       ].join(" ")}
       style={{ height: headerHeight || HEADER_H }}
     >
@@ -77,8 +79,12 @@ export default function MarketingHeader({ title, headerHeight }: { title: string
                 Home
               </Button>
 
-              <Button variant="ghost" onPress={() => go("/legal")}>
-                Legal
+              <Button variant="ghost" onPress={() => go("/legal?document=privacy")}>
+                Privacy Policy
+              </Button>
+
+              <Button variant="ghost" onPress={() => go("/legal?document=terms")}>
+                Terms of Service
               </Button>
 
               {/* Keep this minimal. Don’t turn it into a nav bar. */}

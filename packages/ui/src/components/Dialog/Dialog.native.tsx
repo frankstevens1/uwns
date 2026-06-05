@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Button as UiButton } from "../../primitives/Button/Button.native";
 import type {
   DialogContentProps,
   DialogFooterProps,
@@ -177,7 +178,61 @@ export function DialogDescription({ children }: DialogTextProps) {
 }
 
 export function DialogFooter({ children }: DialogFooterProps) {
-  return <View style={styles.footer}>{children}</View>;
+  return (
+    <View style={styles.footer}>
+      {normalizeDialogFooterChildren(children)}
+    </View>
+  );
+}
+
+function normalizeDialogFooterChildren(
+  children: React.ReactNode,
+): React.ReactNode {
+  if (children == null || typeof children === "boolean") {
+    return children;
+  }
+
+  const normalized = React.Children.toArray(children).map((child) =>
+    normalizeDialogFooterNode(child),
+  );
+
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  return normalized.length === 1 ? normalized[0] : normalized;
+}
+
+function normalizeDialogFooterNode(child: React.ReactNode): React.ReactNode {
+  if (!React.isValidElement(child)) {
+    return child;
+  }
+
+  const element = child as React.ReactElement<{
+    children?: React.ReactNode;
+    size?: unknown;
+  }>;
+  const normalizedChildren = normalizeDialogFooterChildren(
+    element.props.children,
+  );
+  const nextProps: Partial<{
+    children: React.ReactNode;
+    size: unknown;
+  }> = {};
+
+  if (element.type === UiButton) {
+    nextProps.size = "sm";
+  }
+
+  if (normalizedChildren !== element.props.children) {
+    nextProps.children = normalizedChildren;
+  }
+
+  if (Object.keys(nextProps).length === 0) {
+    return child;
+  }
+
+  return React.cloneElement(element, nextProps);
 }
 
 const styles = StyleSheet.create({
@@ -230,8 +285,9 @@ const styles = StyleSheet.create({
     color: "#6b7280",
   },
   footer: {
-    marginTop: 16,
+    marginTop: 12,
     flexDirection: "row",
     justifyContent: "flex-end",
+    gap: 6,
   },
 });

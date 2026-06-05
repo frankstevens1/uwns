@@ -8,17 +8,17 @@ import {
   OtpCodeInput,
   PasswordField,
   PasswordRequirementsList,
-  buttonTokens,
   evaluatePassword,
   generatePassword,
   inputTokens,
+  ToggleGroup,
+  ToggleGroupItem,
   type AuthFocusField,
   normalizeAuthMethodParam,
   useThemeTokens,
 } from "@repo/ui";
 import * as Linking from "expo-linking";
 import {
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -432,40 +432,18 @@ export function AuthFlow({ initialMode, initialFocus, initialMethod }: AuthFlowP
     <AuthCard title={title} subtitle={subtitle} footer={footer}>
       <View style={styles.form}>
         {canChooseMethod && !otpSent ? (
-          <View key="method" style={[styles.segment, { borderColor: tokens.color.border }]}>
-            <Pressable
-              accessibilityRole="button"
-              onPressIn={() => {
-                pendingFocusRef.current = activeFocusRef.current;
-              }}
-              onPress={() => selectMethod("password")}
-              style={[
-                styles.segmentButton,
-                {
-                  backgroundColor: method === "password" ? tokens.color.subtleBg : "transparent",
-                  borderColor: method === "password" ? tokens.color.border : "transparent",
-                },
-              ]}
-            >
-              <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Password</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              onPressIn={() => {
-                pendingFocusRef.current = activeFocusRef.current;
-              }}
-              onPress={() => selectMethod("otp")}
-              style={[
-                styles.segmentButton,
-                {
-                  backgroundColor: method === "otp" ? tokens.color.subtleBg : "transparent",
-                  borderColor: method === "otp" ? tokens.color.border : "transparent",
-                },
-              ]}
-            >
-              <Text style={[styles.segmentText, { color: tokens.color.fg }]}>Magic link</Text>
-            </Pressable>
-          </View>
+          <ToggleGroup
+            key="method"
+            value={method}
+            onValueChange={(next) => {
+              pendingFocusRef.current = activeFocusRef.current;
+              selectMethod(next as AuthMethod);
+            }}
+            ariaLabel="Authentication method"
+          >
+            <ToggleGroupItem value="password">Password</ToggleGroupItem>
+            <ToggleGroupItem value="otp">Magic link</ToggleGroupItem>
+          </ToggleGroup>
         ) : null}
 
         {otpSent ? (
@@ -592,23 +570,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  segment: {
-    flexDirection: "row",
-    gap: 2,
-    borderWidth: buttonTokens.base.borderWidth,
-    borderRadius: buttonTokens.base.radius,
-    padding: 2,
-  },
-  segmentButton: {
-    flex: 1,
-    height: buttonTokens.size.sm.height,
-    borderWidth: 1,
-    borderRadius: buttonTokens.base.radius,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  segmentText: {
-    fontSize: buttonTokens.size.sm.fontSize,
-    fontWeight: buttonTokens.base.fontWeight as any,
-  },
 });

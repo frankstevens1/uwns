@@ -1,4 +1,4 @@
-import type { AuthContextValue, TrackEventArgs } from "@repo/providers";
+import type { AuthContextValue, TrackActionArgs } from "@repo/providers";
 
 export type UiAuthClient = {
   signInWithPassword: (args: {
@@ -46,7 +46,7 @@ function toMsg(e: unknown) {
 
 type AuthTrackingOptions = {
   flow: "login" | "sign-up";
-  trackEvent: (args: TrackEventArgs) => Promise<void>;
+  trackAction: (args: TrackActionArgs) => Promise<void>;
 };
 
 export function toUiAuthClient(
@@ -57,8 +57,8 @@ export function toUiAuthClient(
     signInWithPassword: async ({ email, password }) => {
       try {
         await auth.signInWithPassword({ email, password });
-        await tracking?.trackEvent({
-          eventName: "logged_in",
+        await tracking?.trackAction({
+          actionName: "logged_in",
           metadata: { authMethod: "password" },
         });
         return { error: null };
@@ -70,8 +70,8 @@ export function toUiAuthClient(
     signUp: async ({ email, password /* emailRedirectTo ignored */ }) => {
       try {
         await auth.signUpWithPassword({ email, password });
-        await tracking?.trackEvent({
-          eventName: "signed_up",
+        await tracking?.trackAction({
+          actionName: "signed_up",
           metadata: { authMethod: "password" },
         });
         return { error: null };
@@ -92,8 +92,8 @@ export function toUiAuthClient(
     verifyEmailOtp: async ({ email, token }) => {
       try {
         await auth.verifyEmailOtp({ email, token });
-        await tracking?.trackEvent({
-          eventName: tracking.flow === "sign-up" ? "signed_up" : "logged_in",
+        await tracking?.trackAction({
+          actionName: tracking.flow === "sign-up" ? "signed_up" : "logged_in",
           metadata: { authMethod: "otp" },
         });
         return { error: null };
@@ -105,6 +105,12 @@ export function toUiAuthClient(
     verifyPasswordResetOtp: async ({ email, token }) => {
       try {
         await auth.verifyPasswordResetOtp({ email, token });
+        await tracking?.trackAction({
+          actionName: "password_reset_verified",
+          metadata: {
+            source: "auth_flow",
+          },
+        });
         return { error: null };
       } catch (e) {
         return { error: { message: toMsg(e) } };
@@ -123,8 +129,8 @@ export function toUiAuthClient(
     updateUserPassword: async ({ password }) => {
       try {
         await auth.updatePassword(password);
-        await tracking?.trackEvent({
-          eventName: "password_updated",
+        await tracking?.trackAction({
+          actionName: "password_updated",
           metadata: { source: "auth_flow" },
         });
         return { error: null };
@@ -135,8 +141,8 @@ export function toUiAuthClient(
 
     signOut: async () => {
       try {
-        await tracking?.trackEvent({
-          eventName: "signed_out",
+        await tracking?.trackAction({
+          actionName: "signed_out",
           metadata: { trigger: "auth_client" },
         });
         await auth.signOut?.();

@@ -1,6 +1,7 @@
 import * as React from "react";
 import {
   Animated,
+  Linking,
   Dimensions,
   Keyboard,
   Pressable,
@@ -14,13 +15,13 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useActivity, useAuth, useNotifications } from "@repo/providers";
+import { useActions, useAuth, useNotifications } from "@repo/providers";
+import { resolveNotificationTarget } from "@repo/lib";
 import { useThemeTokens } from "@repo/ui";
 import { AppBottomTray, AppModal } from "./AppModal";
 import {
   NotificationListItem,
   canManuallyMarkRead,
-  getNativeNotificationHref,
 } from "./Notifications/NotificationListItem";
 import { APP_TOP_BAR_HEIGHT } from "../constants/layout";
 
@@ -118,7 +119,7 @@ export function AppTopBar() {
   const tokens = useThemeTokens();
   const pathname = usePathname();
   const { user, loading, signOut } = useAuth();
-  const { trackEvent } = useActivity();
+  const { trackAction } = useActions();
   const {
     notifications,
     unreadCount,
@@ -158,7 +159,7 @@ export function AppTopBar() {
         label: "Home",
         href: "/(tabs)",
         icon: "home-outline",
-        keywords: ["product", "overview", "activity"],
+        keywords: ["product", "overview", "actions"],
         meta: "Tab",
       },
       {
@@ -179,8 +180,7 @@ export function AppTopBar() {
           "notifications",
           "push",
           "email",
-          "activity",
-          "events",
+          "actions",
         ],
         meta: "Tab",
       },
@@ -194,8 +194,8 @@ export function AppTopBar() {
         keywords: ["logout", "sign out"],
         meta: "Action",
         action: async () => {
-          await trackEvent({
-            eventName: "signed_out",
+          await trackAction({
+            actionName: "signed_out",
             metadata: { trigger: "native_search_command" },
           });
           await signOut();
@@ -209,7 +209,7 @@ export function AppTopBar() {
         id: "providers",
         label: "Provider setup",
         icon: "book-outline",
-        keywords: ["auth", "activity", "supabase"],
+        keywords: ["auth", "actions", "supabase"],
         meta: "Reference",
       },
       {
@@ -236,7 +236,7 @@ export function AppTopBar() {
       },
       { heading: "Docs", items: docs },
     ];
-  }, [loading, signOut, trackEvent, user]);
+  }, [loading, signOut, trackAction, user]);
 
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredSections = sections
@@ -551,7 +551,18 @@ export function AppTopBar() {
             </Pressable>
             {hasManualUnread ? (
               <Pressable
-                onPress={() => void markAllAsRead()}
+                onPress={() => {
+                  void trackAction({
+                    actionName: "notifications_mark_all_read_clicked",
+                    metadata: {
+                      source: "header_tray",
+                      screen: "notifications",
+                      trigger: "button",
+                      unreadCount: unreadNotifications.length,
+                    },
+                  });
+                  void markAllAsRead();
+                }}
                 accessibilityRole="button"
                 accessibilityLabel="Mark all notifications read"
                 style={({ pressed }) => [
@@ -588,17 +599,25 @@ export function AppTopBar() {
               <NotificationListItem
                 key={item.id}
                 notification={item}
+                trackingSource="native_header_tray"
                 onPress={() => {
                   if (canManuallyMarkRead(item)) {
                     void markAsRead(item.id);
                   }
-                  const href = getNativeNotificationHref(item);
-                  if (href) {
-                    setNotificationsOpen(false);
-                    router.navigate(href as any);
+                  const resolvedTarget = resolveNotificationTarget(
+                    item.target,
+                    "native",
+                  );
+                  if (!resolvedTarget) return;
+
+                  setNotificationsOpen(false);
+                  if (resolvedTarget.type === "external_url") {
+                    void Linking.openURL(resolvedTarget.href);
+                    return;
                   }
+                  router.navigate(resolvedTarget.href as any);
                 }}
-                onMarkAsRead={() => void markAsRead(item.id)}
+                onMarkAsRead={() => markAsRead(item.id)}
               />
             ))
           )}

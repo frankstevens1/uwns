@@ -1,0 +1,29 @@
+{
+  "auth": {
+    "label": "Authentication",
+    "description": "Security and sign-in actions, including login prompts and authentication checks.",
+    "defaults": {
+      "in_app_enabled": true,
+      "email_enabled": true,
+      "push_enabled": true
+    }
+  },
+  "account": {
+    "label": "Account",
+    "description": "Account actions such as profile, membership, and workspace updates.",
+    "defaults": {
+      "in_app_enabled": true,
+      "email_enabled": true,
+      "push_enabled": true
+    }
+  },
+  "system": {
+    "label": "System",
+    "description": "Platform updates, maintenance notices, and service messages.",
+    "defaults": {
+      "in_app_enabled": true,
+      "email_enabled": false,
+      "push_enabled": false
+    }
+  }
+}

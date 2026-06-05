@@ -1,17 +1,14 @@
-import type { NotificationPreference } from "@repo/lib";
-
-export type NotificationPreferenceChannels = Pick<
+import type {
   NotificationPreference,
-  "in_app_enabled" | "email_enabled" | "push_enabled"
->;
+  NotificationPreferenceChannels,
+} from "@repo/lib";
+
+export type {
+  NotificationGroupConfig,
+  NotificationPreferenceChannels,
+} from "@repo/lib";
 
 export type NotificationPreferenceChannel = keyof NotificationPreferenceChannels;
-
-export type NotificationGroupConfig = {
-  label: string;
-  description: string;
-  defaults: NotificationPreferenceChannels;
-};
 
 export type PreferencePatch = Partial<NotificationPreferenceChannels>;
 
@@ -25,14 +22,14 @@ export type NotificationGroupCounts = {
   total: number;
 };
 
-export type NotificationChannelActivityCounts = {
+export type NotificationChannelStatusCounts = {
   active: number;
   inactive: number;
 };
 
-export type NotificationChannelActivityCountsByChannel = Record<
+export type NotificationChannelStatusCountsByChannel = Record<
   NotificationPreferenceChannel,
-  NotificationChannelActivityCounts
+  NotificationChannelStatusCounts
 >;
 
-export type GeneratorReadMode = "manual" | "event";
+export type GeneratorReadMode = "manual" | "action";
