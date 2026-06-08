@@ -16,6 +16,13 @@
     }
   },
   {
+    "id": "docs",
+    "label": "Docs",
+    "paths": {
+      "web": "/docs"
+    }
+  },
+  {
     "id": "home",
     "label": "Home",
     "paths": {

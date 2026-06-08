@@ -8,8 +8,10 @@ import {
   getNotificationsForGroup,
   NotificationDemo,
   NotificationGroups,
-  NotificationHistory,
+  NotificationHistoryContent,
+  NotificationHistoryHeader,
 } from "@/components/Settings/Notifications";
+import { SettingsTwoColumnLayout } from "./SettingsTwoColumnLayout";
 
 export function NotificationSettingsSection() {
   const { trackAction } = useActions();
@@ -44,21 +46,29 @@ export function NotificationSettingsSection() {
   }, [trackAction]);
 
   return (
-    <section className="space-y-6">
-      <NotificationDemo
-        preferences={preferences}
-        onCreate={createNotification}
-      />
-
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-        <NotificationGroups
-          notifications={notifications}
-          onSelectedGroupKeyChange={setSelectedNotificationGroupKey}
-          preferences={preferences}
-          onChange={updatePreference}
+    <SettingsTwoColumnLayout
+      left={
+        <>
+          <NotificationGroups
+            notifications={notifications}
+            onSelectedGroupKeyChange={setSelectedNotificationGroupKey}
+            preferences={preferences}
+            onChange={updatePreference}
+          />
+          <NotificationDemo
+            preferences={preferences}
+            onCreate={createNotification}
+          />
+        </>
+      }
+      rightHeader={
+        <NotificationHistoryHeader
+          notifications={historyNotifications}
+          onMarkAllAsRead={markAllAsRead}
         />
-
-        <NotificationHistory
+      }
+      rightContent={
+        <NotificationHistoryContent
           error={error}
           loading={loading}
           notifications={historyNotifications}
@@ -73,7 +83,7 @@ export function NotificationSettingsSection() {
           onMarkAllAsRead={markAllAsRead}
           onMarkAsRead={markAsRead}
         />
-      </div>
-    </section>
+      }
+    />
   );
 }

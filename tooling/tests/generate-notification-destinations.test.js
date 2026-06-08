@@ -9,24 +9,48 @@ const {
   discoverRouteFiles,
   buildManifest,
   readJson,
-} = require("./generate-notification-destinations.js");
+} = require("../generate-notification-destinations.js");
 
 const ROOT = path.resolve(__dirname, "..");
-const NATIVE_NOTIFICATIONS_ROUTE = path.join(ROOT, "apps", "native", "app", "notifications.tsx");
-const WEB_SETTINGS_ROUTE = path.join(ROOT, "apps", "web", "app", "app", "settings", "page.tsx");
+const NATIVE_NOTIFICATIONS_ROUTE = path.join(
+  ROOT,
+  "apps",
+  "native",
+  "app",
+  "notifications.tsx",
+);
+const WEB_DOCS_ROUTE = path.join(
+  ROOT,
+  "apps",
+  "web",
+  "app",
+  "docs",
+  "[[...slug]]",
+  "page.tsx",
+);
+const WEB_SETTINGS_ROUTE = path.join(
+  ROOT,
+  "apps",
+  "web",
+  "app",
+  "app",
+  "settings",
+  "page.tsx",
+);
 
 test("discovers route tree entries and allows denylisted routes", () => {
   const config = readJson(CONFIG_PATH);
   const discovered = discoverRouteFiles();
 
   assert.ok(discovered.nativeRoutes.has(NATIVE_NOTIFICATIONS_ROUTE));
+  assert.ok(discovered.webRoutes.has(WEB_DOCS_ROUTE));
   assert.ok(discovered.webRoutes.has(WEB_SETTINGS_ROUTE));
 
   const manifest = buildManifest(config, discovered);
-  assert.equal(manifest.length, 4);
+  assert.equal(manifest.length, 5);
   assert.deepEqual(
     manifest.map((entry) => entry.id),
-    ["account", "actions", "home", "notifications"],
+    ["account", "actions", "docs", "home", "notifications"],
   );
 });
 

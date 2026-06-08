@@ -16,7 +16,10 @@ from app.services.notifications.models import (
     NotificationPreferencePatch,
     PushTokenRequest,
 )
-from app.services.notifications.registry import get_notification_group_keys
+from app.services.notifications.registry import (
+    get_notification_group_defaults,
+    get_notification_group_keys,
+)
 from app.services.notifications.service import NotificationsService
 
 
@@ -24,6 +27,7 @@ class FakeNotificationsRepository:
     def __init__(self) -> None:
         self.notifications: dict[str, Notification] = {}
         self.preferences: dict[str, NotificationPreference] = {}
+        self.actions: list[Action] = []
         self.push_tokens: list[dict[str, Any]] = []
         self.attempts: list[dict[str, Any]] = []
         self.next_id = 1
@@ -68,6 +72,27 @@ class FakeNotificationsRepository:
         self.notifications[notification.id] = notification
         return notification
 
+    def create_notification_if_missing(
+        self,
+        user_id: str,
+        request: CreateNotificationRequest,
+        *,
+        in_app_visible: bool = True,
+    ) -> Notification:
+        existing = (
+            self.find_notification_by_unique_key(user_id, request.unique_key)
+            if request.unique_key
+            else None
+        )
+        if existing:
+            return existing
+
+        return self.create_or_update_notification(
+            user_id,
+            request,
+            in_app_visible=in_app_visible,
+        )
+
     def find_notification_by_unique_key(
         self,
         user_id: str,
@@ -94,7 +119,26 @@ class FakeNotificationsRepository:
         action_name: str,
         platform: str,
     ) -> bool:
-        return False
+        return any(
+            action.user_id == user_id
+            and action.action_name == action_name
+            and action.platform == platform
+            for action in self.actions
+        )
+
+    def has_any_action(
+        self,
+        user_id: str,
+        action_names: tuple[str, ...],
+        *,
+        exclude_action_id: str | None = None,
+    ) -> bool:
+        return any(
+            action.user_id == user_id
+            and action.action_name in action_names
+            and action.id != exclude_action_id
+            for action in self.actions
+        )
 
     def list_notifications(self, user_id: str, limit: int = 25) -> list[Notification]:
         return [
@@ -163,14 +207,13 @@ class FakeNotificationsRepository:
     ) -> NotificationPreference:
         key = f"{user_id}:{group_key}"
         if key not in self.preferences:
+            defaults = get_notification_group_defaults(group_key)
             self.preferences[key] = NotificationPreference.model_validate(
                 {
                     "id": f"preference-{len(self.preferences) + 1}",
                     "user_id": user_id,
                     "group_key": group_key,
-                    "in_app_enabled": True,
-                    "email_enabled": True,
-                    "push_enabled": True,
+                    **defaults,
                     "created_at": datetime.now(UTC),
                     "updated_at": datetime.now(UTC),
                 }
@@ -243,10 +286,11 @@ def make_action(
     user_id: str,
     action_name: str,
     platform: str = "web",
+    action_id: str | None = None,
 ) -> Action:
     return Action.model_validate(
         {
-            "id": f"action-{action_name}",
+            "id": action_id or f"action-{action_name}",
             "user_id": user_id,
             "action_name": action_name,
             "platform": platform,
@@ -301,6 +345,20 @@ def test_user_preferences_disable_delivery_channels() -> None:
     )
 
     assert repository.attempts == []
+
+
+def test_list_preferences_uses_notification_group_defaults() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+
+    preferences = service.list_preferences("user-1")
+    by_group = {preference.group_key: preference for preference in preferences}
+
+    assert by_group["auth"].email_enabled is True
+    assert by_group["auth"].push_enabled is True
+    assert by_group["docs"].in_app_enabled is True
+    assert by_group["docs"].email_enabled is False
+    assert by_group["docs"].push_enabled is False
 
 
 def test_create_notification_rejects_unknown_in_app_destination() -> None:
@@ -450,6 +508,82 @@ def test_account_viewed_before_listing_creates_and_reads_view_account_notificati
     )
     assert view_account is not None
     assert view_account.read_at is not None
+
+
+def test_first_auth_action_creates_docs_onboarding_notification() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+
+    service.consume_action(
+        make_action("user-1", "logged_in"),
+        email="user@example.com",
+    )
+
+    docs = repository.find_notification_by_unique_key("user-1", "onboarding:docs")
+    assert docs is not None
+    assert docs.group_key == "docs"
+    assert docs.target is not None
+    assert docs.target.type == "app_destination"
+    assert docs.target.target == "docs"
+    assert docs.metadata == {"autoReadActionName": "docs_viewed"}
+    assert docs.read_at is None
+
+    service.mark_notification_read("user-1", docs.id)
+    read_docs = repository.find_notification_by_unique_key("user-1", "onboarding:docs")
+    assert read_docs is not None
+    assert read_docs.read_at is not None
+
+
+def test_later_auth_action_does_not_create_docs_onboarding_notification() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+    previous_auth = make_action(
+        "user-1",
+        "logged_in",
+        action_id="action-previous-login",
+    )
+    repository.actions.append(previous_auth)
+
+    service.consume_action(
+        make_action("user-1", "signed_up", action_id="action-current-signup"),
+        email="user@example.com",
+    )
+
+    assert (
+        repository.find_notification_by_unique_key("user-1", "onboarding:docs")
+        is None
+    )
+
+
+def test_prior_docs_viewed_action_prevents_docs_onboarding_notification() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+    repository.actions.append(make_action("user-1", "docs_viewed"))
+
+    service.consume_action(
+        make_action("user-1", "logged_in"),
+        email="user@example.com",
+    )
+
+    assert (
+        repository.find_notification_by_unique_key("user-1", "onboarding:docs")
+        is None
+    )
+
+
+def test_docs_viewed_action_marks_docs_onboarding_notification_read() -> None:
+    repository = FakeNotificationsRepository()
+    service = make_service(repository)
+    service.consume_action(
+        make_action("user-1", "logged_in"),
+        email="user@example.com",
+    )
+
+    service.consume_action(make_action("user-1", "docs_viewed"))
+
+    docs = repository.find_notification_by_unique_key("user-1", "onboarding:docs")
+    assert docs is not None
+    assert docs.read_at is not None
 
 
 def test_action_marks_matching_auto_read_notification_read() -> None:

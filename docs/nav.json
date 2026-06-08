@@ -1,0 +1,44 @@
+{
+  "sections": [
+    {
+      "title": "Start here",
+      "items": [
+        { "slug": "", "title": "Overview" },
+        { "slug": "getting-started/repo-structure", "title": "Repo structure" },
+        {
+          "slug": "getting-started/product-customization",
+          "title": "Product customization"
+        }
+      ]
+    },
+    {
+      "title": "Architecture",
+      "items": [
+        { "slug": "architecture/web", "title": "Web app" },
+        { "slug": "architecture/native", "title": "Native app" },
+        { "slug": "components", "title": "UI components" },
+        { "slug": "architecture/providers", "title": "Providers" },
+        { "slug": "architecture/api", "title": "API service" }
+      ]
+    },
+    {
+      "title": "Operations",
+      "items": [
+        { "slug": "operations/supabase", "title": "Supabase" },
+        {
+          "slug": "operations/action-tracking",
+          "title": "Action tracking"
+        }
+      ]
+    },
+    {
+      "title": "Reference",
+      "items": [
+        {
+          "slug": "reference/documentation-management",
+          "title": "Documentation management"
+        }
+      ]
+    }
+  ]
+}

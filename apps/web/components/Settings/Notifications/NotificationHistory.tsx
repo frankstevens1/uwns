@@ -1,6 +1,6 @@
 "use client";
 
-import type * as React from "react";
+import * as React from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { useActions } from "@repo/providers";
 import { Button } from "@repo/ui";
@@ -16,21 +16,86 @@ import {
   getNotificationGroupConfig,
 } from "./utils";
 
-export function NotificationHistory({
-  error,
-  loading,
-  notifications,
-  onGoTo,
-  onMarkAllAsRead,
-  onMarkAsRead,
-}: {
+export interface NotificationHistoryProps {
   error: string | null;
   loading: boolean;
   notifications: Notification[];
   onGoTo: (target: ResolvedNotificationTarget) => void;
   onMarkAllAsRead: () => Promise<void>;
   onMarkAsRead: (id: string) => Promise<Notification | null>;
+}
+
+export function NotificationHistoryHeader({
+  notifications,
+  onMarkAllAsRead,
+}: {
+  notifications: Notification[];
+  onMarkAllAsRead: () => Promise<void>;
 }) {
+  const { trackAction } = useActions();
+  const unreadNotifications = notifications.filter(
+    (notification) => !notification.read_at,
+  );
+  const hasManualUnread = notifications.some(canManuallyMarkRead);
+
+  return (
+    <div className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Bell size={16} />
+          Notification history
+        </div>
+        <p className="text-xs leading-5 text-(--ui-muted-fg)">
+          Unread items stay on top. Read items remain available below for
+          context.
+        </p>
+      </div>
+      {hasManualUnread ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onPress={() => {
+            void trackAction({
+              actionName: "notifications_mark_all_read_clicked",
+              metadata: {
+                source: "settings",
+                screen: "notifications",
+                trigger: "button",
+                unreadCount: unreadNotifications.length,
+              },
+            });
+            void onMarkAllAsRead();
+          }}
+        >
+          <span className="inline-flex items-center gap-2">
+            <CheckCheck size={14} />
+            Mark all read
+          </span>
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
+export function NotificationHistory(props: NotificationHistoryProps) {
+  return (
+    <section className="space-y-5">
+      <NotificationHistoryHeader
+        notifications={props.notifications}
+        onMarkAllAsRead={props.onMarkAllAsRead}
+      />
+      <NotificationHistoryContent {...props} />
+    </section>
+  );
+}
+
+export function NotificationHistoryContent({
+  error,
+  loading,
+  notifications,
+  onGoTo,
+  onMarkAsRead,
+}: NotificationHistoryProps) {
   const { trackAction } = useActions();
   const unreadNotifications = notifications.filter(
     (notification) => !notification.read_at,
@@ -38,46 +103,9 @@ export function NotificationHistory({
   const readNotifications = notifications.filter(
     (notification) => notification.read_at,
   );
-  const hasManualUnread = notifications.some(canManuallyMarkRead);
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 border-b border-(--ui-border) pb-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Bell size={16} />
-            Notification history
-          </div>
-          <p className="text-xs leading-5 text-(--ui-muted-fg)">
-            Unread items stay on top. Read items remain available below for
-            context.
-          </p>
-        </div>
-        {hasManualUnread ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onPress={() => {
-              void trackAction({
-                actionName: "notifications_mark_all_read_clicked",
-                metadata: {
-                  source: "settings",
-                  screen: "notifications",
-                  trigger: "button",
-                  unreadCount: unreadNotifications.length,
-                },
-              });
-              void onMarkAllAsRead();
-            }}
-          >
-            <span className="inline-flex items-center gap-2">
-              <CheckCheck size={14} />
-              Mark all read
-            </span>
-          </Button>
-        ) : null}
-      </div>
-
+    <>
       {loading ? (
         <NotificationStateMessage message="Loading notifications..." />
       ) : error ? (
@@ -85,13 +113,14 @@ export function NotificationHistory({
           message={`Notifications are unavailable: ${error}`}
         />
       ) : notifications.length === 0 ? (
-        <NotificationStateMessage message="No notifications yet. Use the demo generator to create one." />
+        <NotificationStateMessage message="No notifications." />
       ) : (
-        <div className="space-y-6">
+        <div>
           <NotificationSection
             count={unreadNotifications.length}
             description="Actionable notifications that still need attention."
             emptyMessage="You're all caught up."
+            stickyIndex={0}
             title="Unread"
           >
             {unreadNotifications.map((notification) => {
@@ -150,6 +179,7 @@ export function NotificationHistory({
             count={readNotifications.length}
             description="Previously handled notifications."
             emptyMessage="No read notifications yet."
+            stickyIndex={1}
             title="Read"
           >
             {readNotifications.map((notification) => {
@@ -186,13 +216,13 @@ export function NotificationHistory({
           </NotificationSection>
         </div>
       )}
-    </section>
+    </>
   );
 }
 
 function NotificationStateMessage({ message }: { message: string }) {
   return (
-    <div className="border-y border-(--ui-border) py-8 text-center text-sm text-(--ui-muted-fg)">
+    <div className="mt-2 px-4 py-4 text-xs font-light italic text-(--ui-muted-fg)">
       {message}
     </div>
   );
@@ -203,38 +233,93 @@ function NotificationSection({
   count,
   description,
   emptyMessage,
+  stickyIndex,
   children,
+  first,
 }: {
   title: string;
   count: number;
   description: string;
   emptyMessage: string;
+  stickyIndex: number;
   children: React.ReactNode;
+  first?: boolean;
 }) {
+  const headerRef = React.useRef<HTMLDivElement | null>(null);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const scrollToSectionTop = React.useCallback(() => {
+    const header = headerRef.current;
+    const list = listRef.current;
+    const scrollContainer = header?.closest(
+      "[data-settings-history-scroll]",
+    );
+
+    if (
+      !header ||
+      !list ||
+      !(scrollContainer instanceof HTMLElement) ||
+      scrollContainer.scrollHeight <= scrollContainer.clientHeight
+    ) {
+      list?.scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+
+    const stackedHeaderHeight = header.offsetHeight * (stickyIndex + 1);
+    scrollContainer.scrollTo({
+      top: Math.max(0, list.offsetTop - stackedHeaderHeight),
+      behavior: "smooth",
+    });
+  }, [stickyIndex]);
+
   return (
-    <section className="space-y-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <>
+      {stickyIndex > 0 ? <div aria-hidden className="h-6" /> : null}
+      <div
+        ref={headerRef}
+        className="relative flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-(--ui-bg) py-2 lg:sticky lg:z-20"
+        style={{
+          top: `calc(var(--settings-history-sticky-row) * ${stickyIndex})`,
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-0 right-0 top-full hidden h-3 lg:block"
+          style={{
+            background:
+              "linear-gradient(to bottom, var(--ui-fade-from), rgba(0,0,0,0))",
+          }}
+        />
         <div className="flex items-baseline gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-(--ui-muted-fg)">
-            {title}
+            <button
+              type="button"
+              className="cursor-pointer rounded-sm text-left uppercase tracking-wide transition hover:text-(--ui-fg) focus:outline-none focus:ring-2 focus:ring-(--ui-border)"
+              onClick={scrollToSectionTop}
+            >
+              {title}
+            </button>
           </h3>
           <span className="rounded-full border border-(--ui-border) px-1.5 py-0.5 text-[10px] leading-none text-(--ui-muted-fg)">
             {count}
           </span>
         </div>
         <p className="text-xs text-(--ui-muted-fg)">{description}</p>
+        <div className="border-b border-(--ui-border) absolute left-0 right-0 top-full -mt-px hidden lg:block" />
       </div>
 
       {count === 0 ? (
-        <div className="border-y border-(--ui-border) py-4 text-sm text-(--ui-muted-fg)">
+        <div
+          ref={listRef}
+          className="mt-2 px-4 py-4 text-xs font-light italic text-(--ui-muted-fg)"
+        >
           {emptyMessage}
         </div>
       ) : (
-        <div className="border-t border-(--ui-border) divide-y divide-(--ui-border)">
+        <div ref={listRef} className="mt-2 divide-y divide-(--ui-border)">
           {children}
         </div>
       )}
-    </section>
+    </>
   );
 }
 

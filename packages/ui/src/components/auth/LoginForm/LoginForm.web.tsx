@@ -23,6 +23,7 @@ const OTP_LENGTH = 6;
 export function LoginForm({
   auth,
   navigate,
+  redirectTo,
   notify,
   routes,
   authMethods = "both",
@@ -35,16 +36,21 @@ export function LoginForm({
   const canUseOtp = authMethods !== "password" && hasOtpClient;
   const canUsePassword = authMethods !== "otp" || !canUseOtp;
   const canChooseMethod = canUsePassword && canUseOtp;
-  const initialMethod = !canUsePassword || (authMethod === "otp" && canUseOtp) ? "otp" : "password";
+  const initialMethod =
+    !canUsePassword || (authMethod === "otp" && canUseOtp) ? "otp" : "password";
   const [method, setMethod] = React.useState<AuthMethod>(initialMethod);
   const [otpSent, setOtpSent] = React.useState(false);
   const [token, setToken] = React.useState("");
-  const [verifyingToken, setVerifyingToken] = React.useState<string | null>(null);
+  const [verifyingToken, setVerifyingToken] = React.useState<string | null>(
+    null,
+  );
 
   const forgotPassword = routes?.forgotPassword ?? "/auth/forgot-password";
   const signUp = routes?.signUp ?? "/auth/sign-up";
+  const successRedirectTo = redirectTo ?? "/";
   const isOtp = method === "otp" && canUseOtp;
-  const signUpHref = method === "otp" ? appendAuthMethodParam(signUp, method) : signUp;
+  const signUpHref =
+    method === "otp" ? appendAuthMethodParam(signUp, method) : signUp;
   const lockedEmailStyle: React.CSSProperties = {
     minHeight: px(inputTokens.base.height.md),
     borderRadius: px(inputTokens.base.radius),
@@ -130,12 +136,18 @@ export function LoginForm({
     notify?.success?.("Welcome back!", {
       description: `${email}`,
     });
-    navigate?.("/");
+    navigate?.(successRedirectTo);
     return true;
   };
 
   React.useEffect(() => {
-    if (!isOtp || !otpSent || token.length !== OTP_LENGTH || isLoading || verifyingToken === token) {
+    if (
+      !isOtp ||
+      !otpSent ||
+      token.length !== OTP_LENGTH ||
+      isLoading ||
+      verifyingToken === token
+    ) {
       return;
     }
 
@@ -168,8 +180,7 @@ export function LoginForm({
         description: `${email}`,
       });
 
-      const next = "/";
-      navigate?.(next);
+      navigate?.(successRedirectTo);
     } finally {
       setIsLoading(false);
     }
@@ -184,7 +195,11 @@ export function LoginForm({
   ) : (
     <div style={{ fontSize: 13 }}>
       Don&apos;t have an account?{" "}
-      <Link href={signUpHref} onPress={() => navigate?.(signUpHref)} style={{ fontWeight: 600 }}>
+      <Link
+        href={signUpHref}
+        onPress={() => navigate?.(signUpHref)}
+        style={{ fontWeight: 600 }}
+      >
         Sign up
       </Link>
     </div>
@@ -193,7 +208,11 @@ export function LoginForm({
   return (
     <AuthCard
       title="Sign in"
-      subtitle={isOtp ? "Use an emailed magic link or code to continue." : "Use your email + password to continue."}
+      subtitle={
+        isOtp
+          ? "Use an emailed magic link or code to continue."
+          : "Use your email + password to continue."
+      }
       footer={footer}
     >
       <form onSubmit={onSubmit} className="flex flex-col gap-3">
@@ -215,10 +234,13 @@ export function LoginForm({
 
         {otpSent ? (
           <div className="space-y-1">
-            <div className="text-xs font-medium" style={{ color: "var(--ui-muted-fg)" }}>Email</div>
-            <div style={lockedEmailStyle}>
-              {email}
+            <div
+              className="text-xs font-medium"
+              style={{ color: "var(--ui-muted-fg)" }}
+            >
+              Email
             </div>
+            <div style={lockedEmailStyle}>{email}</div>
           </div>
         ) : (
           <div className="space-y-1">
@@ -238,7 +260,14 @@ export function LoginForm({
         {isOtp ? (
           otpSent ? (
             <div className="space-y-1">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                }}
+              >
                 <Label>Code</Label>
                 <Link
                   onPress={onResendOtp}

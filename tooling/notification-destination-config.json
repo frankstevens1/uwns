@@ -18,6 +18,12 @@
       "nativeRoute": "apps/native/app/actions.tsx"
     },
     {
+      "id": "docs",
+      "label": "Docs",
+      "webRoute": "apps/web/app/docs/[[...slug]]/page.tsx",
+      "webPath": "/docs"
+    },
+    {
       "id": "home",
       "label": "Home",
       "webRoute": "apps/web/app/app/page.tsx",

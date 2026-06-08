@@ -31,7 +31,7 @@ export function ActionDemo({
   return (
     <>
       <Tip title="Action demo">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:items-center sm:justify-between">
           <p className="max-w-2xl">
             Trigger a dummy action to verify that platform grouping and
             recent history update together.

@@ -3,10 +3,14 @@
 import * as React from "react";
 
 import { useActions } from "@repo/providers";
-import ActionHistory from "./Actions/ActionHistory";
+import {
+  ActionHistoryContent,
+  ActionHistoryHeader,
+} from "./Actions/ActionHistory";
 import { ActionDemo } from "./Actions/demo/ActionDemo";
 import { ActionPlatforms } from "./Actions/ActionPlatforms.web";
 import { getActionsForPlatform } from "./Actions/utils";
+import { SettingsTwoColumnLayout } from "./SettingsTwoColumnLayout";
 
 export function ActionsSettingsSection() {
   const { actions, error, loading, trackAction } = useActions();
@@ -43,20 +47,25 @@ export function ActionsSettingsSection() {
   }, [trackAction]);
 
   return (
-    <section className="space-y-6">
-      <ActionDemo onTrigger={triggerDemoAction} />
-      <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-        <ActionPlatforms
-          actions={actions}
-          onSelectedPlatformKeyChange={setSelectedPlatformKey}
-        />
-        <ActionHistory
+    <SettingsTwoColumnLayout
+      left={
+        <>
+          <ActionPlatforms
+            actions={actions}
+            onSelectedPlatformKeyChange={setSelectedPlatformKey}
+          />
+          <ActionDemo onTrigger={triggerDemoAction} />
+        </>
+      }
+      rightHeader={<ActionHistoryHeader actionCount={historyActions.length} />}
+      rightContent={
+        <ActionHistoryContent
           error={error}
           loading={loading}
           actions={historyActions}
         />
-      </div>
-    </section>
+      }
+    />
   );
 }
 

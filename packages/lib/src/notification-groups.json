@@ -17,6 +17,15 @@
       "push_enabled": true
     }
   },
+  "docs": {
+    "label": "Docs",
+    "description": "Documentation onboarding and docs-related product guidance.",
+    "defaults": {
+      "in_app_enabled": true,
+      "email_enabled": false,
+      "push_enabled": false
+    }
+  },
   "system": {
     "label": "System",
     "description": "Platform updates, maintenance notices, and service messages.",

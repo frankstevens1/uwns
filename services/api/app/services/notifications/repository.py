@@ -2,7 +2,10 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.db import SupabaseRestClient
-from app.services.notifications.registry import get_notification_group_keys
+from app.services.notifications.registry import (
+    get_notification_group_defaults,
+    get_notification_group_keys,
+)
 from app.services.notifications.models import (
     CreateNotificationRequest,
     DeliveryAttempt,
@@ -131,6 +134,28 @@ class NotificationsRepository:
         )
         return bool(rows)
 
+    def has_any_action(
+        self,
+        user_id: str,
+        action_names: tuple[str, ...],
+        *,
+        exclude_action_id: str | None = None,
+    ) -> bool:
+        if not action_names:
+            return False
+
+        params = {
+            "select": "id",
+            "user_id": f"eq.{user_id}",
+            "action_name": f"in.({','.join(action_names)})",
+            "limit": "1",
+        }
+        if exclude_action_id:
+            params["id"] = f"neq.{exclude_action_id}"
+
+        rows = self.db.select("actions", params)
+        return bool(rows)
+
     def list_notifications(self, user_id: str, limit: int = 25) -> list[Notification]:
         rows = self.db.select(
             "notifications",
@@ -212,7 +237,13 @@ class NotificationsRepository:
 
         created = self.db.insert(
             "notification_preferences",
-            [{"user_id": user_id, "group_key": group_key}],
+            [
+                {
+                    "user_id": user_id,
+                    "group_key": group_key,
+                    **get_notification_group_defaults(group_key),
+                }
+            ],
         )
         return NotificationPreference.model_validate(created[0])
 

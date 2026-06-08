@@ -9,7 +9,10 @@ type AuthResult = Promise<{ error?: { message: string } | null }>;
 
 export type LoginFormProps = {
   auth: {
-    signInWithPassword: (args: { email: string; password: string }) => AuthResult;
+    signInWithPassword: (args: {
+      email: string;
+      password: string;
+    }) => AuthResult;
     sendEmailOtp?: (args: {
       email: string;
       emailRedirectTo?: string;
@@ -20,14 +23,19 @@ export type LoginFormProps = {
 
   navigate?: (path: string) => void;
 
+  /**
+   * Destination after a successful password or OTP login.
+   */
+  redirectTo?: string;
+
   notify?: {
     success?: (title: string, opts?: { description?: string }) => void;
     error?: (title: string, opts?: { description?: string }) => void;
   };
 
   routes?: {
-    forgotPassword?: string;          // default "/auth/forgot-password"
-    signUp?: string;                  // default "/auth/sign-up"
+    forgotPassword?: string; // default "/auth/forgot-password"
+    signUp?: string; // default "/auth/sign-up"
   };
 
   /**

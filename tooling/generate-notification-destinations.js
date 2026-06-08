@@ -4,7 +4,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.resolve(__dirname, "..");
-const CONFIG_PATH = path.join(ROOT, "tooling", "notification-destination-config.json");
+const CONFIG_PATH = path.join(
+  ROOT,
+  "tooling",
+  "notification-destination-config.json",
+);
 const OUTPUT_PATH = path.join(
   ROOT,
   "packages",
@@ -14,6 +18,10 @@ const OUTPUT_PATH = path.join(
 );
 
 const WEB_DISCOVERY_ROOT = path.join(ROOT, "apps", "web", "app", "app");
+const WEB_DISCOVERY_ROOTS = [
+  WEB_DISCOVERY_ROOT,
+  path.join(ROOT, "apps", "web", "app", "docs"),
+];
 const WEB_ROUTE_ROOT = path.join(ROOT, "apps", "web", "app");
 const NATIVE_SCOPE = path.join(ROOT, "apps", "native", "app");
 const NATIVE_ROUTE_ROOTS = [
@@ -58,7 +66,13 @@ function readJson(filePath) {
 }
 
 function discoverRouteFiles() {
-  const webRoutes = collectWebRoutes(WEB_DISCOVERY_ROOT);
+  const webRoutes = new Set();
+  for (const routeRoot of WEB_DISCOVERY_ROOTS) {
+    for (const route of collectWebRoutes(routeRoot)) {
+      webRoutes.add(route);
+    }
+  }
+
   const nativeRoutes = new Set();
 
   for (const routeRoot of NATIVE_ROUTE_ROOTS) {
@@ -121,33 +135,60 @@ function walkFiles(root) {
 
 function buildManifest(config, discovered) {
   const ignoreRoutes = new Set(
-    (config.ignoreRoutes ?? []).map((value) => normalizePath(path.join(ROOT, value))),
+    (config.ignoreRoutes ?? []).map((value) =>
+      normalizePath(path.join(ROOT, value)),
+    ),
   );
   const usedRoutes = new Set();
 
   const manifest = (config.destinations ?? []).map((destination) => {
-    const webRoute = normalizePath(path.join(ROOT, destination.webRoute));
-    const nativeRoute = normalizePath(path.join(ROOT, destination.nativeRoute));
+    const webRoute = destination.webRoute
+      ? normalizePath(path.join(ROOT, destination.webRoute))
+      : null;
+    const nativeRoute = destination.nativeRoute
+      ? normalizePath(path.join(ROOT, destination.nativeRoute))
+      : null;
 
     assert(
-      discovered.webRoutes.has(webRoute),
-      `Missing web route for destination ${destination.id}: ${destination.webRoute}`,
-    );
-    assert(
-      discovered.nativeRoutes.has(nativeRoute),
-      `Missing native route for destination ${destination.id}: ${destination.nativeRoute}`,
+      webRoute || nativeRoute,
+      `Destination ${destination.id} must define at least one platform route`,
     );
 
-    usedRoutes.add(webRoute);
-    usedRoutes.add(nativeRoute);
+    if (webRoute) {
+      assert(
+        discovered.webRoutes.has(webRoute),
+        `Missing web route for destination ${destination.id}: ${destination.webRoute}`,
+      );
+      usedRoutes.add(webRoute);
+    }
+
+    if (nativeRoute) {
+      assert(
+        discovered.nativeRoutes.has(nativeRoute),
+        `Missing native route for destination ${destination.id}: ${destination.nativeRoute}`,
+      );
+      usedRoutes.add(nativeRoute);
+    }
+
+    const paths = {};
+    if (webRoute) {
+      paths.web =
+        destination.webPath ?? deriveRoutePath(webRoute, WEB_ROUTE_ROOT);
+    }
+    if (nativeRoute) {
+      paths.native =
+        destination.nativePath ?? deriveRoutePath(nativeRoute, NATIVE_SCOPE);
+    }
+
+    assert(
+      Object.keys(paths).length > 0,
+      `Destination ${destination.id} must define at least one platform path`,
+    );
 
     return {
       id: destination.id,
       label: destination.label,
-      paths: {
-        web: destination.webPath ?? deriveRoutePath(webRoute, WEB_ROUTE_ROOT),
-        native: destination.nativePath ?? deriveRoutePath(nativeRoute, NATIVE_SCOPE),
-      },
+      paths,
     };
   });
 
@@ -181,15 +222,21 @@ function deriveRoutePath(filePath, scopeRoot) {
 
   const stem = fileName.replace(/\.[^.]+$/, "");
   if (stem === "page") {
-    return `/${segments.join("/")}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+    return (
+      `/${segments.join("/")}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/"
+    );
   }
 
   if (stem === "index") {
-    return `/${segments.join("/")}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+    return (
+      `/${segments.join("/")}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/"
+    );
   }
 
   segments.push(stem);
-  return `/${segments.join("/")}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
+  return (
+    `/${segments.join("/")}`.replace(/\/+/g, "/").replace(/\/$/, "") || "/"
+  );
 }
 
 function isRouteGroup(part) {
@@ -211,6 +258,7 @@ module.exports = {
   CONFIG_PATH,
   OUTPUT_PATH,
   WEB_DISCOVERY_ROOT,
+  WEB_DISCOVERY_ROOTS,
   WEB_ROUTE_ROOT,
   NATIVE_SCOPE,
   NATIVE_ROUTE_ROOTS,

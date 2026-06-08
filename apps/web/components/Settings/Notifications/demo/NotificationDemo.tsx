@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import {
   Button,
   DialogContent,
@@ -46,7 +47,7 @@ export function NotificationDemo({
   return (
     <>
       <Tip title="Notification demo">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:items-center sm:justify-between">
           <p className="max-w-2xl">
             Create a test notification to verify delivery and read behavior.
           </p>
@@ -105,7 +106,6 @@ function NotificationGeneratorDialog({
     demoNotificationDefaults.actionName,
   );
   const [submitting, setSubmitting] = React.useState(false);
-  const [message, setMessage] = React.useState<string | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
 
   const destinationOptions = React.useMemo(
@@ -145,7 +145,6 @@ function NotificationGeneratorDialog({
   React.useEffect(() => {
     if (open) return;
     setFormError(null);
-    setMessage(null);
   }, [open]);
 
   React.useEffect(() => {
@@ -163,7 +162,6 @@ function NotificationGeneratorDialog({
     const nextActionName = actionName.trim();
     const nextExternalUrl = externalUrl.trim();
 
-    setMessage(null);
     setFormError(null);
 
     if (!nextTitle || !nextBody) {
@@ -229,11 +227,13 @@ function NotificationGeneratorDialog({
       return;
     }
 
-    setMessage(
-      readMode === "action"
-        ? `Created. Track ${nextActionName} to mark it read.`
-        : "Created. Mark it read from the notification UI.",
-    );
+    onOpenChange(false);
+    toast.success("Demo notification created", {
+      description:
+        readMode === "action"
+          ? `Track ${nextActionName} to mark it read.`
+          : "Mark it read from the notification UI.",
+    });
   };
 
   return (
@@ -342,9 +342,6 @@ function NotificationGeneratorDialog({
 
             {formError ? (
               <p className="text-xs text-(--ui-danger-fg)">{formError}</p>
-            ) : null}
-            {message ? (
-              <p className="text-xs text-(--ui-muted-fg)">{message}</p>
             ) : null}
 
             <DialogFooter>

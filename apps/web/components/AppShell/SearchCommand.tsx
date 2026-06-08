@@ -24,6 +24,7 @@ import {
   DialogRoot,
   DialogTitle,
 } from "@repo/ui";
+import { docsSearchIndex } from "@repo/lib";
 import { useActions, useAuth } from "@repo/providers";
 
 type FeatureFlags = {
@@ -35,9 +36,11 @@ type CommandItem = {
   id: string;
   label: string;
   href?: string;
+  externalHref?: string;
   action?: () => void | Promise<void>;
   keywords?: string[];
   icon?: React.ReactNode;
+  meta?: string;
   when?: "authed" | "guest" | "always";
   flag?: keyof FeatureFlags;
 };
@@ -200,6 +203,12 @@ export function SearchCommand({
     router.push(href);
   };
 
+  const openExternal = (href: string) => {
+    close();
+    const opened = window.open(href, "_blank", "noopener,noreferrer");
+    if (opened) opened.opener = null;
+  };
+
   const runAction = async (item: CommandItem) => {
     close();
     if (item.action) await item.action();
@@ -316,26 +325,16 @@ export function SearchCommand({
       },
     ];
 
-    const docs: CommandItem[] = [
-      {
-        id: "docs",
-        label: "Docs",
-        href: "/docs",
-        icon: <BookOpen size={14} />,
-        keywords: ["documentation", "guide"],
-        when: "always",
-        flag: "docs",
-      },
-      {
-        id: "components",
-        label: "UI Components",
-        href: "/docs/components",
-        icon: <BookOpen size={14} />,
-        keywords: ["ui", "components", "command"],
-        when: "always",
-        flag: "docs",
-      },
-    ];
+    const docs: CommandItem[] = docsSearchIndex.map((item) => ({
+      id: `docs:${item.href}`,
+      label: item.title,
+      externalHref: item.href,
+      icon: <BookOpen size={14} />,
+      keywords: [item.href, item.section, item.description, item.searchText],
+      meta: item.href,
+      when: "always",
+      flag: "docs",
+    }));
 
     const recentItems: CommandItem[] = recents.map((r) => ({
       id: `recent:${r.href}`,
@@ -442,6 +441,7 @@ export function SearchCommand({
               inputRef={inputRef}
               sections={sections}
               onGo={(href, label) => go(href, label)}
+              onExternal={openExternal}
               onAction={runAction}
               onEscCapture={closeOnEscCapture}
             />
@@ -455,12 +455,14 @@ export function SearchCommand({
 function CommandRoot({
   sections,
   onGo,
+  onExternal,
   onAction,
   inputRef,
   onEscCapture,
 }: {
   sections: CommandSection[];
   onGo: (href: string, label?: string) => void;
+  onExternal: (href: string) => void;
   onAction: (item: CommandItem) => void;
   inputRef: React.MutableRefObject<HTMLInputElement | null>;
   onEscCapture: (e: React.KeyboardEvent) => void;
@@ -540,10 +542,13 @@ function CommandRoot({
                       value={[
                         item.label,
                         item.href ?? "",
+                        item.externalHref ?? "",
+                        item.meta ?? "",
                         ...(item.keywords ?? []),
                       ].join(" ")}
                       onSelect={() => {
-                        if (item.href) onGo(item.href, item.label);
+                        if (item.externalHref) onExternal(item.externalHref);
+                        else if (item.href) onGo(item.href, item.label);
                         else onAction(item);
                       }}
                       className={[
@@ -560,9 +565,9 @@ function CommandRoot({
                         <span className="truncate">{item.label}</span>
                       </span>
 
-                      {item.href ? (
+                      {item.href || item.externalHref ? (
                         <span className="text-xs text-(--ui-muted-fg) truncate">
-                          {item.href}
+                          {item.href ?? item.meta ?? item.externalHref}
                         </span>
                       ) : (
                         <span className="text-xs text-(--ui-muted-fg)">

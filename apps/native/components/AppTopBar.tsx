@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  Alert,
   Animated,
   Linking,
   Dimensions,
@@ -16,7 +17,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useActions, useAuth, useNotifications } from "@repo/providers";
-import { resolveNotificationTarget } from "@repo/lib";
+import {
+  docsSearchIndex,
+  resolveDocsUrl,
+  resolveNotificationTarget,
+} from "@repo/lib";
 import { useThemeTokens } from "@repo/ui";
 import { AppBottomTray, AppModal } from "./AppModal";
 import {
@@ -29,6 +34,7 @@ type CommandItem = {
   id: string;
   label: string;
   href?: "/(tabs)" | "/account" | "/settings";
+  externalHref?: string;
   action?: () => void | Promise<void>;
   keywords?: string[];
   icon: keyof typeof Ionicons.glyphMap;
@@ -49,6 +55,8 @@ type AppTopBarScrollContextValue = {
 
 const AppTopBarScrollContext =
   React.createContext<AppTopBarScrollContextValue | null>(null);
+
+const DOCS_WEB_BASE_URL = process.env.EXPO_PUBLIC_WEB_URL ?? "";
 
 export function AppTopBarProvider({ children }: { children: React.ReactNode }) {
   const scrollY = React.useRef(new Animated.Value(0)).current;
@@ -204,22 +212,26 @@ export function AppTopBar() {
       },
     ];
 
-    const docs: CommandItem[] = [
-      {
-        id: "providers",
-        label: "Provider setup",
-        icon: "book-outline",
-        keywords: ["auth", "actions", "supabase"],
-        meta: "Reference",
-      },
-      {
-        id: "ui",
-        label: "Shared UI patterns",
-        icon: "albums-outline",
-        keywords: ["components", "native", "web"],
-        meta: "Reference",
-      },
-    ];
+    const docs: CommandItem[] = docsSearchIndex.map((item) => {
+      const externalHref = resolveDocsUrl(item.href, DOCS_WEB_BASE_URL);
+
+      return {
+        id: `docs:${item.href}`,
+        label: item.title,
+        externalHref: externalHref ?? undefined,
+        icon: item.type === "page" ? "book-outline" : "document-text-outline",
+        keywords: [item.href, item.section, item.description, item.searchText],
+        meta: item.href,
+        action: externalHref
+          ? undefined
+          : () => {
+              Alert.alert(
+                "Docs unavailable",
+                "Set EXPO_PUBLIC_WEB_URL to open docs from native.",
+              );
+            },
+      };
+    });
 
     return [
       {
@@ -247,6 +259,7 @@ export function AppTopBar() {
             [
               item.label,
               item.href ?? "",
+              item.externalHref ?? "",
               item.meta ?? "",
               ...(item.keywords ?? []),
             ]
@@ -292,6 +305,14 @@ export function AppTopBar() {
     setSearchQuery("");
     if (item.href) {
       router.navigate(item.href);
+      return;
+    }
+    if (item.externalHref) {
+      try {
+        await Linking.openURL(item.externalHref);
+      } catch {
+        Alert.alert("Docs unavailable", "Could not open the docs link.");
+      }
       return;
     }
     await item.action?.();
@@ -462,6 +483,7 @@ export function AppTopBar() {
                               size={16}
                             />
                             <Text
+                              numberOfLines={1}
                               style={[
                                 styles.resultTitle,
                                 { color: tokens.color.fg },
@@ -475,6 +497,7 @@ export function AppTopBar() {
                               styles.resultMeta,
                               { color: tokens.color.mutedFg },
                             ]}
+                            numberOfLines={1}
                           >
                             {item.href ?? item.meta ?? "Action"}
                           </Text>
@@ -775,6 +798,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   resultMeta: {
+    maxWidth: "42%",
+    flexShrink: 0,
     fontSize: 12,
   },
   emptySectionText: {

@@ -30,6 +30,9 @@ export default function MarketingFooter({ footerHeight }: { footerHeight?: numbe
           </span>
 
           <div className="hidden items-center gap-4 sm:flex">
+            <Link href="/docs" className="hover:text-(--ui-fg) transition-colors">
+              Docs
+            </Link>
             <Link href="/legal?document=privacy" className="hover:text-(--ui-fg) transition-colors">
               Privacy
             </Link>

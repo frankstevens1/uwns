@@ -31,6 +31,17 @@ def get_notification_group_keys() -> tuple[str, ...]:
     return tuple(load_notification_group_configs().keys())
 
 
+def get_notification_group_defaults(group_key: str) -> dict[str, bool]:
+    config = load_notification_group_configs().get(group_key)
+    defaults = config.get("defaults") if isinstance(config, dict) else None
+
+    return {
+        "in_app_enabled": _bool_default(defaults, "in_app_enabled", True),
+        "email_enabled": _bool_default(defaults, "email_enabled", False),
+        "push_enabled": _bool_default(defaults, "push_enabled", False),
+    }
+
+
 @lru_cache(maxsize=1)
 def get_notification_destination_ids() -> frozenset[str]:
     return frozenset(
@@ -55,3 +66,15 @@ def _read_json(path: Path) -> Any:
     if not path.exists():
         raise RuntimeError(f"Missing required notification registry file: {path}")
     return json.loads(path.read_text())
+
+
+def _bool_default(
+    defaults: Any,
+    key: str,
+    fallback: bool,
+) -> bool:
+    if not isinstance(defaults, dict):
+        return fallback
+
+    value = defaults.get(key)
+    return value if isinstance(value, bool) else fallback

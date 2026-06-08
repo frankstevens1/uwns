@@ -15,6 +15,10 @@ from app.services.notifications.models import (
 from app.services.notifications.repository import NotificationsRepository
 
 
+AUTH_ONBOARDING_ACTIONS = ("logged_in", "signed_up")
+DOCS_ONBOARDING_UNIQUE_KEY = "onboarding:docs"
+
+
 class NotificationsService:
     def __init__(
         self,
@@ -101,7 +105,8 @@ class NotificationsService:
             action.action_name,
         )
 
-        if action.action_name in ("logged_in", "signed_up"):
+        if action.action_name in AUTH_ONBOARDING_ACTIONS:
+            self._ensure_docs_onboarding_notification(action)
             self._handle_platform_authenticated(action, email=email)
             return
 
@@ -155,6 +160,42 @@ class NotificationsService:
             action.user_id,
             source_action_id=action.id,
             action_name=action.action_name,
+        )
+
+    def _ensure_docs_onboarding_notification(self, action: Action) -> Notification | None:
+        existing = self.repository.find_notification_by_unique_key(
+            action.user_id,
+            DOCS_ONBOARDING_UNIQUE_KEY,
+        )
+        if existing is not None:
+            return existing
+
+        if self.repository.has_any_action(
+            action.user_id,
+            AUTH_ONBOARDING_ACTIONS,
+            exclude_action_id=action.id,
+        ):
+            return None
+
+        if self.repository.has_any_action(action.user_id, ("docs_viewed",)):
+            return None
+
+        preference = self.repository.get_or_create_preference(action.user_id, "docs")
+        return self.repository.create_notification_if_missing(
+            action.user_id,
+            build_notification_request(
+                group_key="docs",
+                type="onboarding",
+                title="Read the docs",
+                body="Open the documentation to learn how the product is structured.",
+                platform=None,
+                target=app_destination_target("docs"),
+                metadata={"autoReadActionName": "docs_viewed"},
+                unique_key=DOCS_ONBOARDING_UNIQUE_KEY,
+                source_action_id=action.id,
+                channels=notification_channels(),
+            ),
+            in_app_visible=preference.in_app_enabled,
         )
 
     def _handle_account_viewed(self, action: Action) -> None:

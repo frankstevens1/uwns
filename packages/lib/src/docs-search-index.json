@@ -1,0 +1,442 @@
+[
+  {
+    "type": "page",
+    "title": "Web app",
+    "href": "/docs/architecture/web",
+    "section": "Architecture",
+    "description": "How the Next.js App Router surface is organized in UWNS.",
+    "searchText": "web app how the next.js app router surface is organized in uwns. architecture web app the web app lives in apps/web and uses next.js app router with typescript and tailwind. it owns browser routes, web layouts, web auth adapters, public chrome, authenticated app chrome, and web-specific product behavior. route model public routes use the marketing shell. authenticated product routes live under /app and use the app shell. the root shell chooses the correct chrome from the current pathname. keep route-specific ui close to its route. move code into shared packages only when reuse is real and the contract is stable. server-first defaults prefer server components for pages and static data. use client components for browser apis, hooks, interaction state, providers, and action tracking. keep ssr supabase logic and cookie/session behavior inside apps/web; shared providers are for client-side behavior. styling use tailwind with the existing ui token variables. prefer canonical variable utilities such as bg-(--ui-bg), text-(--ui-fg), and border-(--ui-border). verification for web-only changes, run: run provider, ui, api, or notification checks when a change crosses those boundaries."
+  },
+  {
+    "type": "heading",
+    "title": "Route model",
+    "href": "/docs/architecture/web#route-model",
+    "section": "Web app",
+    "description": "How the Next.js App Router surface is organized in UWNS.",
+    "searchText": "web app route model how the next.js app router surface is organized in uwns."
+  },
+  {
+    "type": "heading",
+    "title": "Server-first defaults",
+    "href": "/docs/architecture/web#server-first-defaults",
+    "section": "Web app",
+    "description": "How the Next.js App Router surface is organized in UWNS.",
+    "searchText": "web app server-first defaults how the next.js app router surface is organized in uwns."
+  },
+  {
+    "type": "heading",
+    "title": "Styling",
+    "href": "/docs/architecture/web#styling",
+    "section": "Web app",
+    "description": "How the Next.js App Router surface is organized in UWNS.",
+    "searchText": "web app styling how the next.js app router surface is organized in uwns."
+  },
+  {
+    "type": "heading",
+    "title": "Verification",
+    "href": "/docs/architecture/web#verification",
+    "section": "Web app",
+    "description": "How the Next.js App Router surface is organized in UWNS.",
+    "searchText": "web app verification how the next.js app router surface is organized in uwns."
+  },
+  {
+    "type": "page",
+    "title": "Native app",
+    "href": "/docs/architecture/native",
+    "section": "Architecture",
+    "description": "How the Expo surface fits into the UWNS architecture.",
+    "searchText": "native app how the expo surface fits into the uwns architecture. architecture native app the native app lives in apps/native and uses expo with react native and typescript. it owns native screens, navigation, native auth adapters, push registration, device tokens, and native-specific action tracking. platform ownership native code should feel native. share business logic, validation, providers, and contracts where practical, but do not force web ui patterns into the native app. shared providers use @repo/providers for shared auth, action, notification, and supabase client behavior. keep native token storage and platform-specific adapters in the native app boundary. push notifications expo push registration belongs to the native app. the api and supabase schema own notification records, preferences, delivery attempts, and service-side validation. verification for native changes, use the narrowest relevant check: run notification checks when token registration, preferences, or delivery metadata changes."
+  },
+  {
+    "type": "heading",
+    "title": "Platform ownership",
+    "href": "/docs/architecture/native#platform-ownership",
+    "section": "Native app",
+    "description": "How the Expo surface fits into the UWNS architecture.",
+    "searchText": "native app platform ownership how the expo surface fits into the uwns architecture."
+  },
+  {
+    "type": "heading",
+    "title": "Shared providers",
+    "href": "/docs/architecture/native#shared-providers",
+    "section": "Native app",
+    "description": "How the Expo surface fits into the UWNS architecture.",
+    "searchText": "native app shared providers how the expo surface fits into the uwns architecture."
+  },
+  {
+    "type": "heading",
+    "title": "Push notifications",
+    "href": "/docs/architecture/native#push-notifications",
+    "section": "Native app",
+    "description": "How the Expo surface fits into the UWNS architecture.",
+    "searchText": "native app push notifications how the expo surface fits into the uwns architecture."
+  },
+  {
+    "type": "heading",
+    "title": "Verification",
+    "href": "/docs/architecture/native#verification",
+    "section": "Native app",
+    "description": "How the Expo surface fits into the UWNS architecture.",
+    "searchText": "native app verification how the expo surface fits into the uwns architecture."
+  },
+  {
+    "type": "page",
+    "title": "UI components",
+    "href": "/docs/components",
+    "section": "Architecture",
+    "description": "How shared UI primitives and components are organized and consumed.",
+    "searchText": "ui components how shared ui primitives and components are organized and consumed. architecture ui components shared ui lives in packages/ui. app code imports from @repo/ui and should not deep-import package internals. component contract low-level controls live under primitives. composed product-neutral ui lives under components. shared components usually have a shared type file and separate web and native implementations. when to add shared ui add shared ui when both platforms need it or near-term reuse is concrete. keep route-specific layouts, branded page sections, and one-off product chrome inside the app that owns them. theme model packages/ui defines the token contract. apps provide values and brand mapping. use existing tokens before adding new ones. generating components use the generator for new shared ui: run ui validation when changing shared ui structure:"
+  },
+  {
+    "type": "heading",
+    "title": "Component contract",
+    "href": "/docs/components#component-contract",
+    "section": "UI components",
+    "description": "How shared UI primitives and components are organized and consumed.",
+    "searchText": "ui components component contract how shared ui primitives and components are organized and consumed."
+  },
+  {
+    "type": "heading",
+    "title": "When to add shared UI",
+    "href": "/docs/components#when-to-add-shared-ui",
+    "section": "UI components",
+    "description": "How shared UI primitives and components are organized and consumed.",
+    "searchText": "ui components when to add shared ui how shared ui primitives and components are organized and consumed."
+  },
+  {
+    "type": "heading",
+    "title": "Theme model",
+    "href": "/docs/components#theme-model",
+    "section": "UI components",
+    "description": "How shared UI primitives and components are organized and consumed.",
+    "searchText": "ui components theme model how shared ui primitives and components are organized and consumed."
+  },
+  {
+    "type": "heading",
+    "title": "Generating components",
+    "href": "/docs/components#generating-components",
+    "section": "UI components",
+    "description": "How shared UI primitives and components are organized and consumed.",
+    "searchText": "ui components generating components how shared ui primitives and components are organized and consumed."
+  },
+  {
+    "type": "page",
+    "title": "Providers",
+    "href": "/docs/architecture/providers",
+    "section": "Architecture",
+    "description": "Shared client-side state, integrations, and provider boundaries.",
+    "searchText": "providers shared client-side state, integrations, and provider boundaries. architecture providers shared providers live in packages/providers. they encapsulate reusable client-side behavior such as auth state, action tracking, notification state, supabase client setup, and public exports consumed by apps. boundary use providers to hide platform differences from app call sites when the behavior is genuinely shared. do not push web ssr cookie logic into providers; that stays inside apps/web. auth apps wire platform-specific auth adapters into shared ui and provider behavior. auth ui lives in @repo/ui; provider hooks expose session and user state. actions and notifications use useactions for meaningful authenticated user intent, outcomes, and first entries into authenticated product screens. keep metadata low-cardinality and stable. notification providers should expose client state and interactions, while service-owned writes and delivery side effects stay behind the api. verification for provider changes, run: run web or native checks when app usage changes."
+  },
+  {
+    "type": "heading",
+    "title": "Boundary",
+    "href": "/docs/architecture/providers#boundary",
+    "section": "Providers",
+    "description": "Shared client-side state, integrations, and provider boundaries.",
+    "searchText": "providers boundary shared client-side state, integrations, and provider boundaries."
+  },
+  {
+    "type": "heading",
+    "title": "Auth",
+    "href": "/docs/architecture/providers#auth",
+    "section": "Providers",
+    "description": "Shared client-side state, integrations, and provider boundaries.",
+    "searchText": "providers auth shared client-side state, integrations, and provider boundaries."
+  },
+  {
+    "type": "heading",
+    "title": "Actions and notifications",
+    "href": "/docs/architecture/providers#actions-and-notifications",
+    "section": "Providers",
+    "description": "Shared client-side state, integrations, and provider boundaries.",
+    "searchText": "providers actions and notifications shared client-side state, integrations, and provider boundaries."
+  },
+  {
+    "type": "heading",
+    "title": "Verification",
+    "href": "/docs/architecture/providers#verification",
+    "section": "Providers",
+    "description": "Shared client-side state, integrations, and provider boundaries.",
+    "searchText": "providers verification shared client-side state, integrations, and provider boundaries."
+  },
+  {
+    "type": "page",
+    "title": "API service",
+    "href": "/docs/architecture/api",
+    "section": "Architecture",
+    "description": "The FastAPI service boundary and when product work belongs there.",
+    "searchText": "api service the fastapi service boundary and when product work belongs there. architecture api service the api lives in services/api and uses fastapi. it owns service-side validation, authenticated product operations, delivery side effects, repositories, pydantic schemas, and api tests. what belongs in the api put operations in the api when they require service-owned writes, server-side validation, delivery side effects, deduplication, or trusted auth checks. do not bury critical authorization behavior in scattered client code. the client can start the action; the service should own trusted writes. shape keep boundaries clear: router for http shape schema for request and response validation service for product logic repository for data access test for critical behavior and regressions avoid service layers that only forward calls without adding value. verification for api changes, run:"
+  },
+  {
+    "type": "heading",
+    "title": "What belongs in the API",
+    "href": "/docs/architecture/api#what-belongs-in-the-api",
+    "section": "API service",
+    "description": "The FastAPI service boundary and when product work belongs there.",
+    "searchText": "api service what belongs in the api the fastapi service boundary and when product work belongs there."
+  },
+  {
+    "type": "heading",
+    "title": "Shape",
+    "href": "/docs/architecture/api#shape",
+    "section": "API service",
+    "description": "The FastAPI service boundary and when product work belongs there.",
+    "searchText": "api service shape the fastapi service boundary and when product work belongs there."
+  },
+  {
+    "type": "heading",
+    "title": "Verification",
+    "href": "/docs/architecture/api#verification",
+    "section": "API service",
+    "description": "The FastAPI service boundary and when product work belongs there.",
+    "searchText": "api service verification the fastapi service boundary and when product work belongs there."
+  },
+  {
+    "type": "page",
+    "title": "Supabase",
+    "href": "/docs/operations/supabase",
+    "section": "Operations",
+    "description": "Database, auth, migrations, and row-level security ownership.",
+    "searchText": "supabase database, auth, migrations, and row-level security ownership. operations supabase supabase is the default database and auth platform for uwns. treat it as infrastructure: schema, policies, grants, indexes, realtime publication, and seed data belong in source-controlled migrations and config. migrations use migrations for schema changes. do not rely on dashboard-only changes for behavior that the product needs to reproduce. row-level security use rls deliberately. policies should be easy to reason about and should not depend on scattered client checks for safety. auth supabase auth handles account identity and session issuance. apps hold platform session state; the api verifies bearer tokens before trusted writes. local reset when a migration or seed change needs verification, use the repo's supabase workflow: run focused app, api, or notification checks after database changes."
+  },
+  {
+    "type": "heading",
+    "title": "Migrations",
+    "href": "/docs/operations/supabase#migrations",
+    "section": "Supabase",
+    "description": "Database, auth, migrations, and row-level security ownership.",
+    "searchText": "supabase migrations database, auth, migrations, and row-level security ownership."
+  },
+  {
+    "type": "heading",
+    "title": "Row-level security",
+    "href": "/docs/operations/supabase#row-level-security",
+    "section": "Supabase",
+    "description": "Database, auth, migrations, and row-level security ownership.",
+    "searchText": "supabase row-level security database, auth, migrations, and row-level security ownership."
+  },
+  {
+    "type": "heading",
+    "title": "Auth",
+    "href": "/docs/operations/supabase#auth",
+    "section": "Supabase",
+    "description": "Database, auth, migrations, and row-level security ownership.",
+    "searchText": "supabase auth database, auth, migrations, and row-level security ownership."
+  },
+  {
+    "type": "heading",
+    "title": "Local reset",
+    "href": "/docs/operations/supabase#local-reset",
+    "section": "Supabase",
+    "description": "Database, auth, migrations, and row-level security ownership.",
+    "searchText": "supabase local reset database, auth, migrations, and row-level security ownership."
+  },
+  {
+    "type": "page",
+    "title": "Action tracking",
+    "href": "/docs/operations/action-tracking",
+    "section": "Operations",
+    "description": "When and how to record meaningful product actions.",
+    "searchText": "action tracking when and how to record meaningful product actions. operations action tracking uwns includes action tracking for meaningful authenticated product events. use it for user intent, completed outcomes, and first entry into authenticated product screens. what to track track high-signal actions such as sign-in, sign-out, settings views, account views, notification interactions, and product workflow milestones. skip passive noise, scroll logging, and pre-auth page views that cannot be tied to a recorded user session. metadata keep metadata structured and low-cardinality. prefer fields such as source, screen, and trigger, plus the minimum context needed to interpret the event. use stable uniquekey values for first-view events so re-renders and route revisits do not duplicate records. placement track client-side where the user action originates. add api-side tracking only when the server is the only meaningful source of the action. when adding a user-facing interaction, decide tracking in the same diff."
+  },
+  {
+    "type": "heading",
+    "title": "What to track",
+    "href": "/docs/operations/action-tracking#what-to-track",
+    "section": "Action tracking",
+    "description": "When and how to record meaningful product actions.",
+    "searchText": "action tracking what to track when and how to record meaningful product actions."
+  },
+  {
+    "type": "heading",
+    "title": "Metadata",
+    "href": "/docs/operations/action-tracking#metadata",
+    "section": "Action tracking",
+    "description": "When and how to record meaningful product actions.",
+    "searchText": "action tracking metadata when and how to record meaningful product actions."
+  },
+  {
+    "type": "heading",
+    "title": "Placement",
+    "href": "/docs/operations/action-tracking#placement",
+    "section": "Action tracking",
+    "description": "When and how to record meaningful product actions.",
+    "searchText": "action tracking placement when and how to record meaningful product actions."
+  },
+  {
+    "type": "page",
+    "title": "Documentation management",
+    "href": "/docs/reference/documentation-management",
+    "section": "Reference",
+    "description": "How UWNS manages docs and how downstream products should adapt it.",
+    "searchText": "documentation management how uwns manages docs and how downstream products should adapt it. reference documentation management the docs route is backed by markdown stored in the repo. this is intentional: documentation should be reviewed, versioned, and shipped with the code it describes. source of truth use docs/pages//.md for content and docs/nav.json for ordering. each page can define frontmatter: the file path becomes the route. docs/pages/index.md renders at /docs, and docs/pages/architecture/web.md renders at /docs/architecture/web. search and navigation the web app builds a search index from page titles, descriptions, headings, and body text. the right-side \"on this page\" browser is generated from markdown headings. use clear h2 and h3 headings. avoid deeply nested heading structures unless the content truly needs them. why not a cms first a cms adds authentication, publishing, preview, migrations, authorization, and operational concerns. repo markdown is simpler and better aligned with this stack's template role. add a cms or authenticated editor only when non-engineer editing becomes a real requirement. if you add one later, keep a clear sync or publishing boundary so the docs route does not have two competing sources of truth. product adaptation for a product built on uwns, keep the route and replace the content. start with: product overview setup and local development architecture and ownership boundaries operations and incident runbooks user-facing support docs where relevant"
+  },
+  {
+    "type": "heading",
+    "title": "Source of truth",
+    "href": "/docs/reference/documentation-management#source-of-truth",
+    "section": "Documentation management",
+    "description": "How UWNS manages docs and how downstream products should adapt it.",
+    "searchText": "documentation management source of truth how uwns manages docs and how downstream products should adapt it."
+  },
+  {
+    "type": "heading",
+    "title": "Search and navigation",
+    "href": "/docs/reference/documentation-management#search-and-navigation",
+    "section": "Documentation management",
+    "description": "How UWNS manages docs and how downstream products should adapt it.",
+    "searchText": "documentation management search and navigation how uwns manages docs and how downstream products should adapt it."
+  },
+  {
+    "type": "heading",
+    "title": "Why not a CMS first",
+    "href": "/docs/reference/documentation-management#why-not-a-cms-first",
+    "section": "Documentation management",
+    "description": "How UWNS manages docs and how downstream products should adapt it.",
+    "searchText": "documentation management why not a cms first how uwns manages docs and how downstream products should adapt it."
+  },
+  {
+    "type": "heading",
+    "title": "Product adaptation",
+    "href": "/docs/reference/documentation-management#product-adaptation",
+    "section": "Documentation management",
+    "description": "How UWNS manages docs and how downstream products should adapt it.",
+    "searchText": "documentation management product adaptation how uwns manages docs and how downstream products should adapt it."
+  },
+  {
+    "type": "page",
+    "title": "Unified Web Native Stack",
+    "href": "/docs",
+    "section": "Start here",
+    "description": "A practical guide to the UWNS monorepo and the documentation template included with it.",
+    "searchText": "unified web native stack a practical guide to the uwns monorepo and the documentation template included with it. start here unified web native stack uwns is a turbo monorepo for building a product across web, native, shared ui, shared providers, a fastapi service, and supabase-backed data/auth. the docs route explains the current repo and also provides the documentation pattern that downstream products can keep when they fork or extend this stack. what this stack includes apps/web for the next.js app router web app. apps/native for the expo app. packages/ui for shared cross-platform ui primitives and components. packages/providers for reusable client-side providers. packages/lib for stable shared client contracts and generated metadata. services/api for the fastapi service. supabase for local supabase config, migrations, seed data, policies, and realtime publication. tooling for deterministic repo generators and maintenance scripts. how to use these docs start with repo structure, then read the architecture pages for the surfaces you plan to change. if you are using uwns as a product template, keep this route and replace the content with your product's onboarding, architecture, operations, and support documentation. documentation principles the docs are markdown-first and repo-managed. that keeps product knowledge close to the code, makes changes reviewable in pull requests, and avoids adding a cms before there is a concrete editing workflow that needs one. docs should be useful to implementers first. prefer concrete paths, ownership boundaries, commands, and operational notes over broad prose. what to customize first update public branding in the web and native apps. replace landing page and demo copy with product-specific content. review auth, notification, and action tracking flows before shipping. replace or extend these docs so they describe your product, not just uwns."
+  },
+  {
+    "type": "heading",
+    "title": "What this stack includes",
+    "href": "/docs#what-this-stack-includes",
+    "section": "Unified Web Native Stack",
+    "description": "A practical guide to the UWNS monorepo and the documentation template included with it.",
+    "searchText": "unified web native stack what this stack includes a practical guide to the uwns monorepo and the documentation template included with it."
+  },
+  {
+    "type": "heading",
+    "title": "How to use these docs",
+    "href": "/docs#how-to-use-these-docs",
+    "section": "Unified Web Native Stack",
+    "description": "A practical guide to the UWNS monorepo and the documentation template included with it.",
+    "searchText": "unified web native stack how to use these docs a practical guide to the uwns monorepo and the documentation template included with it."
+  },
+  {
+    "type": "heading",
+    "title": "Documentation principles",
+    "href": "/docs#documentation-principles",
+    "section": "Unified Web Native Stack",
+    "description": "A practical guide to the UWNS monorepo and the documentation template included with it.",
+    "searchText": "unified web native stack documentation principles a practical guide to the uwns monorepo and the documentation template included with it."
+  },
+  {
+    "type": "heading",
+    "title": "What to customize first",
+    "href": "/docs#what-to-customize-first",
+    "section": "Unified Web Native Stack",
+    "description": "A practical guide to the UWNS monorepo and the documentation template included with it.",
+    "searchText": "unified web native stack what to customize first a practical guide to the uwns monorepo and the documentation template included with it."
+  },
+  {
+    "type": "page",
+    "title": "Repo structure",
+    "href": "/docs/getting-started/repo-structure",
+    "section": "Start here",
+    "description": "The package and app boundaries that make up the UWNS monorepo.",
+    "searchText": "repo structure the package and app boundaries that make up the uwns monorepo. start here repo structure uwns keeps deployable surfaces, shared packages, backend services, database schema, and tooling in explicit top-level folders. keep those boundaries intact unless a product requirement clearly justifies changing them. apps apps/web owns the next.js app router web app. web routes, layouts, shell composition, web auth adapters, and web-only ui live there. apps/native owns the expo app. native screens, navigation, push registration, native tokens, and platform-specific auth wiring live there. shared packages packages/ui owns shared ui primitives, composed components, auth ui, and theme tokens. add to it only when reuse is real across surfaces. packages/providers owns shared client-side state and integrations such as auth, actions, notifications, supabase client boundaries, and provider exports. packages/lib owns stable shared dtos, api client contracts, generated metadata, and code that should not belong to either app. backend and data services/api owns fastapi routers, services, repositories, pydantic schemas, supabase auth verification, and api tests. supabase owns migrations, row-level security, grants, indexes, realtime publication, seed data, and local supabase configuration. tooling tooling owns deterministic generators and maintenance scripts. generated files should be updated through their generator rather than hand-edited. rule of thumb put app behavior in apps, reusable contracts in packages, service-owned writes in services, and database ownership in migrations. avoid creating a new shared package until there is real reuse."
+  },
+  {
+    "type": "heading",
+    "title": "Apps",
+    "href": "/docs/getting-started/repo-structure#apps",
+    "section": "Repo structure",
+    "description": "The package and app boundaries that make up the UWNS monorepo.",
+    "searchText": "repo structure apps the package and app boundaries that make up the uwns monorepo."
+  },
+  {
+    "type": "heading",
+    "title": "Shared packages",
+    "href": "/docs/getting-started/repo-structure#shared-packages",
+    "section": "Repo structure",
+    "description": "The package and app boundaries that make up the UWNS monorepo.",
+    "searchText": "repo structure shared packages the package and app boundaries that make up the uwns monorepo."
+  },
+  {
+    "type": "heading",
+    "title": "Backend and data",
+    "href": "/docs/getting-started/repo-structure#backend-and-data",
+    "section": "Repo structure",
+    "description": "The package and app boundaries that make up the UWNS monorepo.",
+    "searchText": "repo structure backend and data the package and app boundaries that make up the uwns monorepo."
+  },
+  {
+    "type": "heading",
+    "title": "Tooling",
+    "href": "/docs/getting-started/repo-structure#tooling",
+    "section": "Repo structure",
+    "description": "The package and app boundaries that make up the UWNS monorepo.",
+    "searchText": "repo structure tooling the package and app boundaries that make up the uwns monorepo."
+  },
+  {
+    "type": "heading",
+    "title": "Rule of thumb",
+    "href": "/docs/getting-started/repo-structure#rule-of-thumb",
+    "section": "Repo structure",
+    "description": "The package and app boundaries that make up the UWNS monorepo.",
+    "searchText": "repo structure rule of thumb the package and app boundaries that make up the uwns monorepo."
+  },
+  {
+    "type": "page",
+    "title": "Product customization",
+    "href": "/docs/getting-started/product-customization",
+    "section": "Start here",
+    "description": "The safest order for turning UWNS into a product-specific stack.",
+    "searchText": "product customization the safest order for turning uwns into a product-specific stack. start here product customization treat uwns as a working product foundation, not a code sample. customize the visible product first, then adjust deeper architecture only where the product requires it. replace product identity update app names, metadata, public copy, legal content, icons, environment variables, and store-facing labels. keep branding changes at app boundaries and theme token overrides instead of hard-coding brand colors inside shared ui. shape the product surface replace the public landing page and authenticated /app screens with real product workflows. keep route-specific behavior near the route until reuse is concrete. review auth and data ownership supabase auth is already the default account system. before shipping, review which tables are user-owned, which writes require the api, and which flows need server-side validation or side effects. keep documentation current use docs/pages for product docs and docs/nav.json for ordering. keep architecture, operations, and support docs in the repo so product behavior and documentation move together. avoid early rewrites do not replace the monorepo, provider model, or shared ui structure just to match personal preference. change boundaries when the current design becomes leaky for a real requirement."
+  },
+  {
+    "type": "heading",
+    "title": "Replace product identity",
+    "href": "/docs/getting-started/product-customization#replace-product-identity",
+    "section": "Product customization",
+    "description": "The safest order for turning UWNS into a product-specific stack.",
+    "searchText": "product customization replace product identity the safest order for turning uwns into a product-specific stack."
+  },
+  {
+    "type": "heading",
+    "title": "Shape the product surface",
+    "href": "/docs/getting-started/product-customization#shape-the-product-surface",
+    "section": "Product customization",
+    "description": "The safest order for turning UWNS into a product-specific stack.",
+    "searchText": "product customization shape the product surface the safest order for turning uwns into a product-specific stack."
+  },
+  {
+    "type": "heading",
+    "title": "Review auth and data ownership",
+    "href": "/docs/getting-started/product-customization#review-auth-and-data-ownership",
+    "section": "Product customization",
+    "description": "The safest order for turning UWNS into a product-specific stack.",
+    "searchText": "product customization review auth and data ownership the safest order for turning uwns into a product-specific stack."
+  },
+  {
+    "type": "heading",
+    "title": "Keep documentation current",
+    "href": "/docs/getting-started/product-customization#keep-documentation-current",
+    "section": "Product customization",
+    "description": "The safest order for turning UWNS into a product-specific stack.",
+    "searchText": "product customization keep documentation current the safest order for turning uwns into a product-specific stack."
+  },
+  {
+    "type": "heading",
+    "title": "Avoid early rewrites",
+    "href": "/docs/getting-started/product-customization#avoid-early-rewrites",
+    "section": "Product customization",
+    "description": "The safest order for turning UWNS into a product-specific stack.",
+    "searchText": "product customization avoid early rewrites the safest order for turning uwns into a product-specific stack."
+  }
+]

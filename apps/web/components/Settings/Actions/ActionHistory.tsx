@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import {
-    Activity,
+  Activity,
   Braces,
   CalendarClock,
   Fingerprint,
@@ -39,7 +39,35 @@ export interface ActionHistoryProps {
   actions: Action[];
 }
 
-export default function ActionHistory({
+export function ActionHistoryHeader({ actionCount }: { actionCount: number }) {
+  return (
+    <div className="flex flex-col gap-3 pb-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Activity size={16} />
+          Action history
+          <span className="inline-flex items-center rounded-full border border-(--ui-border) bg-(--ui-bg) px-2 py-0.5 text-[10px] font-medium leading-4 text-(--ui-muted-fg)">
+            {`${actionCount} action${actionCount === 1 ? "" : "s"}`}
+          </span>
+        </div>
+        <p className="text-xs leading-5 text-(--ui-muted-fg)">
+          Showing the latest {ACTION_LIMIT} tracked actions grouped by platform.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function ActionHistory(props: ActionHistoryProps) {
+  return (
+    <section className="space-y-5">
+      <ActionHistoryHeader actionCount={props.actions.length} />
+      <ActionHistoryContent {...props} />
+    </section>
+  );
+}
+
+export function ActionHistoryContent({
   error,
   loading,
   actions,
@@ -73,23 +101,7 @@ export default function ActionHistory({
   }, [actions]);
 
   return (
-    <section className="space-y-5">
-      <div className="flex flex-col gap-3 border-b border-(--ui-border) pb-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Activity size={16} />
-            Action history
-            <span className="inline-flex items-center rounded-full border border-(--ui-border) bg-(--ui-bg) px-2 py-0.5 text-[10px] font-medium leading-4 text-(--ui-muted-fg)">
-              {`${actions.length} action${actions.length === 1 ? "" : "s"}`}
-            </span>
-          </div>
-          <p className="text-xs leading-5 text-(--ui-muted-fg)">
-            Showing the latest {ACTION_LIMIT} tracked actions grouped by
-            platform.
-          </p>
-        </div>
-      </div>
-
+    <>
       {loading ? (
         <ActionStateMessage message="Loading actions..." />
       ) : error ? (
@@ -97,8 +109,8 @@ export default function ActionHistory({
       ) : actions.length === 0 ? (
         <ActionStateMessage message="No actions yet. Use the demo trigger to create one." />
       ) : (
-        <div className="space-y-6">
-          {sections.map(({ platform, actions }) => {
+        <div>
+          {sections.map(({ platform, actions }, index) => {
             const config = getActionPlatformConfig(platform);
 
             return (
@@ -108,6 +120,7 @@ export default function ActionHistory({
                 count={actions.length}
                 description={config.description}
                 emptyMessage={`No ${config.label.toLowerCase()} actions yet.`}
+                stickyIndex={index}
               >
                 {actions.map((action) => (
                   <ActionRow
@@ -178,7 +191,7 @@ export default function ActionHistory({
           </DialogContent>
         </DialogPortal>
       </DialogRoot>
-    </section>
+    </>
   );
 }
 
@@ -187,38 +200,91 @@ function ActionSection({
   count,
   description,
   emptyMessage,
+  stickyIndex,
   children,
 }: {
   title: string;
   count: number;
   description: string;
   emptyMessage: string;
+  stickyIndex: number;
   children: React.ReactNode;
 }) {
+  const headerRef = React.useRef<HTMLDivElement | null>(null);
+  const listRef = React.useRef<HTMLDivElement | null>(null);
+  const scrollToSectionTop = React.useCallback(() => {
+    const header = headerRef.current;
+    const list = listRef.current;
+    const scrollContainer = header?.closest(
+      "[data-settings-history-scroll]",
+    );
+
+    if (
+      !header ||
+      !list ||
+      !(scrollContainer instanceof HTMLElement) ||
+      scrollContainer.scrollHeight <= scrollContainer.clientHeight
+    ) {
+      list?.scrollIntoView({ block: "start", behavior: "smooth" });
+      return;
+    }
+
+    const stackedHeaderHeight = header.offsetHeight * (stickyIndex + 1);
+    scrollContainer.scrollTo({
+      top: Math.max(0, list.offsetTop - stackedHeaderHeight),
+      behavior: "smooth",
+    });
+  }, [stickyIndex]);
+
   return (
-    <section className="space-y-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <>
+      {stickyIndex > 0 ? <div aria-hidden className="h-6" /> : null}
+      <div
+        ref={headerRef}
+        className="relative flex min-h-10 flex-wrap items-center justify-between gap-x-3 gap-y-1 bg-(--ui-bg) py-2 lg:sticky lg:z-20"
+        style={{
+          top: `calc(var(--settings-history-sticky-row) * ${stickyIndex})`,
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-0 right-0 top-full hidden h-3 lg:block"
+          style={{
+            background:
+              "linear-gradient(to bottom, var(--ui-fade-from), rgba(0,0,0,0))",
+          }}
+        />
         <div className="flex items-baseline gap-2">
           <h3 className="text-xs font-medium uppercase tracking-wide text-(--ui-muted-fg)">
-            {title}
+            <button
+              type="button"
+              className="cursor-pointer rounded-sm text-left uppercase tracking-wide transition hover:text-(--ui-fg) focus:outline-none focus:ring-2 focus:ring-(--ui-border)"
+              onClick={scrollToSectionTop}
+            >
+              {title}
+            </button>
           </h3>
           <span className="rounded-full border border-(--ui-border) px-1.5 py-0.5 text-[10px] leading-none text-(--ui-muted-fg)">
             {count}
           </span>
         </div>
         <p className="text-xs text-(--ui-muted-fg)">{description}</p>
+        <div className="border-b border-(--ui-border) absolute left-0 right-0 top-full -mt-px hidden lg:block" />
       </div>
 
       {count === 0 ? (
-        <div className="border-y border-(--ui-border) py-4 text-sm text-(--ui-muted-fg)">
+        <div
+          ref={listRef}
+          className="mt-2 border-y border-(--ui-border) py-4 text-sm text-(--ui-muted-fg)"
+        >
           {emptyMessage}
         </div>
       ) : (
-        <div className="border-t border-(--ui-border) divide-y divide-(--ui-border)">
+        <div ref={listRef} className="mt-2 divide-y divide-(--ui-border)">
           {children}
         </div>
       )}
-    </section>
+    </>
   );
 }
 

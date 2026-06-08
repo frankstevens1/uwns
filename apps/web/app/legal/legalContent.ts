@@ -71,7 +71,7 @@ export const legalDocuments: Record<LegalDocumentSlug, LegalDocument> = {
       {
         title: "Product activity and internal analytics",
         paragraphs: [
-          "The app records internal action events in the actions table. Current examples include home_viewed, account_viewed, actions_viewed, notifications_viewed, timer_started, timer_stopped, logged_in, signed_up, signed_out, password_updated, and demo_action_triggered.",
+          "The app records internal action events in the actions table. Current examples include home_viewed, account_viewed, actions_viewed, notifications_viewed, docs_viewed, timer_started, timer_stopped, logged_in, signed_up, signed_out, password_updated, and demo_action_triggered.",
           "Some actions include metadata and unique keys so the service can deduplicate repeated events and link actions to notifications.",
           "This is internal product analytics used to run and improve the service. We do not use it for advertising, cross-site tracking, marketing profiles, or data brokerage.",
         ],

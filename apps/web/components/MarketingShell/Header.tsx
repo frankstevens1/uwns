@@ -7,14 +7,24 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@repo/ui";
 import { useAuth } from "@repo/providers";
+import { DocsSearchBox } from "@/components/Docs/DocsSearchBox";
+import { useDocsHeaderState } from "@/components/Docs/docsHeaderStore";
+import { UserMenu } from "@/components/UserMenu";
 import { LogoUwns } from "../LogoSvg";
 
 const HEADER_H = 56;
 
-export default function MarketingHeader({ title, headerHeight }: { title: string; headerHeight?: number }) {
+export default function MarketingHeader({
+  title,
+  headerHeight,
+}: {
+  title: string;
+  headerHeight?: number;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, loading } = useAuth();
+  const docsHeader = useDocsHeaderState();
 
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
@@ -30,9 +40,8 @@ export default function MarketingHeader({ title, headerHeight }: { title: string
     router.push(href);
   };
 
-  // One primary action: "View demo" (logged out) or "Enter app" (logged in).
-  const primaryHref = user ? "/app" : "/login";
-  const primaryLabel = user ? "Demo" : "Demo";
+  const isDocsRoute = !!pathname?.startsWith("/docs");
+  const showDocsHeader = isDocsRoute && docsHeader.active && docsHeader.docked;
 
   return (
     <header
@@ -46,17 +55,61 @@ export default function MarketingHeader({ title, headerHeight }: { title: string
       style={{ height: headerHeight || HEADER_H }}
     >
       <div className="mx-auto flex h-full max-w-5xl items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2">
-          <LogoUwns className="h-6 w-auto text-foreground" version={"1"} />
-        </Link>
+        <div className="flex min-w-0 items-center gap-3">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
+            <LogoUwns className="h-6 w-auto text-foreground" version={"1"} />
+          </Link>
+
+          {showDocsHeader ? (
+            <div className="hidden min-w-0 items-center gap-2 border-l border-(--ui-border) pl-3 sm:flex">
+              <Link
+                href="/docs"
+                className="shrink-0 text-xs font-medium uppercase text-(--ui-muted-fg) hover:text-(--ui-fg)"
+              >
+                Docs
+              </Link>
+              <span aria-hidden className="text-xs text-(--ui-muted-fg)">
+                /
+              </span>
+              <Link
+                href={docsHeader.href}
+                className="truncate text-sm font-medium text-(--ui-fg)"
+              >
+                {docsHeader.title}
+              </Link>
+            </div>
+          ) : null}
+        </div>
 
         {/* Desktop: quiet utilities + one CTA */}
-        <div className="hidden items-center gap-2 sm:flex">
-          {!loading && !isAuthRoute && (
-            <Button variant="primary" onPress={() => go(primaryHref)}>
-              {primaryLabel}
+        <div className="hidden shrink-0 items-center gap-2 sm:flex">
+          {showDocsHeader ? (
+            <DocsSearchBox
+              searchIndex={docsHeader.searchIndex}
+              className="hidden w-72 md:block"
+              inputClassName="h-8"
+              sharedQuery
+            />
+          ) : null}
+
+          {!isDocsRoute ? (
+            <Link
+              href="/docs"
+              className="rounded-md px-3 py-2 text-sm font-medium text-(--ui-muted-fg) hover:bg-(--ui-subtle-bg) hover:text-(--ui-fg)"
+            >
+              Docs
+            </Link>
+          ) : null}
+
+          {!loading && !isAuthRoute && user ? (
+            <UserMenu signOutSource="marketing_header" />
+          ) : null}
+
+          {!loading && !isAuthRoute && !user ? (
+            <Button variant="primary" onPress={() => go("/login")}>
+              Demo
             </Button>
-          )}
+          ) : null}
         </div>
 
         {/* Mobile: keep menu variant */}
@@ -79,20 +132,44 @@ export default function MarketingHeader({ title, headerHeight }: { title: string
                 Home
               </Button>
 
-              <Button variant="ghost" onPress={() => go("/legal?document=privacy")}>
+              {!isDocsRoute ? (
+                <Button variant="ghost" onPress={() => go("/docs")}>
+                  Docs
+                </Button>
+              ) : null}
+
+              <Button
+                variant="ghost"
+                onPress={() => go("/legal?document=privacy")}
+              >
                 Privacy Policy
               </Button>
 
-              <Button variant="ghost" onPress={() => go("/legal?document=terms")}>
+              <Button
+                variant="ghost"
+                onPress={() => go("/legal?document=terms")}
+              >
                 Terms of Service
               </Button>
 
               {/* Keep this minimal. Don’t turn it into a nav bar. */}
-              {!loading && !isAuthRoute && (
-                <Button variant="primary" onPress={() => go(primaryHref)}>
-                  {primaryLabel}
+              {!loading && !isAuthRoute && user ? (
+                <>
+                  <Button variant="ghost" onPress={() => go("/app")}>
+                    App
+                  </Button>
+
+                  <Button variant="ghost" onPress={() => go("/app/account")}>
+                    Account
+                  </Button>
+                </>
+              ) : null}
+
+              {!loading && !isAuthRoute && !user ? (
+                <Button variant="primary" onPress={() => go("/login")}>
+                  Demo
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
